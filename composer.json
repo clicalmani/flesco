@@ -3,7 +3,8 @@
     "description": "PDMS Backend Framework MVC Model",
     "type": "library",
     "require": {
-        "phpmailer/phpmailer": "dev-master"
+        "phpmailer/phpmailer": "dev-master",
+        "php": ">7.4"
     },
     "license": "proprietary",
     "autoload": {
