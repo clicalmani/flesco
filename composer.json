@@ -16,5 +16,7 @@
             "name": "honorable85",
             "email": "honorable85@gmail.com"
         }
-    ]
+    ],
+    "minimum-stability": "dev",
+    "prefer-stable": true
 }
