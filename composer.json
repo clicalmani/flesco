@@ -1,0 +1,21 @@
+{
+    "name": "clicalmani/flesco",
+    "description": "PDMS Backend Framework MVC Model",
+    "type": "library",
+    "require": {
+        "phpmailer/phpmailer": "dev-master"
+    },
+    "license": "proprietary",
+    "autoload": {
+        "psr-4": {
+            "Clicalmani\\Flesco\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "honorable85",
+            "email": "honorable85@gmail.com"
+        }
+    ],
+    "minimum-stability": "dev"
+}
