@@ -9,7 +9,7 @@
     "license": "proprietary",
     "autoload": {
         "psr-4": {
-            "Flesco\\": "src/clicalmani"
+            "Flesco\\": "clicalmani/flesco/src"
         }
     },
     "authors": [
