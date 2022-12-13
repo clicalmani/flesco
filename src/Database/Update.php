@@ -1,5 +1,5 @@
 <?php
-namespace src\Requests;
+namespace Clicalmani\Flesco\Requests;
 
 class Update extends DBQueryBuilder implements \IteratorAggregate {
 	

@@ -1,7 +1,7 @@
 <?php
-namespace Cliclamani\Flesco\Auth;
+namespace Clicalmani\Flesco\Auth;
 
-use Cliclamani\Flesco\Database\DB;
+use Clicalmani\Flesco\Database\DB;
 
 class Auth implements \ArrayAccess {
 	/**

@@ -1,5 +1,5 @@
 <?php
-namespace src\Collection;
+namespace Clicalmani\Flesco\Collection;
 
 class SPLCollection extends \ArrayObject
 {

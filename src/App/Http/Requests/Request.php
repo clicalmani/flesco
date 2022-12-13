@@ -1,10 +1,10 @@
 <?php
-namespace Cliclamani\Flesco\App\Http;
+namespace Clicalmani\Flesco\App\Http\Requests;
 
-use Cliclamani\Flesco\App\Controllers\RequestController;
-use Cliclamani\Flesco\App\Http\RequestFile;
-use Cliclamani\Flesco\App\Http\RequestRedirect;
-use Cliclamani\Flesco\Security\Security;
+use Clicalmani\Flesco\App\Http\Controllers\RequestController;
+use Clicalmani\Flesco\App\Http\Requests\RequestFile;
+use Clicalmani\Flesco\App\Http\Requests\RequestRedirect;
+use Clicalmani\Flesco\Security\Security;
 
 class Request implements \ArrayAccess {
 

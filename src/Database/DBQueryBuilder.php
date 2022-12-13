@@ -1,7 +1,7 @@
 <?php
-namespace src\Database;
+namespace Clicalmani\Flesco\Database;
 
-use src\Collection\Collection;
+use Clicalmani\Flesco\Collection\Collection;
 
 abstract class DBQueryBuilder {
 	

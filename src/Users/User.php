@@ -1,5 +1,5 @@
 <?php
-namespace Cliclamani\Flesco\Users;
+namespace Clicalmani\Flesco\Users;
 
 abstract class User extends Auth 
 {

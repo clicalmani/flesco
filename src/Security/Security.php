@@ -1,5 +1,5 @@
 <?php
-namespace Cliclamani\Flesco\Security;
+namespace Clicalmani\Flesco\Security;
 
 class Security {
 	
@@ -81,7 +81,7 @@ class Security {
 		return $tmp;
 	}
     	
-    static function hash($data, $method = 'md5') {
+    static function hash($data, $method = 'sha1') {
     	
     	if(!in_array($method, array('sha1', 'md5'))) {
     			die("the specified encryption function <<$method>> is not supported");

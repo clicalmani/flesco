@@ -1,5 +1,5 @@
 <?php
-namespace src\Exceptions;
+namespace Clicalmani\Flesco\App\Exceptions;
 
 class HttpRequestException extends \Exception {
 	function __construct($message){

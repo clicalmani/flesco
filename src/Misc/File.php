@@ -1,5 +1,5 @@
 <?php
-namespace Cliclamani\Flesco\Misc;
+namespace Clicalmani\Flesco\Misc;
 
 class File 
 {

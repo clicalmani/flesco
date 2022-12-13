@@ -1,12 +1,35 @@
 <?php
-namespace Cliclamani\Flesco\App\Controllers;
+namespace Clicalmani\Flesco\App\Http\Controllers;
 
-use Cliclamani\Flesco\App\Http\Request;
-use Cliclamani\Flesco\App\Http\HttpRequest;
-use Cliclamani\Flesco\App\Routes\Route;
-use Cliclamani\Flesco\Exceptions\HttpRequestException;
+use Clicalmani\Flesco\App\Http\Requests\Request;
+use Clicalmani\Flesco\App\Http\Requests\HttpRequest;
+use Clicalmani\Flesco\Routes\Route;
+use Clicalmani\Flesco\App\Exceptions\HttpRequestException;
+use Clicalmani\Flesco\Security\CSRF;
 
-abstract class RequestController extends HttpRequest {
+$vendor_dir = dirname( dirname( dirname( __DIR__ ) ) );
+
+require_once $vendor_dir . '/config/config.php';
+require_once $vendor_dir . '/helpers.php';
+require_once $vendor_dir . '/auto.php';
+
+ini_set('log_errors', 1);
+ini_set('error_log', storage_path( '/errors/errors.log' ) );
+
+if (session_status() == PHP_SESSION_NONE) {
+    session_start();
+
+	if ( ! isset($_SESSION['csrf-token']) ) {
+		$csrf = new CSRF;
+		$_SESSION['csrf-token'] = $csrf->getToken();
+	}
+}
+
+require_once config_path( '/providers.php' );
+require_once routes_path( '/web.php' );
+
+abstract class RequestController extends HttpRequest 
+{
     protected $route;
     
     protected static function renderGetRequest($request) {
@@ -51,12 +74,20 @@ abstract class RequestController extends HttpRequest {
 
     public static function getController() 
 	{
-		$url = parse_url($_SERVER['REQUEST_URI']);
-		$path = isset($url['path']) ? $url['path']: '/';
-
+		$route = current_route();
+		$http = new HttpRequest;
+		$headers = $http->getHeaders();
+		echo '<pre>'; print_r($headers); echo '</pre>';
 		foreach (Route::$rountines as $method => $data) {
-			if (isset($data[$path])) {
-				return $data[$path];
+			if ($route = Route::exists($route, $method)) { 
+
+				$middleware = Route::getCurrentRouteMiddleware();
+				
+				if ( isset($middleware) AND Route::isCurrentRouteAuthorized() == false ) {
+					throw new HttpRequestException('Request not authorized !');
+				}
+
+				return $data[$route];
 			}
 		}
 		
@@ -89,7 +120,7 @@ abstract class RequestController extends HttpRequest {
 		} elseif ($controller instanceof \Closure) {
 			return $controller($request);
 		}
-
+		
 		throw new HttpRequestException('Request without routine !');
 	}
 }

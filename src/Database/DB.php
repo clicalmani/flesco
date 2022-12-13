@@ -1,7 +1,7 @@
 <?php
-namespace Cliclamani\Flesco\Database;
+namespace Clicalmani\Flesco\Database;
 
-use Cliclamani\Flesco\Collection\Collection;
+use Clicalmani\Flesco\Collection\Collection;
 use \mysqli_result;
 
 require $_SERVER['DOCUMENT_ROOT'] . '/database/config.php';
@@ -42,7 +42,7 @@ class DB
 	{
 		 
 	    if (!isset(self::$instance)) {
-			return self::$instance = new \src\Database\DB();
+			return self::$instance = new \Clicalmani\Flesco\Database\DB();
 		}
 		
 		return self::$instance;

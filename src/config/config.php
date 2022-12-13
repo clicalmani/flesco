@@ -1,3 +1,5 @@
 <?php
-use src\App\Routes\Route;
-return Route::$rountines = ['get' => [], 'post' => []];
+Clicalmani\Flesco\Routes\Route::$rountines = [
+    'get' => [], 
+    'post' => []
+];

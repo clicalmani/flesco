@@ -1,5 +1,5 @@
 <?php
-namespace src\Database;
+namespace Clicalmani\Flesco\Database;
 
 class Delete extends DBQueryBuilder implements \IteratorAggregate {
 	

@@ -1,5 +1,5 @@
 <?php
-namespace Cliclamani\Flesco\App\Http;
+namespace Clicalmani\Flesco\App\Http\Requests;
 
 class RequestFile {
 

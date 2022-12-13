@@ -1,7 +1,7 @@
 <?php
-namespace src\Database;
+namespace Clicalmani\Flesco\Database;
 
-use src\Collection\Collection;
+use Clicalmani\Flesco\Collection\Collection;
 
 define('DB_QUERY_SELECT', 0);
 define('DB_QUERY_INSERT', 1);
@@ -22,7 +22,18 @@ class DBQuery
 	
 	function set($param, $value) 
 	{ 
-		$this->params[$param] = $value; 
+		if (isset($this->params[$param])) {
+			$this->params[$param] = $value;
+		} 
+	}
+
+	function getParam($param)
+	{
+		if (isset($this->params[$param])) {
+			return $this->params[$param];
+		}
+
+		return null;
 	}
 	
 	function exec()
@@ -60,6 +71,45 @@ class DBQuery
 		return $this;
 	}
 
+	function delete()
+	{
+		$this->query = DB_QUERY_DELETE;
+		return $this;
+	}
+
+	function update($options = [])
+	{
+		$fields = array_keys( $options );
+		$values = array_values( $options );
+
+		$this->params['fields'] = $fields;
+		$this->params['values'] = $values;
+
+		return $this;
+	}
+
+	function insert($options = [])
+	{
+		$table = @ isset( $this->params['tables'][0] ) ? $this->params['tables'][0]: null;
+
+		if ( isset( $table ) ) {
+			unset($this->params['tables']);
+			$this->params['table'] = $table;
+		}
+
+		$this->params['values'] = [];
+
+		foreach ($options as $option) {
+			$fields = array_keys( $option );
+			$values = array_values( $option );
+
+			$this->params['fields']   = $fields;
+			$this->params['values'][] = $values;
+		}
+
+		return $this;
+	}
+
 	function where($criteria)
 	{
 		$this->params['where'] = $criteria;
@@ -81,6 +131,66 @@ class DBQuery
 		}
 
 		return $collection;
+	}
+
+	function join($table)
+	{
+		$this->params['tables'][] = $table;
+		return $this;
+	}
+
+	function joinLeft($table, $parent_id, $child_id)
+	{
+		$joint = [
+			'table'    => $table,
+			'type'     => 'LEFT',
+			'criteria' => 'ON(' . $parent_id . '=' . $child_id . ')'
+		];
+
+		if ( isset($this->params['join']) AND is_array($this->params['join'])) {
+			$this->params['join'][] = $joint;
+		} else {
+			$this->params['join'] = [];
+			$this->params['join'][] = $joint;
+		}
+
+		return $this;
+	}
+
+	function joinRight($table, $parent_id, $child_id)
+	{
+		$joint = [
+			'table'    => $table,
+			'type'     => 'RIGHT',
+			'criteria' => 'ON(' . $parent_id . '=' . $child_id . ')'
+		];
+
+		if ( isset($this->params['join']) AND is_array($this->params['join'])) {
+			$this->params['join'][] = $joint;
+		} else {
+			$this->params['join'] = [];
+			$this->params['join'][] = $joint;
+		}
+
+		return $this;
+	}
+
+	function joinInner($table, $parent_id, $child_id)
+	{
+		$joint = [
+			'table'    => $table,
+			'type'     => 'INNER',
+			'criteria' => 'ON(' . $parent_id . '=' . $child_id . ')'
+		];
+
+		if ( isset($this->params['join']) AND is_array($this->params['join'])) {
+			$this->params['join'][] = $joint;
+		} else {
+			$this->params['join'] = [];
+			$this->params['join'][] = $joint;
+		}
+
+		return $this;
 	}
 }
 ?>

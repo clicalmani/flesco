@@ -1,7 +1,7 @@
 <?php
-namespace Cliclamani\Flesco\Notifications;
+namespace Clicalmani\Flesco\Notifications;
 
-use Cliclamani\Flesco\Database\DB;
+use Clicalmani\Flesco\Database\DB;
 
 class Notification 
 {
