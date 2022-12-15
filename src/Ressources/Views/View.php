@@ -21,6 +21,6 @@ class View
             return;
         }
 
-        throw new \Clicalmani\Flesco\App\Exceptions\RessourceViewException('No ressource found');
+        throw new \Clicalmani\Flesco\Exceptions\RessourceViewException('No ressource found');
     }
 }

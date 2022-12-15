@@ -120,6 +120,12 @@ if ( ! function_exists( 'config_path' ) ) {
     }
 }
 
+if ( ! function_exists( 'database_path' ) ) {
+    function database_path( $path = '/' ) {
+        return root_path( '/database' . $path );
+    }
+}
+
 if ( ! function_exists( 'view' ) ) {
     function view( ...$args ) {
         return Clicalmani\Flesco\Ressources\Views\View::render( ...$args );
@@ -139,5 +145,11 @@ if ( ! function_exists( 'csrf' ) ) {
         }
 
         return null;
+    }
+}
+
+if ( ! function_exists( 'env' ) ) {
+    function env($key, $default = '') {
+        return isset($_ENV[$key]) ? $_ENV[$key]: $default;
     }
 }

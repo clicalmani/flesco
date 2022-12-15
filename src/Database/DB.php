@@ -2,39 +2,56 @@
 namespace Clicalmani\Flesco\Database;
 
 use Clicalmani\Flesco\Collection\Collection;
-use \mysqli_result;
+use PDO;
+use \PDOStatement;
 
-require $_SERVER['DOCUMENT_ROOT'] . '/database/config.php';
+global $db_config;
+
+$db_config = require config_path( '/database.php' );
 
 class DB 
 {
 	
 	static private $instance;
 	
-	private $con;
+	private $cons = [];
+	private $pdo;
 	
 	private $prefix;
-	
-	const MYSQL_CONNECT_ERROR = "Une erreur est survenue lors de l'établissement d'une connexion au serveur des bases de données, veuillez réessayer plus tard.";
 	
 	function __construct() 
 	{
 		global $db_config;
 
-		$this->con = mysqli_connect(
-		    $db_config->db_host, 
-		    $db_config->db_user, 
-		    $db_config->db_pswd, 
-		    $db_config->db_name
-		) or die(self::MYSQL_CONNECT_ERROR);
-		
-		mysqli_set_charset($this->con, 'UTF8');
-		mysqli_query($this->con, 'SET character_set_results=utf8');
-		
-		$this->prefix = $db_config->table_prefix;
+		try {
+			$db_default = $db_config['connections'][$db_config['default']];
+
+			$this->pdo = new PDO(
+				$db_default['driver'] . ':host=' . $db_default['host'] . ':' . $db_default['port'] . ';dbname=' . $db_default['name'],
+				$db_default['user'],
+				$db_default['pswd'],
+				[PDO::ATTR_PERSISTENT => true]
+			);
+
+			$this->pdo->query('SET NAMES ' . $db_default['charset']);
+			$this->pdo->query('SELECT CONCAT("ALTER TABLE ", tbl.TABLE_SCHEMA, ".", tbl.TABLE_NAME, " CONVERT TO CHARACTER SET ' . $db_default['charset'] . ' COLLATION ' . $db_default['collation'] . ';") FROM information_schema.TABLES tbl WHERE tbl.TABLE_SCHEMA = "' . $db_default['name'] . '"');
+			
+			$this->prefix = $db_default['prefix'];
+		} catch(\PDOException $e) {
+			die('An error occurred while trying to connect to the database server, please contact your administrator for further informations.');
+		}
 	}
 	
-	public function getConnection() { return $this->con? $this->con: false; }
+	public function getConnection($driver = '') 
+	{ 
+		if (empty($driver)) {
+			return $this->pdo? $this->pdo: null;
+		} 
+
+		/**
+		 * Driver provided
+		 */
+	}
 	
 	public function getPrefix() { return $this->prefix; }
 	
@@ -47,68 +64,61 @@ class DB
 		
 		return self::$instance;
 	}
+
+	static function getPdo() { return $this->pdo; }
 	
-	public function query($sql) { return mysqli_query($this->con, $sql); } 
+	public function query($sql) { return $this->pdo->query($sql); } 
 	
-	public function fetch($result, $flag = MYSQLI_BOTH) 
+	public function fetch($statement, $flag = PDO::FETCH_BOTH) 
 	{ 
 	    
-		if ($result instanceof mysqli_result) return mysqli_fetch_array($result, $flag);
+		if ($statement instanceof PDOStatement) return $statement->fetch($flag);
 		
-		return [];
+		return null;
 	}
 	
-	public function getRow($result) 
+	public function getRow($statement) 
 	{
 		
-		if ($result instanceof mysqli_result) return mysqli_fetch_row($result);
+		if ($statement instanceof PDOStatement) return $statement->fetch(PDO::FETCH_NUM);
 		
 		return array();
 	}
 	
-	public function numRows($result) 
+	public function numRows($statement) 
 	{ 
 	    
-		if ($result instanceof mysqli_result) return mysqli_num_rows($result); 
+		if ($statement instanceof PDOStatement) return $statement->rowCount(); 
 		
 		return 0;
 	}
-	
-	public function execSQL($sql) 
-	{ 
-		
-		$succes = mysqli_multi_query($this->con, $sql);
-		
-		if ($succes) {
-			
-			do {
-				
-				$result = mysqli_store_result($this->con);
-				if ($result instanceof mysqli_result) mysqli_free_result($result);
-				
-			} while (mysqli_next_result($this->con));
-		}
-		
-		return $succes;
+
+	public function prepare($sql)
+	{
+		return $this->pdo->prepare($sql);
 	}
 	
-	public function error() { return mysqli_error($this->con); }
+	public function error() { return $this->pdo->errorInfo(); }
 	
-	public function errno() { return mysqli_errno($this->con); }
+	public function errno() { return $this->pdo->errorCode(); }
 	
-	public function insertId() { return mysqli_insert_id($this->con); }
+	public function insertId() { return $this->pdo->lastInsertId(); }
 	
-	public function free($result) 
+	public function free($statement) 
 	{ 
 	    
-		if ($result instanceof mysqli_result) return mysqli_free_result($result); 
+		if ($statement instanceof PDOStatement) $statement = null; 
 		
 		return false;
 	}
 	
-	public function escape($str) { return mysqli_real_escape_string($this->con, $str); }
+	public function beginTransaction() { return $this->pdo->beginTransaction(); }
+
+	public function commit() { return $this->pdo->commit(); }
+
+	public function rollback() { return $this->pdo->rollback(); }
 	
-	public function close() { return mysqli_close($this->con); }
+	public function close() { return $this->pdo = null; }
 
 	static function table($tables)
 	{
@@ -124,40 +134,38 @@ class DB
 		return $builder;
 	}
 
-	public static function select($sql)
+	public static function select($sql, $parameters = [])
 	{
-		$result = $this->query($sql);
+		$collection = new Collection;
 
-		if (false != $result) {
+		if (empty($parameters)) {
+			$result = $this->query($sql);
 
-			$collection = new Collection;
+			if (false != $result) {
 
-			while ($row = $this->fetch($result)) {
-				$collection->add($row);
+				while ($row = $this->fetch($result)) {
+					$collection->add($row);
+				}
+
+				return $collection;
 			}
+		} else {
+			$stmt = $this->prepare($sql);
+			$success = $stmt->execute($parameters);
 
-			return $collection;
+			if ($success) {
+				while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+					$collection->add($row);
+				}
+			}
 		}
 
-		return null;
+		return $collection;
 	}
 
 	public static function raw($sql)
 	{
-		$result = $this->query($sql);
-
-		if (false != $result) {
-
-			$collection = new Collection;
-
-			while ($row = $this->fetch($result)) {
-				$collection->add($row);
-			}
-
-			return $collection;
-		}
-
-		return null;
+		return $this->query($sql);
 	}
 }
 ?>

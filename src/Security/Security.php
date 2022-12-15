@@ -81,59 +81,63 @@ class Security {
 		return $tmp;
 	}
     	
-    static function hash($data, $method = 'sha1') {
+    static function hash($data, $method = '') 
+	{
+    	if ( empty($method) ) {
+			$__func = function($str) {
+				return password_hash($str, PASSWORD_DEFAULT);
+			};
+		} else {
+			$__func = $method;
+		}
+
+		$__secret = env('APP_KEY');
     	
-    	if(!in_array($method, array('sha1', 'md5'))) {
-    			die("the specified encryption function <<$method>> is not supported");
-    	}
+    	$_ipad = substr($__secret, strlen($__secret), 0) ^ str_repeat(chr(0x36), strlen($__secret));
+    	$__opad = substr($__secret, 0, strlen($__secret)) ^ str_repeat(chr(0x5C), strlen($__secret));
     	
-    	$__func = $method;
-    	
-    	$_ipad = substr(self::SECRET_KEY, strlen(self::SECRET_KEY), 0) ^ str_repeat(chr(0x36), strlen(self::SECRET_KEY));
-    	$__opad = substr(self::SECRET_KEY, 0, strlen(self::SECRET_KEY)) ^ str_repeat(chr(0x5C), strlen(self::SECRET_KEY));
-    	
-    	$__inner = pack('H32', $__func($_ipad . $data));
+    	$__inner = @ pack('H32', $__func($_ipad . $data));
     	$__digest = $__func($__opad . $__inner);
     	
-    	return strtoupper(substr($__digest, 0, 8));
+    	return $__digest;
     }
     
-    static function createParameters($array) {
-    	
+    static function createParametersHash($params) 
+	{
     	$data = '';
-    	$ret = array();
-    	 
-    	foreach ($array as $key => $value){
+
+    	foreach ($params as $key => $value){
     		$data .= $key . $value;
-    		$ret[] = "$key=$value";
     	}
     	
-    	$hash = self::hash($data);
-    	$ret[] = "hsh=$hash";
-    	 
-    	return join('&', $ret);
+    	return strtoupper( substr( self::hash($data, 'sha1'), strlen( self::iv() ), 10 ) );
     }
 
-    static function verifyParameters($array) {
-    	
+    static function verifyParameters() 
+	{
     	$data = '';
-    	$ret = array();
-    	$hash = isset($array['hsh'])? $array['hsh']: self::hash('');
-    	unset($array['hsh']);
+
+    	$request_hash = isset($_REQUEST['hsh'])? $_REQUEST['hsh']: '';
+		
+    	unset($_REQUEST['hsh']);
     	 
-    	foreach ($array as $key => $value){
+    	foreach ($_REQUEST as $key => $value){
     		$data .= $key . $value;
-    		$ret[] = "$key=$value";
     	}
+		
+		$hash = strtoupper( substr( self::hash($data, 'sha1'), strlen( self::iv() ), 10 ) );
     	
-    	$hash = self::hash($data);
-    	
-    	if($hash != $hash){
-    		return false;
-    	} else {
+    	if($request_hash === $hash){
     		return true;
     	}
+
+		return false;
     }
+
+	static function iv()
+	{
+		return substr( hash('sha256', env('PASSWORD_CRYPT')), 0, 16);
+	}
 	
     static function opensslED($action, $string) {
 	
@@ -144,7 +148,8 @@ class Security {
 		$key = hash('sha256', self::SECRET_KEY);
 		
 		// iv - encrypt method AES-256-CBC expects 16 bytes - else you will get a warning
-		$iv = substr(hash('sha256', self::SECRET_IV), 0, 16);
+		$iv = self::iv();
+
 		if ( $action == 'encrypt' ) {
 			$output = openssl_encrypt($string, $encrypt_method, $key, 0, $iv);
 			$output = base64_encode($output);

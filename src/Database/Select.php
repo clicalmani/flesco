@@ -105,9 +105,9 @@ class Select extends DBQueryBuilder implements \IteratorAggregate
 		
 	    $result = $this->db->query($this->bindVars($this->sql));
     	
-		$this->status     = $result;
-	    $this->error_code = $this->db->errno($this->db->getConnection());
-	    $this->error_msg  = $this->db->error($this->db->getConnection());
+		$this->status     = $result ? true: false;
+	    $this->error_code = $this->db->errno();
+	    $this->error_msg  = $this->db->error();
 		$this->num_rows   = $this->db->numRows($result);
 		
 		// if (isset($this->params['calc']) AND $this->params['calc'] == true) {
@@ -115,7 +115,7 @@ class Select extends DBQueryBuilder implements \IteratorAggregate
 		// }
 		
 		$count = 0;
-	    while ($row = $this->db->fetch($result, MYSQLI_ASSOC)) {
+	    while ($row = $this->db->fetch($result, \PDO::FETCH_ASSOC)) {
 	    	$this->result[] = $row;
 			$count++;
 		}

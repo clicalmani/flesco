@@ -1,5 +1,7 @@
 <?php
-namespace Clicalmani\Flesco\Requests;
+namespace Clicalmani\Flesco\Database;
+
+use Clicalmani\Flesco\Database\DBQueryBuilder;
 
 class Update extends DBQueryBuilder implements \IteratorAggregate {
 	
@@ -12,7 +14,7 @@ class Update extends DBQueryBuilder implements \IteratorAggregate {
 			
 			$arr = preg_split('/\s/', $this->params['tables'][$i], -1, PREG_SPLIT_NO_EMPTY);
 			
-			$this->sql .= $this->bd->prefix() . strtoupper($arr[0]);
+			$this->sql .= $this->db->getPrefix() . strtoupper($arr[0]);
 			
 			if ($arr[0] !== $arr[sizeof($arr)-1]) $this->sql .= ' ' . $arr[sizeof($arr)-1];
 			
@@ -21,7 +23,7 @@ class Update extends DBQueryBuilder implements \IteratorAggregate {
 		
 		$arr = preg_split('/\s/', $this->params['tables'][sizeof($this->params['tables'])-1], -1, PREG_SPLIT_NO_EMPTY);
 			
-		$this->sql .= $this->bd->prefix() . strtoupper($arr[0]);
+		$this->sql .= $this->db->getPrefix() . strtoupper($arr[0]);
 		
 		if ($arr[0] !== $arr[sizeof($arr)-1]) $this->sql .= ' ' . $arr[sizeof($arr)-1];
 		
@@ -46,7 +48,7 @@ class Update extends DBQueryBuilder implements \IteratorAggregate {
 			
 			if (isset($this->params['values'][sizeof($this->params['fields'])-1])) {
 					
-				$this->sql .= $this->sanitizeValuer($this->params['values'][sizeof($this->params['fields'])-1]) . ' ';
+				$this->sql .= $this->sanitizeValue($this->params['values'][sizeof($this->params['fields'])-1]) . ' ';
 			} else {
 				
 				$this->sql .= 'NULL ';
@@ -63,11 +65,11 @@ class Update extends DBQueryBuilder implements \IteratorAggregate {
 	
 	function query() { 
 		
-	    $result = $this->bd->query($this->bindVars($this->sql));
+	    $result = $this->db->query($this->bindVars($this->sql));
     		
-		$this->status      = $result;
-	    $this->code_erreur = $this->bd->errno($this->bd->getConnection());
-	    $this->msg_erreur  = $this->bd->error($this->bd->getConnection());
+		$this->status      = $result ? true: false;
+	    $this->code_erreur = $this->db->errno();
+	    $this->msg_erreur  = $this->db->error();
 	}
 	
 	function getIterator() {

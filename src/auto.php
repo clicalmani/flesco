@@ -1,5 +1,4 @@
 <?php
-// {path}/autoloader.php
 function loadClass($className) {
     $fileName = '';
     $namespace = '';
@@ -32,4 +31,5 @@ function loadClass($className) {
         require $fullFileName;
     }
 }
+
 spl_autoload_register('loadClass'); // Registers the autoloader

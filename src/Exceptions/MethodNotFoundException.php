@@ -1,8 +1,8 @@
 <?php
-namespace Clicalmani\Flesco\App\Exceptions;
+namespace Clicalmani\Flesco\Exceptions;
 
 class MethodNotFoundException extends \Exception {
-	function __construct($method){
+	function __construct($method = ''){
 		parent::__construct("Call to undefined method $method");
 	}
 }

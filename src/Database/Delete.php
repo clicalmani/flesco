@@ -19,7 +19,7 @@ class Delete extends DBQueryBuilder implements \IteratorAggregate {
 			
 			$arr = preg_split('/\s/', $this->params['tables'][$i], -1, PREG_SPLIT_NO_EMPTY);
 			
-			$this->sql .= $this->db->prefix() . strtoupper($arr[0]);
+			$this->sql .= $this->db->getPrefix() . strtoupper($arr[0]);
 			
 			if ($arr[0] !== $arr[sizeof($arr)-1]) $this->sql .= ' ' . $arr[sizeof($arr)-1];
 			
@@ -28,7 +28,7 @@ class Delete extends DBQueryBuilder implements \IteratorAggregate {
 		
 		$arr = preg_split('/\s/', $this->params['tables'][sizeof($this->params['tables'])-1], -1, PREG_SPLIT_NO_EMPTY);
 			
-		$this->sql .= $this->db->prefix() . strtoupper($arr[0]);
+		$this->sql .= $this->db->getPrefix() . strtoupper($arr[0]);
 		
 		if ($arr[0] !== $arr[sizeof($arr)-1]) $this->sql .= ' ' . $arr[sizeof($arr)-1];
 		
@@ -44,9 +44,9 @@ class Delete extends DBQueryBuilder implements \IteratorAggregate {
 		
 	    $result = $this->db->query($this->bindVars($this->sql));
     	
-		$this->status     = $result;
-	    $this->error_code = $this->db->errno($this->db->getConnection());
-	    $this->error_msg  = $this->db->error($this->db->getConnection());
+		$this->status     = $result ? true: false;
+	    $this->error_code = $this->db->errno();
+	    $this->error_msg  = $this->db->error();
 	}
 	
 	function getIterator() {

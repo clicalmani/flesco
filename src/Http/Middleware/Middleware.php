@@ -1,5 +1,5 @@
 <?php
-namespace Clicalmani\Flesco\App\Http\Middleware;
+namespace Clicalmani\Flesco\Http\Middleware;
 
 class Middleware 
 {

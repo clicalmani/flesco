@@ -1,5 +1,5 @@
 <?php
-namespace Clicalmani\Flesco\App\Http\Response;
+namespace Clicalmani\Flesco\Http\Response;
 
 class HttpResponse 
 {

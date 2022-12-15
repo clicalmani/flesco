@@ -72,8 +72,8 @@ class Insert extends DBQueryBuilder implements \IteratorAggregate {
 	    $result = $this->db->query($this->bindVars($this->sql));
     		
 		$this->status     = $result ? true: false;
-	    $this->error_code = $this->db->errno($this->db->getConnection());
-	    $this->error_msg  = $this->db->error($this->db->getConnection());
+	    $this->error_code = $this->db->errno();
+	    $this->error_msg  = $this->db->error();
 		$this->insert_id  = $this->db->insertId($result);
 	}
 	

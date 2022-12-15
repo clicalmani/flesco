@@ -1,8 +1,8 @@
 <?php
 namespace Clicalmani\Flesco\Routes;
 
-use Clicalmani\Flesco\App\Providers\ServiceProvider;
-use Clicalmani\Flesco\App\Exceptions\MiddlewareException;
+use Clicalmani\Flesco\Providers\ServiceProvider;
+use Clicalmani\Flesco\Exceptions\MiddlewareException;
 
 class Route {
     
@@ -98,32 +98,37 @@ class Route {
      */
     static function compare($sroute, $nroute)
     {
+        // Home
+        if ($nroute == '/' AND $sroute != '/') {
+            return -1;
+        }
+
         // If there is not parameters the two route match in structure.
         if ($sroute == $nroute) {
             return 0;
         }
 
-        $sseq = explode('/', $sroute);
-        $nseq = explode('/', $nroute);
-
+        $sseq = preg_split('/\//', $sroute, -1, PREG_SPLIT_NO_EMPTY);
+        $nseq = preg_split('/\//', $nroute, -1, PREG_SPLIT_NO_EMPTY);
+        
         // The two routes should have same number of sequences
         if (count($sseq) !== count($nseq)) {
             return -1;
         }
-
+        
         for($i=0; $i<count($sseq); $i++) {
             $spart = $sseq[$i];
             $npart = $nseq[$i];
-
-            // Thifferent parts does not contain parameter
+            
+            // different parts does not contain parameter
             if ($spart == $npart) continue;
-
+            
             // Patterns againts synthetic route
             $patterns = [
                 '/^:(\w+)$/',       // :name
                 '/^:(\w+)-(\w+)$/'  // :from-to
             ];
-
+            
             foreach ($patterns as $index => $pattern) {
                 
                 if (preg_match($pattern, $spart)) {
@@ -133,7 +138,7 @@ class Route {
                             if (preg_match('/^(\S+)$/', $npart)) {
                                 $_GET[substr($spart, 1)] = $npart;
                                 $_REQUEST = $_GET;
-                                continue 2;
+                                continue 3;
                             }  
                             
                             return -1;
@@ -146,16 +151,22 @@ class Route {
                                 $_GET[$sa[0]] = $na[0];
                                 $_GET[$sa[1]] = $na[1];
                                 $_REQUEST = $_GET;
-                                continue 2;
+                                continue 3;
                             } 
 
                             return -1;
                         break;
                     }
                 }
+
+                // In cas there is no parameter
+                // the different parts should match
+                if ($spart != $npart) {
+                    return -1;
+                }
             }
         }
-
+        
         return 0;
     }
 
@@ -178,7 +189,7 @@ class Route {
                 }
             }
         }
-
+        
         return false;
     }
 }

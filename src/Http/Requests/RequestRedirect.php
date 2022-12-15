@@ -1,5 +1,5 @@
 <?php
-namespace Clicalmani\Flesco\App\Http\Requests;
+namespace Clicalmani\Flesco\Http\Requests;
 
 class RequestRedirect {
     function __construct()
@@ -16,6 +16,12 @@ class RequestRedirect {
     function route( $route )
     {
         header('Location: ' . $route);
+        exit;
+    }
+
+    function home()
+    {
+        header('Location: /');
         exit;
     }
 }

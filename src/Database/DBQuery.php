@@ -22,9 +22,12 @@ class DBQuery
 	
 	function set($param, $value) 
 	{ 
-		if (isset($this->params[$param])) {
-			$this->params[$param] = $value;
-		} 
+		$this->params[$param] = $value;
+	}
+
+	function unset($param)
+	{
+		unset($this->params[$param]);
 	}
 
 	function getParam($param)
@@ -79,6 +82,8 @@ class DBQuery
 
 	function update($options = [])
 	{
+		$this->query = DB_QUERY_UPDATE;
+
 		$fields = array_keys( $options );
 		$values = array_values( $options );
 

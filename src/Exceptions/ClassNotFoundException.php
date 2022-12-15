@@ -1,8 +1,8 @@
 <?php
-namespace Clicalmani\Flesco\App\Exceptions;
+namespace Clicalmani\Flesco\Exceptions;
 
 class ClassNotFoundException extends \Exception {
-	function __construct($class){
+	function __construct($class = ''){
 		parent::__construct("Class $class can not been found");
 	}
 }
