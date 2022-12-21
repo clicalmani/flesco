@@ -28,7 +28,7 @@ class Select extends DBQueryBuilder implements \IteratorAggregate
 			
 			$arr = preg_split('/\s/', $this->params['tables'][$i], -1, PREG_SPLIT_NO_EMPTY);
 			
-			$this->sql .= $this->bd->prefix() . strtoupper($arr[0]);
+			$this->sql .= $this->db->getPrefix() . strtoupper($arr[0]);
 			
 			if ($arr[0] !== $arr[sizeof($arr)-1]) $this->sql .= ' ' . $arr[sizeof($arr)-1];
 			
@@ -63,7 +63,7 @@ class Select extends DBQueryBuilder implements \IteratorAggregate
 					
 					$arr['table'] = preg_split('/\s/', $arr['table'], -1, PREG_SPLIT_NO_EMPTY);
 				
-					$this->sql .= $this->bd->prefix() . strtoupper($arr['table'][0]) . ' ' . $arr['table'][sizeof($arr['table'])-1] . ' ' . $arr['condition'] . ' ';
+					$this->sql .= $this->db->getPrefix() . strtoupper($arr['table'][0]) . ' ' . $arr['table'][sizeof($arr['table'])-1] . ' ' . $arr['criteria'] . ' ';
 				} elseif (isset($arr['sub_query'])) {
 					
 					$this->sql .= '(' . $arr['sub_query'] . ') ';

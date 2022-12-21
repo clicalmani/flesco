@@ -1,5 +1,5 @@
 <?php
-namespace Clicalmani\Flesco\Providers;
+namespace Clicalmani\Flesco\Providers; 
 
 class ServiceProvider
 {

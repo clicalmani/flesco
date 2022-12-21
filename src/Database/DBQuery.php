@@ -9,7 +9,7 @@ define('DB_QUERY_DELETE', 2);
 define('DB_QUERY_UPDATE', 3);
 
 class DBQuery 
-{ 
+{
 	
 	private $type;
 	
@@ -117,7 +117,12 @@ class DBQuery
 
 	function where($criteria)
 	{
-		$this->params['where'] = $criteria;
+		if ( !isset($this->params['where']) ) {
+			$this->params['where'] = $criteria;
+		} else {
+			$this->params['where'] .= ' AND ' . $criteria;
+		}
+		
 		return $this;
 	}
 
@@ -126,8 +131,9 @@ class DBQuery
 		return $this;
 	}
 
-	function get()
+	function get($fields = '*')
 	{
+		$this->params['fields'] = $fields;
 		$result = $this->exec();
 		$collection = new Collection;
 		
@@ -149,7 +155,7 @@ class DBQuery
 		$joint = [
 			'table'    => $table,
 			'type'     => 'LEFT',
-			'criteria' => 'ON(' . $parent_id . '=' . $child_id . ')'
+			'criteria' => ($parent_id == $child_id) ? 'USING(' . $parent_id . ')': 'ON(' . $parent_id . '=' . $child_id . ')'
 		];
 
 		if ( isset($this->params['join']) AND is_array($this->params['join'])) {

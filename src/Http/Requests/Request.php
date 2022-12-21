@@ -161,12 +161,26 @@ class Request extends HttpRequest implements \ArrayAccess {
         return Security::verifyParameters();
     }
 
+    public function session($key, $value = null)
+    {
+        if ( isset($value) ) {
+            $_SESSION[$key] = $value;
+            return;
+        }
+
+        return $_SESSION[$key];
+    }
+
     public function user()
     {
-        $matricule = isset($_SESSION['pdmsid'])? Securite::decrypter($_SESSION['pdmsid']): (isset($_COOKIE['pdmsid'])? Securite::decrypter($_COOKIE['pdmsid']): null);
+        // Check provider
+        $user_manage = \Clicalmani\Flesco\Providers\ServiceProvider::$providers;
 
-        $req = new \Users\UsineCompte($matricule);
-        $compte = $req->creer();
-        return (object) $compte->info();
+        if ( isset($user_manage['users']) AND isset($user_manage['users']['manage']) ) {
+            // $provider = new $user_manage['users']['manage']( $this->session('user-id') );
+            $provider = new $user_manage['users']['manage']( 1 );
+
+            return $provider;
+        }
     }
 }

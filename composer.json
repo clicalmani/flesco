@@ -1,6 +1,6 @@
 {
     "name": "clicalmani/flesco",
-    "description": "PDMS Backend Framework MVC Model",
+    "description": "Flesco changing the way developers write code ...",
     "type": "library",
     "require": {
         "phpmailer/phpmailer": ">=6.7",
@@ -15,8 +15,8 @@
     },
     "authors": [
         {
-            "name": "honorable85",
-            "email": "honorable85@gmail.com"
+            "name": "Abdoul-Madjid",
+            "email": "clicalmani@gmail.com"
         }
     ],
     "minimum-stability": "dev",

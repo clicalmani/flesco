@@ -162,10 +162,5 @@ class DB
 
 		return $collection;
 	}
-
-	public static function raw($sql)
-	{
-		return $this->query($sql);
-	}
 }
 ?>

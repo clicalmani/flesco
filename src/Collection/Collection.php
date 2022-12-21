@@ -26,4 +26,25 @@ class Collection extends SPLCollection
     {
         return $this[$this->count() - 1];
     }
+
+    function map($closure)
+    {
+        foreach ($this as $key => $value) {
+            $this[$key] = $closure($value);
+        }
+
+        return $this;
+    }
+
+    function filter($closure)
+    {
+        foreach ($this as $key => $value)
+        {
+            if (false == $closure($value)) {
+                unset($this[$key]);
+            }
+        }
+
+        return $this;
+    }
 }
