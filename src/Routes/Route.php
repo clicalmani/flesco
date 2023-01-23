@@ -7,7 +7,7 @@ use Clicalmani\Flesco\Exceptions\MiddlewareException;
 class Route {
     
     public static $rountines;
-    public static $route_middleware = [];
+    public static $route_middlewares = [];
 
     public static function currentRoute()
     {
@@ -28,14 +28,61 @@ class Route {
         self::$rountines['post'][$route] = $callback;
     }
 
+    public static function options($route, $callback) {
+        self::$rountines['options'][$route] = $callback;
+    }
+
+    public static function any($route, $callback) 
+    {
+        foreach (self::$rountines as $method => $arr) {
+            self::$rountines[$method][$route] = $callback;
+        }
+    }
+
+    public static function match($matches, $route, $callback)
+    {
+        if ( ! is_array($matches) ) return;
+
+        foreach ($matches as $method) {
+            $method = strtolower($method);
+            if ( array_key_exists($method, self::$rountines) ) {
+                self::$rountines[$method][$route] = $callback;
+            }
+        }
+    }
+
+    public static function delete($route, $callback)
+    {
+        self::$rountines['delete'][$route] = $callback;
+    }
+
+    public static function getGateway()
+    {
+        $gateway = 'web';
+
+        if (preg_match('/^\/api/', current_route())) {
+            $gateway = 'api';
+        }
+
+        return $gateway;
+    }
+
     public static function middleware($name)
     {
-        if ( ! isset(ServiceProvider::$providers['middleware']['web'][$name]) ) throw new MiddlewareException('Middleware can not be found');
-        
-        $middleware = new ServiceProvider::$providers['middleware']['web'][$name];
+        $gateway = self::getGateway();
 
-        if ( ! method_exists( $middleware, 'handler') ) throw new MiddlewareException('Handler method not provided');
-        if ( ! method_exists( $middleware, 'authorize') ) throw new MiddlewareException('Authorize method not provided');
+        if ( ! isset(ServiceProvider::$providers['middleware'][$gateway][$name]) ) 
+            throw new MiddlewareException('Middleware can not be found');
+        
+        $middleware = new ServiceProvider::$providers['middleware'][$gateway][$name];
+        
+        /**
+         * This allows to verify whether the current middleware inherited from Middleware class
+         */
+        if ( ! method_exists( $middleware, 'handler') ) 
+            throw new MiddlewareException('Handler method not provided');
+        if ( ! method_exists( $middleware, 'authorize') ) 
+            throw new MiddlewareException('Authorize method not provided');
 
         // Routes before middleware
         $routes = [];
@@ -49,44 +96,66 @@ class Route {
         // Register middleware routes
         $handler = $middleware->handler();
 
-        if ( file_exists( $handler ) ) {
-            include_once $handler;
-        } else {
-            throw new MiddlewareException('Can not find handler provided');
+        if (false != $handler) {
+            if ( file_exists( $handler ) ) {
+                include_once $handler;
+            } else {
+                throw new MiddlewareException('Can not find handler provided');
+            }
         }
 
         if ( ! in_array(current_route(), $routes) ) {
 
             /**
-             * Check if the current route is part of the middleware routes
+             * Check if the current route is part of the middleware routes 
              */
             foreach (self::$rountines as $rountine) {
                 foreach ($rountine as $route => $controller) {
-                    if ( current_route() == $route AND $middleware->authorize() == false ) {
-                        self::$route_middleware[current_route()] = $name;
+                    // current_route() == $route AND $middleware->authorize() == false
+                    if ( 0 === self::compare($route, current_route()) ) {
+                        if ( !isset(self::$route_middlewares[current_route()]) ) {
+                            self::$route_middlewares[current_route()] = [];
+                            self::$route_middlewares[current_route()][] = $name;
+                        } else {
+                            self::$route_middlewares[current_route()][] = $name; 
+                        }
                     }
                 }
             }
         }
     }
 
-    static function getCurrentRouteMiddleware()
+    static function getCurrentRouteMiddlewares()
     {
-        if ( isset(self::$route_middleware[current_route()]) ) {
-            return self::$route_middleware[current_route()];
+        if ( isset(self::$route_middlewares[current_route()]) ) {
+            return self::$route_middlewares[current_route()];
         }
 
         return null;
     }
 
     /**
-     * Verfify if current rout is behind a middleware
+     * Verfify if current route is behind a middleware
      */
-    static function isCurrentRouteAuthorized()
+    static function isCurrentRouteAuthorized($request = null)
     {
-        $name = self::getCurrentRouteMiddleware();
-        $middleware = new ServiceProvider::$providers['middleware']['web'][$name];
-        return $middleware->authorize();
+        $gateway = self::getGateway();
+        $authorize = true;
+
+        if ($names = self::getCurrentRouteMiddlewares()) {
+            foreach ($names as $name) {
+                $middleware = new ServiceProvider::$providers['middleware'][$gateway][$name];
+                $authorize = $middleware->authorize(
+                    ( $gateway === 'web' ) ? ( new Request() )->user(): $request
+                );
+
+                if (false == $authorize) {
+                    return false;
+                }
+            }
+        }
+        
+        return $authorize;
     }
 
     /**
@@ -102,7 +171,7 @@ class Route {
         if ($nroute == '/' AND $sroute != '/') {
             return -1;
         }
-
+        
         // If there is not parameters the two route match in structure.
         if ($sroute == $nroute) {
             return 0;
@@ -170,13 +239,13 @@ class Route {
         return 0;
     }
 
-    static function exists($nroute, $method = null)
+    static function exists($method = null)
     {
         if ( isset($method) ) {
             $rountine = self::$rountines[$method];
-
+            
             foreach ($rountine as $sroute => $controller) {
-                if (-1 !== self::compare($sroute, $nroute)) {
+                if (-1 !== self::compare($sroute, current_route())) {
                     return $sroute;
                 }
             }

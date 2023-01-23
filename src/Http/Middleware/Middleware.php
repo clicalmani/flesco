@@ -1,13 +1,13 @@
 <?php
 namespace Clicalmani\Flesco\Http\Middleware;
 
-class Middleware 
+abstract class Middleware 
 {
-    protected function handler() {
+    function handler() {
         return routes_path( '/web.php' );
     }
 
-    protected function authorize() {
+    function authorize($user) {
         return true;
     }
 }

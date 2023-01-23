@@ -9,43 +9,24 @@ global $db_config;
 
 $db_config = require config_path( '/database.php' );
 
-class DB 
+abstract class DB 
 {
 	
 	static private $instance;
+	static private $pdo;
+	static private $prefix;
 	
 	private $cons = [];
-	private $pdo;
-	
-	private $prefix;
 	
 	function __construct() 
 	{
-		global $db_config;
-
-		try {
-			$db_default = $db_config['connections'][$db_config['default']];
-
-			$this->pdo = new PDO(
-				$db_default['driver'] . ':host=' . $db_default['host'] . ':' . $db_default['port'] . ';dbname=' . $db_default['name'],
-				$db_default['user'],
-				$db_default['pswd'],
-				[PDO::ATTR_PERSISTENT => true]
-			);
-
-			$this->pdo->query('SET NAMES ' . $db_default['charset']);
-			$this->pdo->query('SELECT CONCAT("ALTER TABLE ", tbl.TABLE_SCHEMA, ".", tbl.TABLE_NAME, " CONVERT TO CHARACTER SET ' . $db_default['charset'] . ' COLLATION ' . $db_default['collation'] . ';") FROM information_schema.TABLES tbl WHERE tbl.TABLE_SCHEMA = "' . $db_default['name'] . '"');
-			
-			$this->prefix = $db_default['prefix'];
-		} catch(\PDOException $e) {
-			die('An error occurred while trying to connect to the database server, please contact your administrator for further informations.');
-		}
+		
 	}
 	
 	public function getConnection($driver = '') 
 	{ 
 		if (empty($driver)) {
-			return $this->pdo? $this->pdo: null;
+			return static::$pdo ? static::$pdo : null;
 		} 
 
 		/**
@@ -53,21 +34,45 @@ class DB
 		 */
 	}
 	
-	public function getPrefix() { return $this->prefix; }
+	public function getPrefix() { return static::$prefix; }
 	
 	static function getInstance() 
 	{
-		 
-	    if (!isset(self::$instance)) {
-			return self::$instance = new \Clicalmani\Flesco\Database\DB();
+	    if ( ! static::$instance ) {
+			self::getPdo();
+			return new DBQuery;
 		}
-		
-		return self::$instance;
+
+		return static::$instance;
 	}
 
-	static function getPdo() { return $this->pdo; }
+	static function getPdo() {
+		if ( isset(static::$pdo) ) return static::$pdo;
+
+		global $db_config;
+
+		try {
+			$db_default = $db_config['connections'][$db_config['default']];
+
+			static::$pdo = new PDO(
+				$db_default['driver'] . ':host=' . $db_default['host'] . ':' . $db_default['port'] . ';dbname=' . $db_default['name'],
+				$db_default['user'],
+				$db_default['pswd'],
+				[PDO::ATTR_PERSISTENT => true]
+			);
+
+			static::$pdo->query('SET NAMES ' . $db_default['charset']);
+			static::$pdo->query('SELECT CONCAT("ALTER TABLE ", tbl.TABLE_SCHEMA, ".", tbl.TABLE_NAME, " CONVERT TO CHARACTER SET ' . $db_default['charset'] . ' COLLATION ' . $db_default['collation'] . ';") FROM information_schema.TABLES tbl WHERE tbl.TABLE_SCHEMA = "' . $db_default['name'] . '"');
+			
+			static::$prefix = $db_default['prefix'];
+
+			return static::$pdo;
+		} catch(\PDOException $e) {
+			die('An error occurred while trying to connect to the database server, please contact your administrator for further informations.');
+		}
+	}
 	
-	public function query($sql) { return $this->pdo->query($sql); } 
+	public function query($sql) { return self::getPdo()->query($sql); } 
 	
 	public function fetch($statement, $flag = PDO::FETCH_BOTH) 
 	{ 
@@ -82,7 +87,7 @@ class DB
 		
 		if ($statement instanceof PDOStatement) return $statement->fetch(PDO::FETCH_NUM);
 		
-		return array();
+		return [];
 	}
 	
 	public function numRows($statement) 
@@ -95,14 +100,14 @@ class DB
 
 	public function prepare($sql)
 	{
-		return $this->pdo->prepare($sql);
+		return static::$pdo->prepare($sql);
 	}
 	
-	public function error() { return $this->pdo->errorInfo(); }
+	public function error() { return static::$pdo->errorInfo(); }
 	
-	public function errno() { return $this->pdo->errorCode(); }
+	public function errno() { return static::$pdo->errorCode(); }
 	
-	public function insertId() { return $this->pdo->lastInsertId(); }
+	public function insertId() { return static::$pdo->lastInsertId(); }
 	
 	public function free($statement) 
 	{ 
@@ -112,13 +117,13 @@ class DB
 		return false;
 	}
 	
-	public function beginTransaction() { return $this->pdo->beginTransaction(); }
+	public function beginTransaction() { return static::$pdo->beginTransaction(); }
 
-	public function commit() { return $this->pdo->commit(); }
+	public function commit() { return static::$pdo->commit(); }
 
-	public function rollback() { return $this->pdo->rollback(); }
+	public function rollback() { return static::$pdo->rollback(); }
 	
-	public function close() { return $this->pdo = null; }
+	public function close() { return static::$pdo = null; }
 
 	static function table($tables)
 	{
@@ -132,35 +137,6 @@ class DB
 		}
 		
 		return $builder;
-	}
-
-	public static function select($sql, $parameters = [])
-	{
-		$collection = new Collection;
-
-		if (empty($parameters)) {
-			$result = $this->query($sql);
-
-			if (false != $result) {
-
-				while ($row = $this->fetch($result)) {
-					$collection->add($row);
-				}
-
-				return $collection;
-			}
-		} else {
-			$stmt = $this->prepare($sql);
-			$success = $stmt->execute($parameters);
-
-			if ($success) {
-				while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-					$collection->add($row);
-				}
-			}
-		}
-
-		return $collection;
 	}
 }
 ?>

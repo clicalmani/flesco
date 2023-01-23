@@ -78,17 +78,16 @@ class Select extends DBQueryBuilder implements \IteratorAggregate
 		$this->sql .= ' WHERE TRUE ';
 		
 		if (isset($this->params['where'])) {
-			
 			$this->sql .= ' AND ' . $this->params['where'];
-			
-			if (isset($this->params['group_by'])) {
+		}
+
+		if (isset($this->params['group_by'])) {
 				
-				$this->sql .=' GROUP BY ' . $this->params['group_by'];
-				
-				if (isset($this->params['having'])) {
+			$this->sql .=' GROUP BY ' . $this->params['group_by'];
 			
-					$this->sql .= ' HAVING ' . $this->params['having'];
-				}
+			if (isset($this->params['having'])) {
+		
+				$this->sql .= ' HAVING ' . $this->params['having'];
 			}
 		}
 		

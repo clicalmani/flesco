@@ -10,6 +10,9 @@ $dotenv = Dotenv\Dotenv::createImmutable( root_path() );
 $dotenv->safeLoad();
 
 Clicalmani\Flesco\Routes\Route::$rountines = [
-    'get' => [], 
-    'post' => []
+    'get'     => [], 
+    'post'    => [],
+    'options' => [],
+    'delete'  => [],
+    'put'     => []
 ];

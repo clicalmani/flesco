@@ -20,7 +20,8 @@ function loadClass($className) {
         'App\\' => 'app/',
         'Models\\' => 'models/',
         'Middleware\\' => 'middleware/',
-        'Controllers\\' => 'controllers/'
+        'Controllers\\' => 'controllers/',
+        'Authenticate\\' => 'authenticate/'
     ];
     
     foreach ($bindings as $key => $value) {

@@ -7,14 +7,16 @@ use Clicalmani\Flesco\Exceptions\ClassNotFoundException;
 use Clicalmani\Flesco\Exceptions\MethodNotFoundException;
 use Clicalmani\Flesco\Collection\Collection;
 
-class Model 
+class Model implements \JsonSerializable
 {
 
+    protected $id;
     protected $table;
     protected $primaryKey;
+    protected $attributes = [];
+    protected $appendAttributes = [];
 
-    private $query;
-    private $id;
+    protected $query;
     private $changes     = [];
     private $new_records = [];
 
@@ -29,24 +31,48 @@ class Model
         }
     }
 
-    public function getTable()
+    protected function getTable()
     {
         return $this->table;
     }
 
-    public function getKey()
+    protected function getKey()
     {
-        $arr = explode('.', $this->primaryKey);
-        return ( count($arr) > 1 ) ? $arr[1]: $this->primaryKey;
+        return $this->cleanKey( $this->primaryKey );
     }
 
-    public function cleanKey($key)
+    protected function getAttributes()
+    {
+        return $this->attributes;
+    }
+
+    protected function setAttributes($attributes)
+    {
+        $this->attributes = $attributes;
+    }
+
+    protected function getAppendAttributes()
+    {
+        return $this->appendAttributes;
+    }
+
+    protected function setAppendAttributes($attributes)
+    {
+        $this->appendAttributes = $attributes;
+    }
+
+    protected function setKeyValue($value)
+    {
+        $this->id = $value;
+    }
+
+    private function cleanKey($key)
     {
         $arr = explode('.', $key);
         return ( count($arr) > 1 ) ? $arr[1]: $key;
     }
 
-    public function getQuery()
+    private function getQuery()
     {
         return $this->query;
     }
@@ -56,31 +82,41 @@ class Model
         return $this->query->get($fields);
     }
 
-    public function where($criteria = '1')
+    public static function where($criteria = '1')
     {
-        $this->query->where($criteria);
-        return $this;
+        $child_class = get_called_class();
+        $child = new $child_class;
+        $child->getQuery()->where($criteria);
+        return $child;
     }
+
+    // public function delete()
+    // {
+    //     if (isset($this->id) AND isset($this->primaryKey)) {
+    //         $this->query->delete()->where($this->primaryKey . ' = ' . $this->id)->exec();
+    //     } else throw new \Exception("Can not update or delete record when on safe mode");
+    // }
 
     public function delete()
     {
         if (isset($this->id) AND isset($this->primaryKey)) {
-            $this->query->delete()->where($this->primaryKey . ' = ' . $this->id)->exec();
-        } else throw new \Exception("Can not update or delete record when on safe mode");
-    }
-
-    public function safeDelete()
-    {
-        if (isset($this->id) AND isset($this->primaryKey)) {
-            $this->query->delete()->where($this->primaryKey . ' = ' . $this->id)->exec();
-        } else {
-
-            $criteria = $this->query->getParam('where');
-
-            if ( isset($criteria) ) {
-                $this->query->delete()->where($criteria)->exec();
-            } else throw new \Exception("Can not bulk update or delete records when on safe mode");
+            $this->query->params['where'] = $this->primaryKey . ' = ' . $this->id;
         }
+
+        $collection = $this->get();
+            
+        if ($collection->count() === 1) {
+            $row = $collection->first();
+            $this->id = $row[$this->cleanKey($this->primaryKey)];
+            $this->boot();
+        }
+        
+        // A delete operation must contain a key
+        if (false == strstr($this->query->params['where'], $this->cleanKey($this->primaryKey))) {
+            throw new \Exception("Can not update or delete records when on safe mode");
+        }
+
+        return $this->query->delete()->exec();
     }
 
     public function update($values = [])
@@ -207,6 +243,28 @@ class Model
         $this->insert( $this->new_records );
     }
 
+    public function sanitizeAttributeName($name)
+    {
+        $collection = new Collection( explode('_', $name) );
+        return 'get' . join('', $collection->map(function($value) {
+            return ucfirst($value);
+        })->toArray()) . 'Attribute';
+    }
+
+    public static function find( $id ) 
+    {
+        $child_class = get_called_class();
+        $child = new $child_class;
+        $child->setKeyValue($id);
+        return $child;
+    }
+
+    /**
+     * Call for every state modification
+     */
+    protected function boot()
+    {}
+
     function __get($attribute)
     {
         if (isset($this->id) AND isset($this->primaryKey)) {
@@ -240,14 +298,48 @@ class Model
         } throw new \Exception("Can not update or insert new record on unknow");
     }
 
-    function __call($method, $args)
+    function __toString()
     {
-        if ( ! method_exists($this, $method)) {
-            throw new MethodNotFoundException($method);
+        $child_class = get_called_class();
+        $child = new $child_class;
+        return $child_class;
+    }
+
+    function jsonSerialize()
+    {
+        $collection = DB::table($this->getTable())->where($this->getKey() . '=' . $this->id)->get();
+        
+        if (0 === $collection->count()) {
+            return null;
         }
 
-        $this->{$method}(...$args);
+        $row = $collection->first();
 
-        return $this->query;
+        $collection
+            ->exchange($this->getAttributes() ? $this->getAttributes(): array_keys($row))
+            ->map(function($value, $key) use($row) {
+                return isset($row[$value]) ? [$value => $row[$value]]: null;
+            });
+
+        $data = [];
+        foreach ($collection as $row) {
+            $data[array_keys($row)[0]] = array_values($row)[0];
+        }
+
+        // Appended attributes
+        $appended = $this->getAppendAttributes();
+
+        $data2 = [];
+        foreach ($appended as $name) {
+            $attribute = $this->sanitizeAttributeName($name);
+            
+            if ( method_exists($this, $attribute) ) {
+                $data2[$name] = $this->{$attribute}();
+            }
+        }
+
+        return $collection
+            ->exchange(array_merge($data, $data2))
+            ->toObject();
     }
 }

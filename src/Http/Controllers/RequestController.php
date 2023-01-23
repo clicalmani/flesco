@@ -8,14 +8,7 @@ use Clicalmani\Flesco\Exceptions\HttpRequestException;
 use Clicalmani\Flesco\Exceptions\MethodNotFoundException;
 use Clicalmani\Flesco\Exceptions\RouteNotFoundException;
 
-require_once dirname( dirname( __DIR__ ) ) . '/config/config.php'; 
-require_once config_path( '/providers.php' );
-
-if (preg_match('/^api/', current_route())) {
-	require_once routes_path( '/api.php' );
-} else {
-	require_once routes_path( '/web.php' );
-}
+require_once dirname( dirname( __DIR__ ) ) . '/bootstrap/index.php';
 
 abstract class RequestController extends HttpRequest 
 {
@@ -26,7 +19,7 @@ abstract class RequestController extends HttpRequest
 	{
 		$request = new Request;
 		$request->checkCSRFToken();
-
+		
 		$controller = self::getController();
 		
 		if (is_array($controller) AND !empty($controller)) {
@@ -36,7 +29,7 @@ abstract class RequestController extends HttpRequest
 				new Request([])
 			);
 		}
-
+		
 		if (isset($class) AND class_exists($class)) {
 
 			$obj = new $class();
@@ -47,13 +40,13 @@ abstract class RequestController extends HttpRequest
 						$obj->{'validate'}()
 					)
 				);
-			} else {
-				return self::getRoutine(
-					new Request([])
-				);
 			}
-		}
 
+			return self::getRoutine(
+				new Request([])
+			);
+		}
+		
 		throw new MethodNotFoundException();
 	}
 
@@ -63,25 +56,40 @@ abstract class RequestController extends HttpRequest
 			return self::$controller;
 		}
 		
-		$route = current_route();
-
 		foreach (Route::$rountines as $method => $data) {
-			if ($route = Route::exists($route, $method)) { 
+			if ($route = Route::exists($method)) { 
 
-				$middleware = Route::getCurrentRouteMiddleware();
+				$middlewares = Route::getCurrentRouteMiddlewares();
 				
-				if ( isset($middleware) AND Route::isCurrentRouteAuthorized() == false ) {
-					throw new HttpRequestException('Request not authorized !');
-				}
-
 				self::$route      = $route;
 				self::$controller = $data[$route];
+
+				$request = new Request([]);
+				
+				if ('api' === Route::getGateway()) {
+					if ( is_array(self::$controller) AND isset(self::$controller[0]) AND $obj = new self::$controller[0]) {
+						$request = new Request(
+							$obj->{'validate'}()
+						);
+					}
+
+					if ( isset($middlewares) AND Route::isCurrentRouteAuthorized($request) == false ) {
+						http_response_code(401);		// Unauthorized
+						exit;
+					}
+				}
+				
+				if ( isset($middleware) AND Route::isCurrentRouteAuthorized($request) == false ) {
+					http_response_code(401);
+					exit;
+				}
 				
 				return self::$controller;
 			}
 		}
 		
-		throw new RouteNotFoundException( current_route() );
+		http_response_code(404);		// Not Found
+		exit;
     }
 
 	public static function getRoutine($request)
@@ -160,6 +168,7 @@ abstract class RequestController extends HttpRequest
 			return $controller($request);
 		}
 		
-		throw new HttpRequestException('Request without routine !');
+		http_response_code(403);		// Forbidden
+		exit;
 	}
 }

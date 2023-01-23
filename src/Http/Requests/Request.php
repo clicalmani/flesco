@@ -6,9 +6,9 @@ use Clicalmani\Flesco\Http\Requests\RequestFile;
 use Clicalmani\Flesco\Http\Requests\RequestRedirect;
 use Clicalmani\Flesco\Security\Security;
 
-class Request extends HttpRequest implements \ArrayAccess {
+class Request extends HttpRequest implements \ArrayAccess, \JsonSerializable {
 
-    private $signatures;
+    private $signatures = [];
 
     public static function render() {
         /**
@@ -17,17 +17,23 @@ class Request extends HttpRequest implements \ArrayAccess {
          */
     }
 
-    public function validate($options = [])
+    public function validation($options = [])
     {
         $this->merge($options);
+    }
+
+    public function validate()
+    {
+        //
     }
 
     public function __construct( $signatures = [] ) {
         $this->signatures = $signatures;
     }
 
-    public function __get($property) 
+    public function __get($property)
     {
+        $this->signatures = $this->signatures ? $this->signatures: [];
         $sanitized = Security::sanitizeVars($_REQUEST, $this->signatures);
         
 		if ( isset($sanitized[$property])) {
@@ -88,6 +94,7 @@ class Request extends HttpRequest implements \ArrayAccess {
 
     public function merge($new_signatures = [])
     {
+        $this->signatures = $this->signatures ? $this->signatures: [];
         $this->signatures = array_merge($this->signatures, $new_signatures);
     }
 
@@ -99,8 +106,10 @@ class Request extends HttpRequest implements \ArrayAccess {
     public function getHeader($header_name)
     {
         foreach ($this->getHeaders() as $name => $header) {
-            if ($name == $header_name) return $header;
+            if (strtolower($name) == strtolower($header_name)) return $header;
         }
+
+        return null;
     }
 
     public function setHeader($name, $value)
@@ -128,8 +137,8 @@ class Request extends HttpRequest implements \ArrayAccess {
 
         $check_csrf = false;
 
-        if (preg_match('/^api/', current_route())) {
-            $check_csrf = true;
+        if (preg_match('/^\/api/', current_route())) {
+            $check_csrf = false;
         } elseif ( strtolower( $_SERVER['REQUEST_METHOD'] ) !== 'get') {
             $check_csrf = true;
         }
@@ -137,7 +146,7 @@ class Request extends HttpRequest implements \ArrayAccess {
         if ( $check_csrf ) {
             if ( @ $this->getHeader('X-CSRF-TOKEN') != $token) {
                 http_response_code(403);
-                die('Forbiden');
+                die('403 Forbiden');
 
                 /**
                  * Set errorDocument 403
@@ -156,7 +165,7 @@ class Request extends HttpRequest implements \ArrayAccess {
     /**
      * The URL hash parameter should be named hsh
      */
-    public function verifyParameters()
+    public function verifyParameters() 
     {
         return Security::verifyParameters();
     }
@@ -168,19 +177,41 @@ class Request extends HttpRequest implements \ArrayAccess {
             return;
         }
 
-        return $_SESSION[$key];
+        return isset( $_SESSION[$key] ) ? $_SESSION[$key]: null;
     }
 
-    public function user()
+    public function cookie($name, $value = null, $expiry = 604800, $path = '/')
+    {
+        if ( ! is_null($value) ) {
+            setcookie($name, $value, time() + $expiry, $path);
+            return;
+        }
+
+        return $_COOKIE[$name];
+    }
+
+    public function getToken()
+    {
+        $authorization = $this->getHeader('Authorization');
+        return preg_replace('/^(Bearer )/i', '', $authorization);
+    }
+
+    public function user() 
     {
         // Check provider
-        $user_manage = \Clicalmani\Flesco\Providers\ServiceProvider::$providers;
+        // $user_manage = \Clicalmani\Flesco\Providers\ServiceProvider::$providers;
 
-        if ( isset($user_manage['users']) AND isset($user_manage['users']['manage']) ) {
-            // $provider = new $user_manage['users']['manage']( $this->session('user-id') );
-            $provider = new $user_manage['users']['manage']( 1 );
+        // if ( isset($user_manage['users']) AND isset($user_manage['users']['manage']) ) {
+        //     $provider = new $user_manage['users']['manage']( $this->session('user-id') );
 
-            return $provider;
-        }
+        //     return $provider;
+        // }
+
+        return new \App\Authenticate\User( $this->session('user-id') );
+    }
+
+    public function jsonSerialize() 
+    {
+        return $_REQUEST;
     }
 }

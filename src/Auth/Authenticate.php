@@ -3,9 +3,9 @@ namespace Clicalmani\Flesco\Auth;
 
 use App\Models\User;
 
-abstract class UserAuth implements \ArrayAccess {
+abstract class Authenticate implements \ArrayAccess {
 	
-	private $user_id;
+	protected $user_id;
 	private $user;
 	 
 	/**

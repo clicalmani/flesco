@@ -8,10 +8,10 @@ define('DB_QUERY_INSERT', 1);
 define('DB_QUERY_DELETE', 2);
 define('DB_QUERY_UPDATE', 3);
 
-class DBQuery 
+class DBQuery extends DB
 {
 	
-	private $type;
+	private $query;
 	
 	function __construct($query = null, $params = [])
 	{ 
@@ -68,10 +68,9 @@ class DBQuery
 		}
 	}
 
-	function select($fields) 
+	function select($fields = '*') 
 	{
-		$this->params['fields'] = $fields;
-		return $this;
+		return $this->get($fields);
 	}
 
 	function delete()
@@ -90,7 +89,7 @@ class DBQuery
 		$this->params['fields'] = $fields;
 		$this->params['values'] = $values;
 
-		return $this;
+		return $this->get();
 	}
 
 	function insert($options = [])
@@ -112,7 +111,9 @@ class DBQuery
 			$this->params['values'][] = $values;
 		}
 
-		return $this;
+		$this->set('query', DB_QUERY_INSERT);
+		
+		return $this->exec();
 	}
 
 	function where($criteria)
@@ -126,8 +127,26 @@ class DBQuery
 		return $this;
 	}
 
-	function orderBy($order_by) {
+	function having($criteria)
+	{
+		if ( !isset($this->params['having']) ) {
+			$this->params['having'] = $criteria;
+		} else {
+			$this->params['having'] .= ' AND ' . $criteria;
+		}
+		
+		return $this;
+	}
+
+	function orderBy($order_by) 
+	{
 		$this->params['order_by'] = $order_by;
+		return $this;
+	}
+
+	function groupBy($group_by)
+	{
+		$this->params['group_by'] = $group_by;
 		return $this;
 	}
 

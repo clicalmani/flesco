@@ -29,7 +29,9 @@ class RequestFile {
         return substr($this->getFile()->name, strrpos($this->getFile()->name, '.')+1);
     }
 
-    public function move($dir, $name) {
+    public function move($dir = null, $name = null) {
+        $dir = isset($dir) ? $dir: storage_path('/uploads');
+        $name = isset($name) ? $name: $this->getName();
         if (is_dir($dir)) {
             return move_uploaded_file($this->getFile()->tmp_name, $dir . DIRECTORY_SEPARATOR . $name);
         }

@@ -5,7 +5,8 @@
     "require": {
         "phpmailer/phpmailer": ">=6.7",
         "vlucas/phpdotenv": ">=5.5.0",
-        "php": ">=7.4.9"
+        "php": ">=7.4.9",
+        "firebase/php-jwt": "dev-main"
     },
     "license": "proprietary",
     "autoload": {

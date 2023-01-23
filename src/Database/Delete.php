@@ -12,30 +12,17 @@ class Delete extends DBQueryBuilder implements \IteratorAggregate {
 			
 			$this->sql .= $this->params['champs'];
 		}
-		
-		$this->sql .= ' FROM ';
-		
-		for ($i=0; $i<(sizeof($this->params['tables'])-1); $i++) {
-			
-			$arr = preg_split('/\s/', $this->params['tables'][$i], -1, PREG_SPLIT_NO_EMPTY);
-			
-			$this->sql .= $this->db->getPrefix() . strtoupper($arr[0]);
-			
-			if ($arr[0] !== $arr[sizeof($arr)-1]) $this->sql .= ' ' . $arr[sizeof($arr)-1];
-			
-			$this->sql .= ', ';
+
+		// Clean aliases
+		$tables = [];
+		foreach ($this->params['tables'] as $table) {
+			$a = explode(' ', $table);
+			$tables[] = $this->db->getPrefix() . strtoupper($a[0]);
 		}
 		
-		$arr = preg_split('/\s/', $this->params['tables'][sizeof($this->params['tables'])-1], -1, PREG_SPLIT_NO_EMPTY);
-			
-		$this->sql .= $this->db->getPrefix() . strtoupper($arr[0]);
-		
-		if ($arr[0] !== $arr[sizeof($arr)-1]) $this->sql .= ' ' . $arr[sizeof($arr)-1];
-		
-		$this->sql .= ' WHERE TRUE ';
+		$this->sql .= ' FROM ' . join(',', $tables) . ' WHERE TRUE ';
 		
 		if (isset($this->params['where'])) {
-			
 			$this->sql .= 'AND ' . $this->params['where'];
 		}
 	}

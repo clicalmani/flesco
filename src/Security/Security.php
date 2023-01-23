@@ -39,7 +39,9 @@ class Security {
 				exit();
 			} else {
 				if(isset($vars[$key])) {
+
 					$tmp[$key] = $vars[$key];
+
 					if(isset($sig['type'])) {
 						switch ($sig['type']) {
 							case 'integer': settype($tmp[$key], 'integer'); break;
@@ -47,6 +49,25 @@ class Security {
 							case 'string': settype($tmp[$key], 'string'); break;
 							case 'array': settype($tmp[$key], 'array'); break;
 							case 'object': settype($tmp[$key], 'object'); break;
+							case 'email': settype($tmp[$key], 'string'); break;
+						}
+
+						// Custom type checking
+						switch ($sig['type']) {
+							case 'email':
+								if (false == filter_var($tmp[$key], FILTER_VALIDATE_EMAIL)) {
+									if ($sig['required']) {
+										if($redirect) {
+											header("Location: $redirect");
+											exit;
+										}
+	
+										die("Parameter $key is not a valid email");
+									}
+									
+									$tmp[$key] = null;
+								}
+								break;
 						}
 
 						if(isset($sig['max'])) {
@@ -117,9 +138,9 @@ class Security {
 	{
     	$data = '';
 
-    	$request_hash = isset($_REQUEST['hsh'])? $_REQUEST['hsh']: '';
+    	$request_hash = isset($_REQUEST['hash'])? $_REQUEST['hash']: '';
 		
-    	unset($_REQUEST['hsh']);
+    	unset($_REQUEST['hash']);
     	 
     	foreach ($_REQUEST as $key => $value){
     		$data .= $key . $value;

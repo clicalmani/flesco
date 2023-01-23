@@ -112,13 +112,11 @@ abstract class DBQueryBuilder {
 		return $value === 'DEFAULT';
 	}
 
-	function isFunction($value)
+	function isExpression($value)
 	{
-		$mysql_functions = [
-			'NOW'
-		];
+		if (preg_match('/^exp:/i', $value)) return true;
 
-		return in_array($value, $mysql_functions);
+		return false;
 	}
 
 	function sanitizeValue($value)
@@ -131,8 +129,8 @@ abstract class DBQueryBuilder {
 			return 'DEFAULT';
 		}
 
-		if ($this->isFunction($value)) {
-			return $value;
+		if ($this->isExpression($value)) {
+			return preg_replace('/^exp:/i', '', $value);
 		}
 
 		return '"' . $value . '"';
