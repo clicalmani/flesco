@@ -12,18 +12,18 @@ function loadClass($className) {
         $fileName = str_replace('\\', DIRECTORY_SEPARATOR, $namespace) . DIRECTORY_SEPARATOR;
     }
 
-    // $fileName .= str_replace('_', DIRECTORY_SEPARATOR, $className) . '.php';
+    $fileName = strtr($fileName, '\\', '/');
     $fileName .= $className . '.php';
     $fullFileName = $includePath . $fileName;
 
     $bindings = [
-        'App\\' => 'app/',
-        'Models\\' => 'models/',
-        'Middleware\\' => 'middleware/',
-        'Controllers\\' => 'controllers/',
-        'Authenticate\\' => 'authenticate/'
+        'App/' => 'app/',
+        'Models/' => 'models/',
+        'Middleware/' => 'middleware/',
+        'Controllers/' => 'controllers/',
+        'Authenticate/' => 'authenticate/'
     ];
-    
+
     foreach ($bindings as $key => $value) {
         $fullFileName = str_replace($key, $value, $fullFileName);
     }

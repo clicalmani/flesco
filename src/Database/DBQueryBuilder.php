@@ -9,7 +9,7 @@ abstract class DBQueryBuilder {
 	protected $options;
 	protected $db;
 	protected $range;
-	protected  $limit;
+	protected $limit;
 	protected $error_msg;
 	protected $error_code;
 	protected $insert_id = 0;
@@ -48,8 +48,6 @@ abstract class DBQueryBuilder {
 		
 		$this->status     = $result;
 		$this->error_code = $this->db->errno();
-		$this->filename   = 'class.requete.php';
-		$this->error_line = 344;
 		$this->error_msg  = $this->db->error();
 		
 		if ($result instanceof \mysqli_result) {

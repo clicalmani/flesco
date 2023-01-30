@@ -67,9 +67,9 @@ class Update extends DBQueryBuilder implements \IteratorAggregate {
 		
 	    $result = $this->db->query($this->bindVars($this->sql));
     		
-		$this->status      = $result ? true: false;
-	    $this->code_erreur = $this->db->errno();
-	    $this->msg_erreur  = $this->db->error();
+		$this->status     = $result ? true: false;
+	    $this->error_code = $this->db->errno();
+	    $this->error_msg  = $this->db->error();
 	}
 	
 	function getIterator() {

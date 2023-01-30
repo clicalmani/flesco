@@ -96,7 +96,7 @@ class Select extends DBQueryBuilder implements \IteratorAggregate
 			$this->sql .= ' ORDER BY ' . $this->params['order_by'];
 		}
 		
-		if (isset($this->params['calc']) AND $this->params['calc'] === false) $this->sql .= ' LIMIT ' . $this->params['offset'] . ', ' . $this->params['limit'];
+		if (isset($this->params['calc']) AND $this->params['calc'] === true) $this->sql .= ' LIMIT ' . $this->params['offset'] . ', ' . $this->params['limit'];
 		else $this->sql .= '';
 	}
 	

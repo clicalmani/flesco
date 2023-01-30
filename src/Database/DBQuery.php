@@ -22,6 +22,11 @@ class DBQuery extends DB
 	
 	function set($param, $value) 
 	{ 
+		if ($param == 'type') {
+			$this->query = $value;
+			return;
+		}
+
 		$this->params[$param] = $value;
 	}
 
@@ -38,7 +43,7 @@ class DBQuery extends DB
 
 		return null;
 	}
-	
+
 	function exec()
 	{ 
 		
@@ -85,11 +90,11 @@ class DBQuery extends DB
 
 		$fields = array_keys( $options );
 		$values = array_values( $options );
-
+		
 		$this->params['fields'] = $fields;
 		$this->params['values'] = $values;
 
-		return $this->get();
+		return $this;
 	}
 
 	function insert($options = [])
@@ -161,6 +166,28 @@ class DBQuery extends DB
 		}
 
 		return $collection;
+	}
+
+	function all()
+	{
+		$this->params['where'] = 'TRUE';
+		$result = $this->exec();
+		$collection = new Collection;
+		
+		foreach ($result as $row) {
+			$collection->add($row);
+		}
+
+		return $collection;
+	}
+
+	function limit($offset, $limit)
+	{
+		$this->params['calc'] = true;
+		$this->params['offset'] = $offset;
+		$this->params['limit'] = $limit;
+		
+		return $this;
 	}
 
 	function join($table)

@@ -100,7 +100,7 @@ class Model implements \JsonSerializable
     public function delete()
     {
         if (isset($this->id) AND isset($this->primaryKey)) {
-            $this->query->params['where'] = $this->primaryKey . ' = ' . $this->id;
+            $this->query->params['where'] = $this->primaryKey . ' = "' . $this->id . '"';
         }
 
         $collection = $this->get();
@@ -124,14 +124,16 @@ class Model implements \JsonSerializable
         if (empty($values)) return false;
 
         if (isset($this->id) AND isset($this->primaryKey)) {
-            $this->query->update($values)->where($this->primaryKey . ' = ' . $this->id)->exec();
+            return $this->query->update($values)->where($this->primaryKey . ' = "' . $this->id . '"')->exec();
         } else {
 
             $criteria = $this->query->getParam('where');
 
             if ( isset($criteria) ) {
                 return $this->query->update($values)->where($criteria)->exec();
-            } else throw new \Exception("Can not bulk update or delete records when on safe mode");
+            } 
+            
+            throw new \Exception("Can not bulk update or delete records when on safe mode");
         }
     }
 
@@ -139,8 +141,8 @@ class Model implements \JsonSerializable
     {
         if (empty($fields)) return false;
 
-        $this->query = DB_QUERY_INSERT;
         $this->query->unset('tables');
+        $this->query->set('type', DB_QUERY_INSERT);
         $this->query->set('table', $this->table);
 
         if (count($fields) == count($fields, COUNT_RECURSIVE)) {
@@ -208,7 +210,7 @@ class Model implements \JsonSerializable
         // Avoid key alias
         $key = $this->cleanKey($child->getKey());
         
-        return new $class( $child->where($foreign_key . '=' . $this->id)->get($child->getKey())->first()[$key] );
+        return new $class( $child->where($foreign_key . '="' . $this->id . '"')->get($child->getKey())->first()[$key] );
     }
 
     /**
@@ -232,15 +234,28 @@ class Model implements \JsonSerializable
         
         $key = $this->cleanKey($child->getKey());
 
-        return $child->where($foreign_key . '=' . $this->id)->get($key)->map(function($arr) use($class, $key) {
+        return $child->where($foreign_key . '="' . $this->id . '"')->get($key)->map(function($arr) use($class, $key) {
             return new $class( $arr[$key] );
         });
     }
 
     public function save()
     {
-        $this->update( $this->changes );
-        $this->insert( $this->new_records );
+        $obj = null;
+        
+        if (count($this->changes)) {
+            $obj = $this->update( $this->changes );
+        }
+
+        if (count($this->new_records)) {
+            $obj = $this->insert( [$this->new_records] );
+        }
+
+        if ($obj) {
+            return $obj->status() == 'success';
+        }
+
+        return false;
     }
 
     public function sanitizeAttributeName($name)
@@ -267,35 +282,44 @@ class Model implements \JsonSerializable
 
     function __get($attribute)
     {
+        if (empty($attribute)) {
+            return null;
+        }
+
+        if (in_array($attribute, $this->getAppendAttributes())) {
+            $attribute = $this->sanitizeAttributeName($attribute);
+            return $this->{$attribute}();
+        }
+
         if (isset($this->id) AND isset($this->primaryKey)) {
 
-            $collection = $this->where($this->primaryKey . '=' . $this->id)->get($attribute);
+            $collection = $this->where($this->primaryKey . '="' . $this->id . '"')->get($attribute);
             
             if ($collection->count()) {
                 return $collection->first()[$attribute];
             }
 
             return null;
-        } throw new \Exception("Access to undeclared property $attribute on object");
+        } 
+        
+        throw new \Exception("Access to undeclared property $attribute on object");
     }
 
     function __set($attribute, $value)
     {
-        $this->query = DB_QUERY_INSERT;
-
         if (isset($this->id) AND isset($this->primaryKey)) {
 
-            $collection = $this->where($this->primaryKey . '=' . $this->id)->get($attribute);
+            $collection = $this->where($this->primaryKey . '="' . $this->id . '"')->get($attribute);
             
             if ($collection->count()) {
                 $this->changes[$attribute] = $value;
-            } else {
-                $this->new_records[] = [
-                    $attribute => $value
-                ];
             }
+            
+            return;
 
-        } throw new \Exception("Can not update or insert new record on unknow");
+        } 
+        
+        throw new \Exception("Can not update or insert new record on unknow");
     }
 
     function __toString()
@@ -307,7 +331,7 @@ class Model implements \JsonSerializable
 
     function jsonSerialize()
     {
-        $collection = DB::table($this->getTable())->where($this->getKey() . '=' . $this->id)->get();
+        $collection = DB::table($this->getTable())->where($this->getKey() . '="' . $this->id . '"')->get();
         
         if (0 === $collection->count()) {
             return null;
@@ -323,7 +347,7 @@ class Model implements \JsonSerializable
 
         $data = [];
         foreach ($collection as $row) {
-            $data[array_keys($row)[0]] = array_values($row)[0];
+            if ($row) $data[array_keys($row)[0]] = array_values($row)[0];
         }
 
         // Appended attributes
