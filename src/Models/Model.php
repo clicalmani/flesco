@@ -163,7 +163,7 @@ class Model implements \JsonSerializable
      * @return [Model] parent model
      */
     public function belongsTo($class, $foreign_key = null, $original_key = null)
-    {
+    { 
         $parent = new $class;
 
         $original_key = is_null($original_key) ? $parent->getKey(): $original_key;       // The original key is the parent
@@ -274,6 +274,15 @@ class Model implements \JsonSerializable
         return $child;
     }
 
+    public static function findAll() 
+    {
+        $child_class = get_called_class();
+        $child = new $child_class;
+        return $child->get()->map(function($row) use($child_class, $child) {
+            return new $child_class($row[$child->getKey()]);
+        });
+    }
+
     /**
      * Call for every state modification
      */
@@ -307,17 +316,15 @@ class Model implements \JsonSerializable
 
     function __set($attribute, $value)
     {
-        if (isset($this->id) AND isset($this->primaryKey)) {
-
-            $collection = $this->where($this->primaryKey . '="' . $this->id . '"')->get($attribute);
-            
-            if ($collection->count()) {
+        if ($this->get($attribute)->count()) {
+            if (isset($this->id) AND isset($this->primaryKey)) {
                 $this->changes[$attribute] = $value;
+            } else {
+                $this->new_records[$attribute] = $value;
             }
-            
-            return;
 
-        } 
+            return;
+        }
         
         throw new \Exception("Can not update or insert new record on unknow");
     }

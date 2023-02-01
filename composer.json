@@ -3,10 +3,10 @@
     "description": "Flesco changing the way developers write code ...",
     "type": "library",
     "require": {
+        "php": ">=7.4.9",
         "phpmailer/phpmailer": ">=6.7",
         "vlucas/phpdotenv": ">=5.5.0",
-        "php": ">=7.4.9",
-        "firebase/php-jwt": "dev-main"
+        "nesbot/carbon": "^2.16"
     },
     "license": "proprietary",
     "autoload": {
