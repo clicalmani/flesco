@@ -111,7 +111,7 @@ class DBQuery extends DB
 		foreach ($options as $option) {
 			$fields = array_keys( $option );
 			$values = array_values( $option );
-
+			
 			$this->params['fields']   = $fields;
 			$this->params['values'][] = $values;
 		}

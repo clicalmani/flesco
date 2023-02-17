@@ -26,14 +26,17 @@ class Model implements \JsonSerializable
         $this->query = new DBQuery;
         $this->query->set('tables', [$this->table]);
         
-        if ( isset($this->id) ) {
-            $this->query->where($this->primaryKey . '=' . $this->id);
+        if ( $this->id ) {
+            $this->query->where($this->primaryKey . ' = "' . $this->id . '"');
         }
     }
 
-    protected function getTable()
+    protected function getTable($add_alias = false)
     {
-        return $this->table;
+        if ($add_alias) return $this->table;
+
+        $arr = explode(' ', $this->table);
+        return count($arr) > 1 ? $arr[0]: $this->table;
     }
 
     protected function getKey()
@@ -79,6 +82,10 @@ class Model implements \JsonSerializable
 
     public function get($fields = '*')
     {
+        if ($this->id) {
+            $this->query->set('where', $this->getKey() . ' = "' . $this->id . '"');
+        }
+        
         return $this->query->get($fields);
     }
 
@@ -90,12 +97,11 @@ class Model implements \JsonSerializable
         return $child;
     }
 
-    // public function delete()
-    // {
-    //     if (isset($this->id) AND isset($this->primaryKey)) {
-    //         $this->query->delete()->where($this->primaryKey . ' = ' . $this->id)->exec();
-    //     } else throw new \Exception("Can not update or delete record when on safe mode");
-    // }
+    public function orderBy($order)
+    {
+        $this->query->params['order_by'] = $order;
+        return $this;
+    }
 
     public function delete()
     {
@@ -107,19 +113,27 @@ class Model implements \JsonSerializable
             
         if ($collection->count() === 1) {
             $row = $collection->first();
-            $this->id = $row[$this->cleanKey($this->primaryKey)];
+            $this->id = $row[$this->getKey()];
             $this->boot();
         }
         
         // A delete operation must contain a key
-        if (false == strstr($this->query->params['where'], $this->cleanKey($this->primaryKey))) {
+        if (empty($this->query->params['where'])) {
             throw new \Exception("Can not update or delete records when on safe mode");
         }
 
-        return $this->query->delete()->exec();
+        return $this->query->delete()->exec()->status() == 'success';
     }
 
-    public function update($values = [])
+    /**
+     * Updates current model
+     * 
+     * @param $values [optional] array new values
+     *  [key1 => value1, key2 => value2, ...]
+     * 
+     * @return Clicalmani\Flesco\Database\Update instance or throw error
+     */
+    protected function update($values = [])
     {
         if (empty($values)) return false;
 
@@ -137,17 +151,44 @@ class Model implements \JsonSerializable
         }
     }
 
-    public function insert($fields = [])
+    /**
+     * Inserts new model
+     * 
+     * @param $fields [optional] array
+     *  [
+     *      [key1 => value1, key2 => value2, ...],
+     *      [key1 => value1, key2 => value2, ...],
+     *      [key1 => value1, key2 => value2, ...],
+     *      ....
+     *  ]
+     * 
+     * @return Clicalmani\Flesco\Database\Insert instance or throw error
+     */
+    protected function insert($fields = [])
     {
         if (empty($fields)) return false;
 
         $this->query->unset('tables');
         $this->query->set('type', DB_QUERY_INSERT);
-        $this->query->set('table', $this->table);
+        $this->query->set('table', $this->getTable());
 
-        if (count($fields) == count($fields, COUNT_RECURSIVE)) {
-            $this->query->set('values', $fields);
-        } else throw new \Exception("Column count doesn't match value count");
+        $keys = [];
+        $values = [];
+
+        foreach ($fields as $field) {
+            if (empty($keys)) {
+                $keys = array_keys($field);
+            } else {
+                if (count($keys) !== count(array_keys($field))) {
+                    throw new \Exception("Column count doesn't match value count");
+                }
+            }
+
+            $values[] = array_values($field);
+        }
+        
+        $this->query->set('fields', $keys);
+        $this->query->set('values', $values);
 
         return $this->query->exec();
     }
@@ -164,6 +205,11 @@ class Model implements \JsonSerializable
      */
     public function belongsTo($class, $foreign_key = null, $original_key = null)
     { 
+        // Make sure the model exists
+        if (!$this->id) {
+            return null;
+        }
+
         $parent = new $class;
 
         $original_key = is_null($original_key) ? $parent->getKey(): $original_key;       // The original key is the parent
@@ -173,8 +219,12 @@ class Model implements \JsonSerializable
                                                                                          // suppose that the foreign key is the
                                                                                          // original key
         $key = $this->cleanKey($foreign_key);
+
+        if ($this->get($foreign_key)->count() === 0) {
+            return null;
+        }
         
-        $parent = new $class(
+        $parent = $class::find(
             /**
              * Obtain the foreign key value for the current relationship
              */
@@ -182,7 +232,7 @@ class Model implements \JsonSerializable
         );
         
         $parent->getQuery()->joinLeft($this->table, $foreign_key, $original_key);         // Join this model to its parent
-        $parent->getQuery()->set('where', $this->query->getParam('where'));
+        $parent->getQuery()->set('where', $foreign_key . ' = "' . $this->id . '"');
         
         return $parent;
     }
@@ -198,6 +248,11 @@ class Model implements \JsonSerializable
      */
     public function hasOne($class, $foreign_key = null, $orignal_key = null)
     {
+        // Make sure the model exists
+        if (!$this->id) {
+            return null;
+        }
+        
         $child = new $class;
 
         $original_key = is_null($original_key) ? $this->primaryKey: $original_key;     // The original key is the parent
@@ -208,9 +263,9 @@ class Model implements \JsonSerializable
                                                                                        // original key
         
         // Avoid key alias
-        $key = $this->cleanKey($child->getKey());
+        $key = $child->getKey();
         
-        return new $class( $child->where($foreign_key . '="' . $this->id . '"')->get($child->getKey())->first()[$key] );
+        return new $class( $child->where($foreign_key . '="' . $this->id . '"')->get($key)->first()[$key] );
     }
 
     /**
@@ -223,6 +278,11 @@ class Model implements \JsonSerializable
      */
     public function hasMany($class, $foreign_key = null, $original_key = null)
     {
+        // Make sure the model exists
+        if (!$this->id) {
+            return null;
+        }
+
         $child = new $class;
 
         $original_key = is_null($original_key) ? $this->primaryKey: $original_key;     // The original key is the parent
@@ -232,10 +292,25 @@ class Model implements \JsonSerializable
                                                                                        // suppose that the foreign key is the
                                                                                        // original key
         
-        $key = $this->cleanKey($child->getKey());
+        $child->query->joinLeft($this->getTable(), $original_key, $foreign_key);
+        $query = $child->getQuery();
 
-        return $child->where($foreign_key . '="' . $this->id . '"')->get($key)->map(function($arr) use($class, $key) {
-            return new $class( $arr[$key] );
+        $query->where($this->cleanKey($foreign_key) . ' = "' . $this->id . '"');
+
+        if ( $this->query->getParam('join') AND $query->getParam('join')) {
+            $query->set('join', array_merge($this->query->params['join'], $query->getParam('join')));
+        }
+
+        if ($this->query->getParam('where') AND $query->getParam('where')) {
+            $query->set('where', $this->query->params['where'] . ' AND ' . $query->getParam('where'));
+        }
+
+        if ($this->query->getParam('order_by') AND $query->getParam('order_by')) {
+            $query->set('order_by', $this->query->params['order_by'] . ', ' . $query->getParam('order_by'));
+        }
+
+        return $child->get()->map(function($row) use($class, $child) {
+            return $class::find($row[$child->getKey()]);
         });
     }
 
@@ -249,13 +324,52 @@ class Model implements \JsonSerializable
 
         if (count($this->new_records)) {
             $obj = $this->insert( [$this->new_records] );
+            $this->id = DB::getPdo()->lastInsertId();
+
+            if (!$this->id AND array_key_exists($this->getKey(), $this->new_records)) {
+                $this->id = $this->new_records[$this->getKey()];
+            }
         }
+
+        // Reset back to select parameters
+        $this->changes     = [];
+        $this->new_records = [];
+        $this->query->set('type', DB_QUERY_SELECT);
+        $this->query->set('tables', [$this->table]);
+        unset($this->query->params['table']);
 
         if ($obj) {
             return $obj->status() == 'success';
         }
 
         return false;
+    }
+
+    /**
+     * Joins the current model to the specified model
+     * 
+     * @param $model [string | Object] Specified model
+     * 
+     * @return DBQuery
+     */
+    public function join($model, $foreign_key = null, $original_key = null, $type = 'INNER')
+    {
+        $original_key = is_null($original_key) ? $this->getKey(): $original_key;     // The original key is the parent
+                                                                                       // primary key
+
+        $foreign_key  = is_null($foreign_key) ? $original_key: $foreign_key;           // If $foreign_key is not set
+                                                                                       // suppose that the foreign key is the
+                                                                                       // original key
+
+        if (is_string($model)) {
+            $model = new $model;
+        }
+
+        $type = ucfirst(strtolower($type));
+
+        $this->query->{'join' . $type}($model->getTable(true), $foreign_key, $original_key);
+
+        return $this;
     }
 
     public function sanitizeAttributeName($name)
@@ -302,7 +416,7 @@ class Model implements \JsonSerializable
 
         if (isset($this->id) AND isset($this->primaryKey)) {
 
-            $collection = $this->where($this->primaryKey . '="' . $this->id . '"')->get($attribute);
+            $collection = $this->where($this->primaryKey . '="' . $this->id . '"')->get("`$attribute`");
             
             if ($collection->count()) {
                 return $collection->first()[$attribute];
@@ -316,7 +430,19 @@ class Model implements \JsonSerializable
 
     function __set($attribute, $value)
     {
-        if ($this->get($attribute)->count()) {
+        $db = DB::getInstance();
+        $table = $db->getPrefix() . $this->getTable();
+        $statement = $db->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '" . env('DB_NAME', '') . "' AND TABLE_NAME = '$table'");
+        $found = false;
+
+        while($row = $db->fetch($statement, \PDO::FETCH_NUM)) {
+            if ($row[0] == $attribute) {
+                $found = true;
+                break;
+            }
+        }
+
+        if (false !== $found) {
             if (isset($this->id) AND isset($this->primaryKey)) {
                 $this->changes[$attribute] = $value;
             } else {

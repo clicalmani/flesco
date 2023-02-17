@@ -14,10 +14,10 @@ class Insert extends DBQueryBuilder implements \IteratorAggregate {
 			
 			for ($i=0; $i<(sizeof($this->params['fields'])-1); $i++) {
 				
-				$this->sql .= $this->params['fields'][$i] . ', ';
+				$this->sql .= '`' . $this->params['fields'][$i] . '`, ';
 			}
 			
-			$this->sql .= $this->params['fields'][sizeof($this->params['fields'])-1] . ') ';
+			$this->sql .= '`' . $this->params['fields'][sizeof($this->params['fields'])-1] . '`) ';
 		}
 		
 		$this->sql .= ' VALUES ';
@@ -68,7 +68,6 @@ class Insert extends DBQueryBuilder implements \IteratorAggregate {
 	
 	function query() 
 	{ 
-		
 	    $result = $this->db->query($this->bindVars($this->sql));
     		
 		$this->status     = $result ? true: false;

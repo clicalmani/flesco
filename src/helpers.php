@@ -76,14 +76,41 @@ if ( ! function_exists( 'env' ) ) {
     }
 }
 
-if ( ! function_exists( 'asset' ) ) {
-    function asset($path) {
-        echo $path;
+if ( ! function_exists( 'assets' ) ) {
+    function assets($path = '/') {
+        $app_url = env('APP_URL', '127.0.0.1:8000');
+        $protocol = '';
+        if (preg_match('/^http/', $app_url) == false) {
+            $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] === 443) ? 'https://': 'http://';
+        }
+        return $protocol . env('APP_URL', 'http://127.0.0.1:8000') . $path;
     }
 }
 
 if ( ! function_exists( 'password' ) ) {
     function password($password) {
         return password_hash($password, PASSWORD_BCRYPT);
+    }
+}
+
+if ( ! function_exists( 'temp_dir' ) ) {
+    function temp_dir($path = '/') {
+
+        if ( function_exists( 'sys_get_temp_dir' ) ) {
+
+            $temp = sys_get_temp_dir();
+
+            if ( @is_dir( $temp ) ) {
+                return $temp . $path;
+            }
+        }
+
+        $temp = ini_get( 'upload_tmp_dir' );
+
+        if ( @is_dir( $temp ) ) {
+            return $temp . $path;
+        }
+
+        return "/tmp$path";
     }
 }

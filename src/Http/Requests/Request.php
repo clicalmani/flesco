@@ -36,12 +36,14 @@ class Request extends HttpRequest implements \ArrayAccess, \JsonSerializable {
         $this->signatures = $this->signatures ? $this->signatures: [];
         $sanitized = Security::sanitizeVars($_REQUEST, $this->signatures);
         
-		if ( isset($sanitized[$property])) {
-			return $sanitized[$property];
-		} elseif (isset($_REQUEST[$property])) {
+        if ( array_key_exists($property, $_REQUEST) ) {
+            if ( array_key_exists($property, $sanitized) ) {
+                return $sanitized[$property];
+            }
+
             return $_REQUEST[$property];
         }
-
+		
         switch( $property ) {
             case 'redirect':
                 return new RequestRedirect;

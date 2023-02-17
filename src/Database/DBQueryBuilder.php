@@ -100,9 +100,14 @@ abstract class DBQueryBuilder {
 	
 	function getSQL() { return $this->bindVars($this->sql); }
 
+	function isBoolValue($value)
+	{
+		return is_bool($value);
+	}
+
 	function isNullValue($value) 
 	{
-		return $value === 'NULL';
+		return ($value === 'NULL' || is_null($value));
 	}
 
 	function isDefaultValue($value)
@@ -119,6 +124,10 @@ abstract class DBQueryBuilder {
 
 	function sanitizeValue($value)
 	{
+		if ($this->isBoolValue($value)) {
+			return (int) $value;
+		}
+		
 		if ($this->isNullValue($value)) {
 			return 'NULL';
 		}

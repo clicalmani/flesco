@@ -12,7 +12,7 @@ function loadClass($className) {
         $fileName = str_replace('\\', DIRECTORY_SEPARATOR, $namespace) . DIRECTORY_SEPARATOR;
     }
 
-    $fileName = strtr($fileName, '\\', '/');
+    $fileName = str_replace('\\', '/', $fileName);
     $fileName .= $className . '.php';
     $fullFileName = $includePath . $fileName;
 

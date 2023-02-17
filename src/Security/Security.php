@@ -42,6 +42,10 @@ class Security {
 
 					$tmp[$key] = $vars[$key];
 
+					if(isset($sig['function'])){
+						$tmp[$key] = $sig['function']($tmp[$key]);
+					}
+
 					if(isset($sig['type'])) {
 						switch ($sig['type']) {
 							case 'integer': settype($tmp[$key], 'integer'); break;
@@ -50,6 +54,7 @@ class Security {
 							case 'array': settype($tmp[$key], 'array'); break;
 							case 'object': settype($tmp[$key], 'object'); break;
 							case 'email': settype($tmp[$key], 'string'); break;
+							case 'list': settype($tmp[$key], 'string'); break;
 						}
 
 						// Custom type checking
@@ -65,7 +70,116 @@ class Security {
 										die("Parameter $key is not a valid email");
 									}
 									
-									$tmp[$key] = null;
+									unset($tmp[$key]);
+
+									if (array_key_exists($key, $_REQUEST)) {
+										$_REQUEST[$key] = null;
+									}
+								}
+								break;
+
+							case 'list':
+								if (!in_array($tmp[$key], $sig['list'])) {
+									if ($sig['required']) {
+										if($redirect) {
+											header("Location: $redirect");
+											exit;
+										}
+	
+										die("$key is not in the list");
+									}
+									
+									$tmp[$key] = $sig['default'] ? $sig['default']: null;
+
+									if (array_key_exists($key, $_REQUEST)) {
+										$_REQUEST[$key] = null;
+									}
+								}
+								break;
+
+							case 'date':
+								if (isset($sig['format'])) {
+									$format = $sig['format'];
+									$bindings = [
+										'Y' => '[0-9]{4}',
+										'm' => '[0-9]{2}',
+										'd' => '[0-9]{2}'
+									];
+
+									foreach ($bindings as $k => $v) {
+										$format = str_replace($k, $v, $format);
+									}
+									
+									if (false == preg_match('/^(' . $format . ')$/i', $tmp[$key])) {
+										if ($sig['required']) {
+											if($redirect) {
+												header("Location: $redirect");
+												exit;
+											}
+		
+											die("$key is not a valid date");
+										}
+										
+										unset($tmp[$key]);
+
+										if (array_key_exists($key, $_REQUEST)) {
+											$_REQUEST[$key] = null;
+										}
+									}
+								}
+								break;
+
+							case 'datetime':
+								if (isset($sig['format'])) {
+									$format = $sig['format'];
+									$bindings = [
+										'Y' => '[0-9]{4}',
+										'm' => '[0-9]{2}',
+										'd' => '[0-9]{2}',
+										'H' => '[0-9]{2}',
+										'i' => '[0-9]{2}',
+										's' => '[0-9]{2}'
+									];
+
+									foreach ($bindings as $k => $v) {
+										$format = str_replace($k, $v, $format);
+									}
+
+									if (false == preg_match('/^(' . $format . ')$/i', $tmp[$key])) {
+										if ($sig['required']) {
+											if($redirect) {
+												header("Location: $redirect");
+												exit;
+											}
+		
+											die("$key is not a valid a datetime");
+										}
+										
+										unset($tmp[$key]);
+
+										if (array_key_exists($key, $_REQUEST)) {
+											$_REQUEST[$key] = null;
+										}
+									}
+								}
+								break;
+
+							case 'regex':
+								if (isset($sig['pattern']) AND false == preg_match($sig['pattern'], $tmp[$key])) {
+									if ($sig['required']) {
+										if($redirect) {
+											header("Location: $redirect");
+											exit;
+										}
+	
+										die("$key pattern does not match");
+									}
+									
+									unset($tmp[$key]);
+
+ 									if (array_key_exists($key, $_REQUEST)) {
+										$_REQUEST[$key] = null;
+									}
 								}
 								break;
 						}
@@ -85,6 +199,19 @@ class Security {
 									break;
 							}
 						}
+
+						if (isset($sig['length']) AND $sig['type'] == 'string' AND strlen($tmp[$key]) !== $sig['length']) {
+							if ($sig['required']) {
+								if($redirect) {
+									header("Location: $redirect");
+									exit;
+								}
+
+								die("$key length does not match");
+							}
+							
+							$tmp[$key] = null;
+						}
 					} else if(isset($sig['max'])) {
 						if($redirect) {
 							header("Location: $redirect");
@@ -92,9 +219,6 @@ class Security {
 							echo "Max is set on a non-specified type.";
 						}
 						exit();
-					}
-					if(isset($sig['function'])){
-						$tmp[$key] = $sig['function']($tmp[$key]);
 					}
 				}
 			}

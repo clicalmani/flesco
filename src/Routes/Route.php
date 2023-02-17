@@ -172,7 +172,7 @@ class Route {
             return -1;
         }
         
-        // If there is not parameters the two route match in structure.
+        // If there is no parameters the two route match in structure.
         if ($sroute == $nroute) {
             return 0;
         }
@@ -181,13 +181,14 @@ class Route {
         $nseq = preg_split('/\//', $nroute, -1, PREG_SPLIT_NO_EMPTY);
         
         // The two routes should have same number of sequences
-        if (count($sseq) !== count($nseq)) {
+        // if there is no optional parameters
+        if (false == strpos($sroute, '?') AND count($sseq) !== count($nseq)) {
             return -1;
         }
         
         for($i=0; $i<count($sseq); $i++) {
             $spart = $sseq[$i];
-            $npart = $nseq[$i];
+            $npart = isset($nseq[$i]) ? $nseq[$i]: null;
             
             // different parts does not contain parameter
             if ($spart == $npart) continue;
@@ -195,7 +196,8 @@ class Route {
             // Patterns againts synthetic route
             $patterns = [
                 '/^:(\w+)$/',       // :name
-                '/^:(\w+)-(\w+)$/'  // :from-to
+                '/^:(\w+)-(\w+)$/', // :from-to
+                '/^:(\w+)\?$/'      // :optional?
             ];
             
             foreach ($patterns as $index => $pattern) {
@@ -225,12 +227,23 @@ class Route {
 
                             return -1;
                         break;
+
+                        case 2:
+                            if (!$npart OR preg_match('/^(.*)$/', $npart)) {
+                                $_GET[rtrim(ltrim($spart, ':'), '?')] = $npart;
+                                $_REQUEST = $_GET;
+                                continue 3;
+                            } 
+
+                            return -1;
+                        break;
                     }
                 }
 
                 // In cas there is no parameter
                 // the different parts should match
-                if ($spart != $npart) {
+                // Escape optional parameters
+                if (false == strpos($spart, '?') AND $spart != $npart) {
                     return -1;
                 }
             }
