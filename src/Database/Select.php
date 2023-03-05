@@ -109,10 +109,6 @@ class Select extends DBQueryBuilder implements \IteratorAggregate
 	    $this->error_msg  = $this->db->error();
 		$this->num_rows   = $this->db->numRows($result);
 		
-		// if (isset($this->params['calc']) AND $this->params['calc'] == true) {
-		// 	$GLOBALS['pagination'] = paginer($this->db->getConnection(), $this->range, $this->limit, $this->params['query_str']);
-		// }
-		
 		$count = 0;
 	    while ($row = $this->db->fetch($result, \PDO::FETCH_ASSOC)) {
 	    	$this->result[] = $row;

@@ -216,25 +216,12 @@ class Model implements \JsonSerializable
                                                                                          // primary key
 
         $foreign_key  = is_null($foreign_key) ? $original_key: $foreign_key;             // If $foreign_key is not set
-                                                                                         // suppose that the foreign key is the
-                                                                                         // original key
-        $key = $this->cleanKey($foreign_key);
-
-        if ($this->get($foreign_key)->count() === 0) {
-            return null;
-        }
         
-        $parent = $class::find(
-            /**
-             * Obtain the foreign key value for the current relationship
-             */
-            $this->get($foreign_key)->first()[$key]
-        );
-        
-        $parent->getQuery()->joinLeft($this->table, $foreign_key, $original_key);         // Join this model to its parent
-        $parent->getQuery()->set('where', $foreign_key . ' = "' . $this->id . '"');
-        
-        return $parent;
+        $row = $this->join($class, $foreign_key, $original_key)
+                    ->get()
+                    ->first();
+        $obj = new $class;
+        return $class::find($row[$obj->getKey()]);
     }
 
     /**
@@ -252,20 +239,8 @@ class Model implements \JsonSerializable
         if (!$this->id) {
             return null;
         }
-        
-        $child = new $class;
 
-        $original_key = is_null($original_key) ? $this->primaryKey: $original_key;     // The original key is the parent
-                                                                                       // primary key
-
-        $foreign_key  = is_null($foreign_key) ? $original_key: $foreign_key;           // If $foreign_key is not set
-                                                                                       // suppose that the foreign key is the
-                                                                                       // original key
-        
-        // Avoid key alias
-        $key = $child->getKey();
-        
-        return new $class( $child->where($foreign_key . '="' . $this->id . '"')->get($key)->first()[$key] );
+        return $this->belongsTo($class, $foreign_key, $original_key);
     }
 
     /**
@@ -291,27 +266,12 @@ class Model implements \JsonSerializable
         $foreign_key  = is_null($foreign_key) ? $original_key: $foreign_key;           // If $foreign_key is not set
                                                                                        // suppose that the foreign key is the
                                                                                        // original key
-        
-        $child->query->joinLeft($this->getTable(), $original_key, $foreign_key);
-        $query = $child->getQuery();
-
-        $query->where($this->cleanKey($foreign_key) . ' = "' . $this->id . '"');
-
-        if ( $this->query->getParam('join') AND $query->getParam('join')) {
-            $query->set('join', array_merge($this->query->params['join'], $query->getParam('join')));
-        }
-
-        if ($this->query->getParam('where') AND $query->getParam('where')) {
-            $query->set('where', $this->query->params['where'] . ' AND ' . $query->getParam('where'));
-        }
-
-        if ($this->query->getParam('order_by') AND $query->getParam('order_by')) {
-            $query->set('order_by', $this->query->params['order_by'] . ', ' . $query->getParam('order_by'));
-        }
-
-        return $child->get()->map(function($row) use($class, $child) {
-            return $class::find($row[$child->getKey()]);
-        });
+        return $this->join($class, $foreign_key, $original_key)
+                    ->get()
+                    ->map(function($row) use($class) {
+                        $obj = new $class;
+                        return $class::find($row[$obj->getKey()]);
+                    });
     }
 
     public function save()
@@ -352,7 +312,7 @@ class Model implements \JsonSerializable
      * 
      * @return DBQuery
      */
-    public function join($model, $foreign_key = null, $original_key = null, $type = 'INNER')
+    public function join($model, $foreign_key = null, $original_key = null, $type = 'LEFT')
     {
         $original_key = is_null($original_key) ? $this->getKey(): $original_key;     // The original key is the parent
                                                                                        // primary key
@@ -368,6 +328,20 @@ class Model implements \JsonSerializable
         $type = ucfirst(strtolower($type));
 
         $this->query->{'join' . $type}($model->getTable(true), $foreign_key, $original_key);
+
+        return $this;
+    }
+
+    public function having($criteria)
+    {
+        $this->query->having($criteria);
+
+        return $this;
+    }
+
+    public function groupBy($criteria)
+    {
+        $this->query->groupBy($criteria);
 
         return $this;
     }
@@ -464,6 +438,10 @@ class Model implements \JsonSerializable
 
     function jsonSerialize()
     {
+        if (!$this->id) {
+            return null;
+        }
+
         $collection = DB::table($this->getTable())->where($this->getKey() . '="' . $this->id . '"')->get();
         
         if (0 === $collection->count()) {

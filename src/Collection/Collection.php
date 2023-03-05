@@ -36,6 +36,15 @@ class Collection extends SPLCollection
         return $this;
     }
 
+    function each($closure)
+    {
+        foreach ($this as $key => $value) {
+            $closure($value, $key);
+        }
+
+        return $this;
+    }
+
     function filter($closure)
     {
         $new = [];
@@ -79,6 +88,24 @@ class Collection extends SPLCollection
     {
         $this->exchangeArray($array);
         return $this;
+    }
+
+    function unique($closure = null)
+    {
+        if (!isset($closure)) return $this->exchange(array_unique( $this->toArray() ));
+
+        $stack  = [];
+        $filter = [];
+        foreach ($this as $key => $value)
+        {
+            $v = $closure($value, $key);
+            if (!in_array($v, $filter)) {
+                $stack[] = $value;
+                $filter[] = $v;
+            }
+        }
+
+        return $this->exchange($stack);
     }
 
     function sort($callback)

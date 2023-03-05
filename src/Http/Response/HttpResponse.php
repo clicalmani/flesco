@@ -12,8 +12,9 @@ class HttpResponse
                 'data'    => $data
             ],
             JSON_PRETTY_PRINT | JSON_NUMERIC_CHECK |
-            JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR,
-            10
+            JSON_UNESCAPED_SLASHES
+            | JSON_THROW_ON_ERROR /** Enable strict mode */,
+            512
         );
     }
 

@@ -58,7 +58,7 @@ abstract class RequestController extends HttpRequest
 		
 		foreach (Route::$rountines as $method => $data) {
 			if ($route = Route::exists($method)) { 
-
+				
 				$middlewares = Route::getCurrentRouteMiddlewares();
 				
 				self::$route      = $route;

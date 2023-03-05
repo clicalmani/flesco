@@ -42,8 +42,8 @@ class Security {
 
 					$tmp[$key] = $vars[$key];
 
-					if(isset($sig['function'])){
-						$tmp[$key] = $sig['function']($tmp[$key]);
+					if(isset($sig['before'])){
+						$tmp[$key] = $sig['before']($tmp[$key]);
 					}
 
 					if(isset($sig['type'])) {
@@ -219,6 +219,10 @@ class Security {
 							echo "Max is set on a non-specified type.";
 						}
 						exit();
+					}
+
+					if(isset($sig['function']) && array_key_exists($key, $tmp)){
+						$tmp[$key] = $sig['function']($tmp[$key]);
 					}
 				}
 			}

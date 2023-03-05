@@ -8,6 +8,18 @@ class Route {
     
     public static $rountines;
     public static $route_middlewares = [];
+    
+    private const PARAM_TYPES = [
+        'numeric',
+        'int',
+        'integer',
+        'float',
+        'string'
+    ];
+    private const VALIDATORS = [
+        'pattern',
+        'enum'
+    ];
 
     public static function currentRoute()
     {
@@ -185,6 +197,9 @@ class Route {
         if (false == strpos($sroute, '?') AND count($sseq) !== count($nseq)) {
             return -1;
         }
+
+        $_GET = [];
+        $_REQUEST = [];
         
         for($i=0; $i<count($sseq); $i++) {
             $spart = $sseq[$i];
@@ -195,7 +210,7 @@ class Route {
             
             // Patterns againts synthetic route
             $patterns = [
-                '/^:(\w+)$/',       // :name
+                '/^:(\w+(:?.*))$/',  // :name@{type: number}
                 '/^:(\w+)-(\w+)$/', // :from-to
                 '/^:(\w+)\?$/'      // :optional?
             ];
@@ -204,9 +219,68 @@ class Route {
                 
                 if (preg_match($pattern, $spart)) {
                     
+                    if (strpos($spart, '@')) { // Has validators
+
+                        $arr = explode('@', $spart);
+                        $validator = json_decode($arr[1]);
+                        
+                        if ($validator) {
+
+                            $valid = false;
+
+                            if (@ $validator->type) {
+
+                                if (in_array(@ $validator->type, self::PARAM_TYPES)) {
+                                    switch($validator->type) {
+                                        case 'numeric':
+                                            if (is_numeric($npart)) {
+                                                $valid = true;
+                                            }
+                                        break;
+
+                                        case 'int':
+                                        case 'integer':
+                                            if (is_int($npart)) {
+                                                $valid = true;
+                                            }
+                                        break;
+
+                                        case 'float':
+                                            if (is_float($npart)) {
+                                                $valid = true;
+                                            }
+                                        break;
+
+                                        case 'string':
+                                            if (is_string($npart)) {
+                                                $valid = true;
+                                            }
+                                        break;
+                                    }
+                                }
+                            } elseif(@ $validator->enum) {
+                                $enum = explode(',', $validator->enum);
+
+                                if (in_array($npart, $enum)) {
+                                    $valid = true;
+                                }
+                            } elseif(@ $validator->pattern) {
+                                if (@preg_match('/' . $validator->pattern . '/', $npart)) {
+                                    $valid = true;
+                                }
+                            } 
+
+                            if (false === $valid) {
+                                return -1;
+                            }
+                        }
+
+                        $spart = $arr[0]; // Remove validation part
+                    }
+                    
                     switch($index) {
                         case 0:
-                            if (preg_match('/^(\S+)$/', $npart)) {
+                            if (false == self::isEligible($nroute) AND preg_match('/^(\S+)$/', $npart)) {
                                 $_GET[substr($spart, 1)] = $npart;
                                 $_REQUEST = $_GET;
                                 continue 3;
@@ -229,7 +303,7 @@ class Route {
                         break;
 
                         case 2:
-                            if (!$npart OR preg_match('/^(.*)$/', $npart)) {
+                            if (false == self::isEligible($nroute) AND (!$npart OR preg_match('/^(.*)$/', $npart))) {
                                 $_GET[rtrim(ltrim($spart, ':'), '?')] = $npart;
                                 $_REQUEST = $_GET;
                                 continue 3;
@@ -272,6 +346,27 @@ class Route {
             }
         }
         
+        return false;
+    }
+
+    /**
+     * Route without parameters and route with parameter that resemble in structure with same length
+     * have the same priority. Ex: api/rooms/add and api/rooms/:promo. To differenciate them, we prioritize
+     * route without parameter.
+     * 
+     * @param $route [string] 
+     * @return Boolean true on success, false on failure.
+     */
+    private static function isEligible($route)
+    {
+        foreach (self::$rountines as $rountine) {
+            foreach ($rountine as $sroute => $controller) {
+                if ($sroute == $route) {
+                    return true;
+                }
+            }
+        }
+
         return false;
     }
 }
