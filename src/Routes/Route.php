@@ -198,9 +198,6 @@ class Route {
             return -1;
         }
 
-        $_GET = [];
-        $_REQUEST = [];
-        
         for($i=0; $i<count($sseq); $i++) {
             $spart = $sseq[$i];
             $npart = isset($nseq[$i]) ? $nseq[$i]: null;
@@ -277,6 +274,8 @@ class Route {
 
                         $spart = $arr[0]; // Remove validation part
                     }
+
+                    $matched = true;
                     
                     switch($index) {
                         case 0:
@@ -286,7 +285,7 @@ class Route {
                                 continue 3;
                             }  
                             
-                            return -1;
+                            $matched = false;
                         break;
 
                         case 1:
@@ -299,7 +298,7 @@ class Route {
                                 continue 3;
                             } 
 
-                            return -1;
+                            $matched = false;
                         break;
 
                         case 2:
@@ -309,8 +308,15 @@ class Route {
                                 continue 3;
                             } 
 
-                            return -1;
+                            $matched = false;
                         break;
+                    }
+
+                    if (false == $matched) {
+                        
+                        $_GET = [];
+
+                        return -1;
                     }
                 }
 

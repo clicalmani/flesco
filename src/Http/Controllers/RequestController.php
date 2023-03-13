@@ -112,53 +112,79 @@ abstract class RequestController extends HttpRequest
 				$reflect = new \ReflectionMethod($class, $controller[1]);
 
 				$method_parameters = $reflect->getParameters();             // Controller method parameters
+				
+				$parameters = [];
+				$request = new Request;
+
+				foreach ($method_parameters as $param) {
+					$parameters[] = $param;
+				}
+
+				$method_parameters = $parameters;
+				unset($parameters);
 
 				// Check first parameter (Request object)
-				if ( isset($method_parameters[0]) ) {
-					$first_param_type = $method_parameters[0]->getType();  // Get method first parameter
+				$first_param = @ $method_parameters[0];
+				$first_param_type = null;
+
+				if ( $first_param ) {
+					$first_param_type = $first_param->getType();  // Get method first parameter
 				                                                    	   // Which correspond to request object
 																		   // null if no parameter
 				}
 				
-				if (isset($first_param_type)) {
-
+				/**
+				 * Take request object type for validation
+				 */
+				if ( $first_param_type ) {
+					
 					$requestClass = $first_param_type->getName();
-					$ro = new $requestClass([]);                           // Request objet or an instance
+					$request = new $requestClass([]);                           // Request objet or an instance
 					                                                       // of class extending Request
 
-					$ro->validate();                                       // Call validate method
-					
-					/**
-					 * Appends route parameters to controller method
-					 */
+					$request->validate();                                       // Call validate method
+				}
+				
+				/**
+				 * Appends route parameters to route method
+				 */
 
-					$method_parameters_names = [];
-					unset($method_parameters[0]); // Unset first parameter
+				$method_parameters_names = [];
+				unset($method_parameters[0]); // Unset first parameter
+
+				if ( count($method_parameters) ) {
 
 					foreach ($method_parameters as $param) {
 						$method_parameters_names[] = $param->getName();
 					}
-
+					
 					// Get parameters names
 					$mathes = [];
-					preg_match('/:[^\/]+/', self::$route, $mathes);
+					preg_match_all('/:[^\/]+/', self::$route, $mathes);
 					
-					$parameters = [];
+					if ( count($mathes) ) {
 
-					// Parameters provided values through HttpRequest
-					foreach ($mathes as $name) {
-						$name = substr($name, 1);
-						if (isset($_REQUEST[$name]) AND in_array($name, $method_parameters_names)) {
-							$parameters[] = $_REQUEST[$name];
+						$mathes = $mathes[0];
+						$parameters = [];
+
+						// Parameters provided values through HttpRequest
+						foreach ($mathes as $name) {
+							$name = substr($name, 1);    // Remove starting two dots (:)
+							$name = substr($name, 0, strpos($name, '@')); // Remove validation part
+							
+							if ($request->{$name} AND in_array($name, $method_parameters_names)) {
+								$parameters[] = $request->{$name};
+							}
 						}
+						
+						// Call controller whith a Request object
+						if (count($method_parameters) === count($parameters) ) {
+							
+							return $obj->{$controller[1]}($request, ...$parameters);
+						}
+						
+						throw new \ArgumentCountError("Too few arguments");
 					}
-					
-					// Call controller whith a Request object
-					if (count($method_parameters) === count($parameters) ) {
-						return $obj->{$controller[1]}($ro, ...$parameters);  
-					}
-					
-					throw new \ArgumentCountError("Too few arguments");
 				}
 				
 				return $obj->{$controller[1]}($request);

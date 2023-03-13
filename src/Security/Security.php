@@ -78,6 +78,7 @@ class Security {
 								}
 								break;
 
+							case 'enum':
 							case 'list':
 								if (!in_array($tmp[$key], $sig['list'])) {
 									if ($sig['required']) {

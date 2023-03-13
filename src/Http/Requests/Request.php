@@ -6,25 +6,20 @@ use Clicalmani\Flesco\Http\Requests\RequestFile;
 use Clicalmani\Flesco\Http\Requests\RequestRedirect;
 use Clicalmani\Flesco\Security\Security;
 
-class Request extends HttpRequest implements \ArrayAccess, \JsonSerializable {
+class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \JsonSerializable {
 
     private $signatures = [];
 
-    public static function render() {
-        /**
-         * Does not need to be implemented here
-         * @see RequestController::render for implementation
-         */
-    }
+    /**
+     * @see RequestController::render for implementation
+     */
+    public static function render() {}
+
+    public function validate() {}
 
     public function validation($options = [])
     {
         $this->merge($options);
-    }
-
-    public function validate()
-    {
-        //
     }
 
     public function __construct( $signatures = [] ) {
@@ -200,15 +195,6 @@ class Request extends HttpRequest implements \ArrayAccess, \JsonSerializable {
 
     public function user() 
     {
-        // Check provider
-        // $user_manage = \Clicalmani\Flesco\Providers\ServiceProvider::$providers;
-
-        // if ( isset($user_manage['users']) AND isset($user_manage['users']['manage']) ) {
-        //     $provider = new $user_manage['users']['manage']( $this->session('user-id') );
-
-        //     return $provider;
-        // }
-
         return new \App\Authenticate\User( $this->session('user-id') );
     }
 

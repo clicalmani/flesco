@@ -10,15 +10,21 @@ use Clicalmani\Flesco\Collection\Collection;
 class Model implements \JsonSerializable
 {
 
-    protected $id;
-    protected $table;
-    protected $primaryKey;
-    protected $attributes = [];
-    protected $appendAttributes = [];
+    protected $id,
+              $table,
+              $primaryKey,
+              $attributes = [],
+              $appendAttributes = [],
+              $query;
 
-    protected $query;
-    private $changes     = [];
-    private $new_records = [];
+    private $changes = [],
+            $new_records = [],
+            $before_create = null,
+            $after_create = null,
+            $before_update = null,
+            $after_update = null,
+            $before_delete = null,
+            $after_delete = null;
 
     public function __construct($id = null)
     {
@@ -94,6 +100,7 @@ class Model implements \JsonSerializable
         $child_class = get_called_class();
         $child = new $child_class;
         $child->getQuery()->where($criteria);
+        $child->boot();
         return $child;
     }
 
@@ -114,7 +121,6 @@ class Model implements \JsonSerializable
         if ($collection->count() === 1) {
             $row = $collection->first();
             $this->id = $row[$this->getKey()];
-            $this->boot();
         }
         
         // A delete operation must contain a key
@@ -122,7 +128,20 @@ class Model implements \JsonSerializable
             throw new \Exception("Can not update or delete records when on safe mode");
         }
 
-        return $this->query->delete()->exec()->status() == 'success';
+        // Before create boot
+        if ($this->before_delete) {
+            $closure = $this->before_delete;
+            $closure($this);
+        }
+
+        $success = $this->query->delete()->exec()->status() == 'success';
+
+        // Before create boot
+        if ($this->after_delete) {
+            $this->after_delete($this);
+        }
+
+        return $success;
     }
 
     /**
@@ -138,17 +157,29 @@ class Model implements \JsonSerializable
         if (empty($values)) return false;
 
         if (isset($this->id) AND isset($this->primaryKey)) {
-            return $this->query->update($values)->where($this->primaryKey . ' = "' . $this->id . '"')->exec();
+            $criteria = $this->primaryKey . ' = "' . $this->id . '"';
         } else {
-
             $criteria = $this->query->getParam('where');
-
-            if ( isset($criteria) ) {
-                return $this->query->update($values)->where($criteria)->exec();
-            } 
-            
-            throw new \Exception("Can not bulk update or delete records when on safe mode");
         }
+
+        if ( isset($criteria) ) {
+
+            // Before create boot
+            if ($this->before_update) {
+                $this->before_update($this);
+            }
+
+            $success = $this->query->update($values)->where($criteria)->exec();
+
+            // Before create boot
+            if ($this->after_update) {
+                $this->after_update($this);
+            }
+
+            return $success;
+        } 
+        
+        throw new \Exception("Can not bulk update or delete records when on safe mode");
     }
 
     /**
@@ -190,7 +221,19 @@ class Model implements \JsonSerializable
         $this->query->set('fields', $keys);
         $this->query->set('values', $values);
 
-        return $this->query->exec();
+        // Before create boot
+        if ($this->before_create) {
+            $this->before_create($this);
+        }
+
+        $success = $this->query->exec();
+
+        // After create boot
+        if ($this->after_create) {
+            $this->after_create($this);
+        }
+
+        return $success;
     }
 
     /**
@@ -209,7 +252,7 @@ class Model implements \JsonSerializable
         if (!$this->id) {
             return null;
         }
-
+        
         $parent = new $class;
 
         $original_key = is_null($original_key) ? $parent->getKey(): $original_key;       // The original key is the parent
@@ -266,6 +309,7 @@ class Model implements \JsonSerializable
         $foreign_key  = is_null($foreign_key) ? $original_key: $foreign_key;           // If $foreign_key is not set
                                                                                        // suppose that the foreign key is the
                                                                                        // original key
+        
         return $this->join($class, $foreign_key, $original_key)
                     ->get()
                     ->map(function($row) use($class) {
@@ -320,9 +364,19 @@ class Model implements \JsonSerializable
         $foreign_key  = is_null($foreign_key) ? $original_key: $foreign_key;           // If $foreign_key is not set
                                                                                        // suppose that the foreign key is the
                                                                                        // original key
-
+        
         if (is_string($model)) {
             $model = new $model;
+        }
+
+        $joints = $this->query->getParam('join');
+
+        if ( $joints ) {
+            foreach ($joints as $joint) {
+                if ($joint['table'] == $model->getTable(true)) {                            // Table already joint
+                    return $this;
+                }
+            }
         }
 
         $type = ucfirst(strtolower($type));
@@ -377,6 +431,42 @@ class Model implements \JsonSerializable
     protected function boot()
     {}
 
+    protected function beforeCreate($closure) {
+        if ($this->before_create AND is_callable($this->before_create, true, $before)) {
+            $this->before_create = $before;
+        }
+    }
+
+    protected function afterCreate($closure) {
+        if ($this->after_create AND is_callable($this->after_create, true, $after)) {
+            $this->after_create = $after;
+        }
+    }
+
+    protected function beforeUpdate($closure) {
+        if ($this->before_update AND is_callable($this->before_update, true, $before)) {
+            $this->before_update = $before;
+        }
+    }
+
+    protected function afterUpdate($closure) {
+        if ($this->after_update AND is_callable($this->after_update, true, $after)) {
+            $this->after_update = $after;
+        }
+    }
+
+    protected function beforeDelete($closure) {
+        if ($closure AND is_callable($closure, true, $before)) {
+            $this->before_delete = $closure;
+        }
+    }
+
+    protected function afterDelete($closure) {
+        if ($this->after_delete AND is_callable($this->after_delete, true, $after)) {
+            $this->after_delete = $after;
+        }
+    }
+
     function __get($attribute)
     {
         if (empty($attribute)) {
@@ -387,7 +477,7 @@ class Model implements \JsonSerializable
             $attribute = $this->sanitizeAttributeName($attribute);
             return $this->{$attribute}();
         }
-
+        
         if (isset($this->id) AND isset($this->primaryKey)) {
 
             $collection = $this->where($this->primaryKey . '="' . $this->id . '"')->get("`$attribute`");

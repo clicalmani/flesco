@@ -11,7 +11,7 @@ class Str extends Facade
 
     public static function slug( $title, $fallback_title = '' ) 
     {
-        return strtolower(strtr(self::removeAccents( $title ), ' ', '-') );
+        return strtolower(strtr(self::removeAccents( $title ), ' /\\', '---') );
     }
 
     /**
