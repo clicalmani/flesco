@@ -114,3 +114,21 @@ if ( ! function_exists( 'temp_dir' ) ) {
         return "/tmp$path";
     }
 }
+
+if ( ! function_exists('request') ) {
+    function request($param) {
+        $request = \Clicalmani\Flesco\Http\Requests\Request::$current_request;
+
+        if ( $request ) {
+            return $request->{$param};
+        }
+
+        return null;
+    }
+}
+
+if ( ! function_exists('response') ) {
+    function response($data = null, $status = 'success') {
+        return \Clicalmani\Flesco\Http\Response\Response::{$status}($data);
+    }
+}

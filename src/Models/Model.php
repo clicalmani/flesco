@@ -35,6 +35,8 @@ class Model implements \JsonSerializable
         if ( $this->id ) {
             $this->query->where($this->primaryKey . ' = "' . $this->id . '"');
         }
+
+        $this->boot();
     }
 
     protected function getTable($add_alias = false)
@@ -104,6 +106,18 @@ class Model implements \JsonSerializable
         return $child;
     }
 
+    public function whereAnd($criteria = '1')
+    {
+        $this->query->where($criteria);
+        return $this;
+    }
+
+    public function whereOr($criteria = '1')
+    {
+        $this->query->where($criteria, 'OR');
+        return $this;
+    }
+
     public function orderBy($order)
     {
         $this->query->params['order_by'] = $order;
@@ -112,20 +126,12 @@ class Model implements \JsonSerializable
 
     public function delete()
     {
-        if (isset($this->id) AND isset($this->primaryKey)) {
-            $this->query->params['where'] = $this->primaryKey . ' = "' . $this->id . '"';
-        }
-
-        $collection = $this->get();
-            
-        if ($collection->count() === 1) {
-            $row = $collection->first();
-            $this->id = $row[$this->getKey()];
-        }
-        
         // A delete operation must contain a key
         if (empty($this->query->params['where'])) {
-            throw new \Exception("Can not update or delete records when on safe mode");
+
+            if (isset($this->id) AND isset($this->primaryKey)) {
+                $this->query->where($this->primaryKey . ' = "' . $this->id . '"');
+            } else throw new \Exception("Can not update or delete records when on safe mode");
         }
 
         // Before create boot
@@ -152,7 +158,7 @@ class Model implements \JsonSerializable
      * 
      * @return Clicalmani\Flesco\Database\Update instance or throw error
      */
-    protected function update($values = [])
+    public function update($values = [])
     {
         if (empty($values)) return false;
 
@@ -195,7 +201,7 @@ class Model implements \JsonSerializable
      * 
      * @return Clicalmani\Flesco\Database\Insert instance or throw error
      */
-    protected function insert($fields = [])
+    public function insert($fields = [])
     {
         if (empty($fields)) return false;
 
@@ -246,25 +252,23 @@ class Model implements \JsonSerializable
      * 
      * @return [Model] parent model
      */
-    public function belongsTo($class, $foreign_key = null, $original_key = null)
+    protected function belongsTo($class, $foreign_key = null, $original_key = null)
     { 
         // Make sure the model exists
         if (!$this->id) {
             return null;
         }
-        
-        $parent = new $class;
 
-        $original_key = is_null($original_key) ? $parent->getKey(): $original_key;       // The original key is the parent
-                                                                                         // primary key
+        $child = new $class;
 
-        $foreign_key  = is_null($foreign_key) ? $original_key: $foreign_key;             // If $foreign_key is not set
-        
-        $row = $this->join($class, $foreign_key, $original_key)
-                    ->get()
-                    ->first();
         $obj = new $class;
-        return $class::find($row[$obj->getKey()]);
+        $key = $this->getKey();
+        $my_class = get_class($this);
+        return $obj->join($this, $foreign_key, $original_key)
+                    ->get()
+                    ->map(function($row) use($my_class, $key) {
+                        return $my_class::find($row[$key]);
+                    });
     }
 
     /**
@@ -276,14 +280,20 @@ class Model implements \JsonSerializable
      * 
      * @return [Model] current model
      */
-    public function hasOne($class, $foreign_key = null, $orignal_key = null)
+    protected function hasOne($class, $foreign_key = null, $original_key = null)
     {
         // Make sure the model exists
         if (!$this->id) {
             return null;
         }
 
-        return $this->belongsTo($class, $foreign_key, $original_key);
+        $parent = new $class;
+
+        $row = $this->join($class, $foreign_key, $original_key)
+                    ->get()
+                    ->first(); 
+        $obj = new $class;
+        return $class::find($row[$obj->getKey()]);
     }
 
     /**
@@ -294,7 +304,7 @@ class Model implements \JsonSerializable
      * @param [string] $original_key
      * @return [Model] parent model (current model)
      */
-    public function hasMany($class, $foreign_key = null, $original_key = null)
+    protected function hasMany($class, $foreign_key = null, $original_key = null)
     {
         // Make sure the model exists
         if (!$this->id) {
@@ -303,13 +313,6 @@ class Model implements \JsonSerializable
 
         $child = new $class;
 
-        $original_key = is_null($original_key) ? $this->primaryKey: $original_key;     // The original key is the parent
-                                                                                       // primary key
-
-        $foreign_key  = is_null($foreign_key) ? $original_key: $foreign_key;           // If $foreign_key is not set
-                                                                                       // suppose that the foreign key is the
-                                                                                       // original key
-        
         return $this->join($class, $foreign_key, $original_key)
                     ->get()
                     ->map(function($row) use($class) {
@@ -400,7 +403,7 @@ class Model implements \JsonSerializable
         return $this;
     }
 
-    public function sanitizeAttributeName($name)
+    private function sanitizeAttributeName($name)
     {
         $collection = new Collection( explode('_', $name) );
         return 'get' . join('', $collection->map(function($value) {
@@ -526,7 +529,7 @@ class Model implements \JsonSerializable
         return $child_class;
     }
 
-    function jsonSerialize()
+    function jsonSerialize() : mixed
     {
         if (!$this->id) {
             return null;

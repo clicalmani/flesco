@@ -76,7 +76,7 @@ class Insert extends DBQueryBuilder implements \IteratorAggregate {
 		$this->insert_id  = $this->db->insertId($result);
 	}
 	
-	function getIterator() 
+	function getIterator() : \Traversable
 	{
 		return new DBQueryIterator($this);
 	}

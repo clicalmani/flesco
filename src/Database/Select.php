@@ -116,7 +116,7 @@ class Select extends DBQueryBuilder implements \IteratorAggregate
 		}
 	}
 	
-	function getIterator() {
+	function getIterator() : \Traversable {
 		return new DBQueryIterator($this);
 	}
 	

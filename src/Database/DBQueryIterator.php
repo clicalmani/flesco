@@ -15,7 +15,7 @@ class DBQueryIterator implements \Iterator
 	 * (non-PHPdoc)
 	 * @see Iterator::rewind()
 	 */
-	function rewind()
+	function rewind() : void
 	{
 		$this->obj->setKey(0);
 	}
@@ -24,7 +24,7 @@ class DBQueryIterator implements \Iterator
 	 * (non-PHPdoc)
 	 * @see Iterator::key()
 	 */
-	function key()
+	function key() : mixed
 	{ 
 		return $this->obj->key();
 	}
@@ -33,13 +33,13 @@ class DBQueryIterator implements \Iterator
 	 * (non-PHPdoc)
 	 * @see Iterator::current()
 	 */
-	function current(){ return $this->obj->getRow(); }
+	function current() : mixed { return $this->obj->getRow(); }
 	
 	/**
 	 * (non-PHPdoc)
 	 * @see Iterator::next()
 	 */
-	function next()
+	function next() : void
 	{
 		$this->obj->setKey($this->obj->key()+1);
 	}
@@ -48,7 +48,7 @@ class DBQueryIterator implements \Iterator
 	 * (non-PHPdoc)
 	 * @see Iterator::valid()
 	 */
-	function valid()
+	function valid() : bool
 	{
 		return $this->obj->key() < $this->obj->numRows();
 	}

@@ -10,7 +10,8 @@ class Benchmark
 
     public static function watchValue($value)
     {
-        $date = strftime("%c", time());
+        $formater = new \IntlDateFormatter('en_US', \IntlDateFormatter::LONG, \IntlDateFormatter::NONE);
+        $date = $formater->format( time() );
         $log = self::getLog();
         fputs($log, "[$date] $value");
         // fclose($log);

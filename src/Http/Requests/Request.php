@@ -10,6 +10,8 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
 
     private $signatures = [];
 
+    static $current_request = null;
+
     /**
      * @see RequestController::render for implementation
      */
@@ -60,19 +62,19 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
         return null;
     }
 
-    public function offsetExists( $property ) {
+    public function offsetExists( mixed $property ) : bool {
         return ! is_null($this->$property);
     }
 
-    public function offsetGet( $property ) {
+    public function offsetGet( mixed $property ) : mixed {
         return $this->$property;
     }
 
-    public function offsetSet( $property, $value ) {
+    public function offsetSet( mixed $property, mixed $value ) : void {
         $this->$property = $value;
     }
 
-    public function offsetUnset( $property ) {
+    public function offsetUnset( mixed $property ) : void {
         if ($this->$property) {
             $this->$property = null;
         }
@@ -167,6 +169,15 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
         return Security::verifyParameters();
     }
 
+    public static function getCurrentRequest()
+    {
+        if (static::$current_request) {
+            return static::$current_request;
+        }
+
+        return null;
+    }
+
     public function session($key, $value = null)
     {
         if ( isset($value) ) {
@@ -198,7 +209,7 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
         return new \App\Authenticate\User( $this->session('user-id') );
     }
 
-    public function jsonSerialize() 
+    public function jsonSerialize() : mixed
     {
         return $_REQUEST;
     }

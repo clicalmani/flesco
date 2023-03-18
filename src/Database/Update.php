@@ -72,7 +72,7 @@ class Update extends DBQueryBuilder implements \IteratorAggregate {
 	    $this->error_msg  = $this->db->error();
 	}
 	
-	function getIterator() {
+	function getIterator() : \Traversable {
 		return new DBQueryIterator($this);
 	}
 	

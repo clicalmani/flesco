@@ -121,12 +121,12 @@ class DBQuery extends DB
 		return $this->exec();
 	}
 
-	function where($criteria)
+	function where($criteria, $operator = 'AND')
 	{
 		if ( !isset($this->params['where']) ) {
 			$this->params['where'] = $criteria;
 		} else {
-			$this->params['where'] .= ' AND ' . $criteria;
+			$this->params['where'] .= " $operator " . $criteria;
 		}
 		
 		return $this;
@@ -219,7 +219,7 @@ class DBQuery extends DB
 		$joint = [
 			'table'    => $table,
 			'type'     => 'RIGHT',
-			'criteria' => 'ON(' . $parent_id . '=' . $child_id . ')'
+			'criteria' => ($parent_id == $child_id) ? 'USING(' . $parent_id . ')': 'ON(' . $parent_id . '=' . $child_id . ')'
 		];
 
 		if ( isset($this->params['join']) AND is_array($this->params['join'])) {
@@ -237,7 +237,7 @@ class DBQuery extends DB
 		$joint = [
 			'table'    => $table,
 			'type'     => 'INNER',
-			'criteria' => 'ON(' . $parent_id . '=' . $child_id . ')'
+			'criteria' => ($parent_id == $child_id) ? 'USING(' . $parent_id . ')': 'ON(' . $parent_id . '=' . $child_id . ')'
 		];
 
 		if ( isset($this->params['join']) AND is_array($this->params['join'])) {
