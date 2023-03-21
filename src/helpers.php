@@ -116,7 +116,12 @@ if ( ! function_exists( 'temp_dir' ) ) {
 }
 
 if ( ! function_exists('request') ) {
-    function request($param) {
+    function request($param = '') {
+
+        if (empty($param)) {
+            return \Clicalmani\Flesco\Http\Requests\Request::all();
+        }
+        
         $request = \Clicalmani\Flesco\Http\Requests\Request::$current_request;
 
         if ( $request ) {

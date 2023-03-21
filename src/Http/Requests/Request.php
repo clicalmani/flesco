@@ -41,12 +41,6 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
             return $_REQUEST[$property];
         }
 		
-        switch( $property ) {
-            case 'redirect':
-                return new RequestRedirect;
-            break;
-        }
-
 		return null;
     }
 
@@ -78,10 +72,6 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
         if ($this->$property) {
             $this->$property = null;
         }
-    }
-
-    public function redirect() {
-        return new RequestRedirect;
     }
 
     public function download($filename, $filepath) 
@@ -119,6 +109,11 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
     public function geMethod()
     { 
         return strtolower( $_SERVER['REQUEST_METHOD']);
+    }
+
+    public function all()
+    {
+        return $_REQUEST;
     }
 
     public function checkCSRFToken()
@@ -212,5 +207,18 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
     public function jsonSerialize() : mixed
     {
         return $_REQUEST;
+    }
+
+    public function __call($method, $args)
+    {
+        switch( $method ) {
+            case 'redirect':
+                return new RequestRedirect;
+            break;
+
+            case 'request':
+                return isset($args[0]) ? request($args[0]): request();
+            break;
+        }
     }
 }

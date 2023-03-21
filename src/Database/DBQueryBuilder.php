@@ -18,6 +18,12 @@ abstract class DBQueryBuilder {
 	protected $result; 
 	protected $key = 0;
 
+	protected const JOIN_TYPES = [
+		'left'  => 'LEFT JOIN',
+		'right' => 'RIGHT JOIN',
+		'inner' => 'INNER JOIN'
+	];
+
 	public $table;
 	
 	function __construct($params = array()){
@@ -26,7 +32,7 @@ abstract class DBQueryBuilder {
 		
 		$default = array(
 			'offset'    => 0, 
-			'limit'     => 25,
+			'limit'     => null,
 			'num_rows'  => 25,
 			'query_str' => []                                        
 		);
@@ -120,6 +126,54 @@ abstract class DBQueryBuilder {
 		if (preg_match('/^exp:/i', $value)) return true;
 
 		return false;
+	}
+
+	function sanitizeTables(array $tables, bool $prefix = true, bool $alias = true) : array
+	{
+		$ret = [];
+
+		for ($i=0; $i<sizeof($tables); $i++) {
+			
+			$arr = preg_split('/\s/', $tables[$i], -1, PREG_SPLIT_NO_EMPTY);
+			$alias = end($arr);
+			
+			$table = $arr[0];
+			$alias = $alias !== $table ? $alias: null;
+
+			if (true == $prefix) $table = $this->db->getPrefix() . $table;
+			if (true == $alias AND $alias) $table = $table . ' ' . $alias;
+			
+			$ret[] = $table;
+		}
+
+		return $ret;
+	}
+
+	function addJoint($joint)
+	{
+		$ret = '';
+
+		if ( isset($joint['type']) ) {
+			$ret .= ' ' . self::JOIN_TYPES[strtolower($joint['type'])];
+		}
+
+		if ( isset($joint['table']) ) {
+			$ret .= ' ' . join(',', $this->sanitizeTables([$joint['table']]));
+		}
+
+		if ( isset($joint['sub_query']) ) {
+			$ret .= ' (' . $joint['sub_query'] . ')';
+
+			if ( isset($joint['alias']) ) {
+				$ret .= ' ' . $joint['alias'];
+			}
+		}
+
+		if ( isset($joint['criteria']) ) {
+			$ret .= ' ' . $joint['criteria'];
+		}
+
+		return $ret;
 	}
 
 	function sanitizeValue($value)

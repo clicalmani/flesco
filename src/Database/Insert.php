@@ -6,7 +6,7 @@ class Insert extends DBQueryBuilder implements \IteratorAggregate {
 	function __construct($params = []) { 
 		parent::__construct($params);
 		
-		$this->sql .= 'INSERT ' . (isset($params['ignore']) AND $params['ignore'] == true ? 'IGNORE': '') . ' INTO ' . $this->db->getPrefix() . strtoupper($this->params['table']);
+		$this->sql .= 'INSERT ' . ((isset($params['ignore']) AND $params['ignore'] == true) ? 'IGNORE': '') . ' INTO ' . $this->db->getPrefix() . $this->params['table'];
 		
 		if (isset($this->params['fields'])) {
 			
@@ -67,7 +67,7 @@ class Insert extends DBQueryBuilder implements \IteratorAggregate {
 	}
 	
 	function query() 
-	{ 
+	{
 	    $result = $this->db->query($this->bindVars($this->sql));
     		
 		$this->status     = $result ? true: false;

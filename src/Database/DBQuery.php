@@ -28,6 +28,7 @@ class DBQuery extends DB
 		}
 
 		$this->params[$param] = $value;
+		return $this;
 	}
 
 	function unset($param)
@@ -152,6 +153,12 @@ class DBQuery extends DB
 	function groupBy($group_by)
 	{
 		$this->params['group_by'] = $group_by;
+		return $this;
+	}
+
+	function from(string $fields) : DBQuery
+	{
+		$this->params['fields'] = $fields;
 		return $this;
 	}
 

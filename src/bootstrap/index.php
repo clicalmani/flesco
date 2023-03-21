@@ -13,7 +13,7 @@ if ( !empty($custom_helpers) ) {
     }
 }
 
-if (preg_match('/^\/api/', current_route())) {
+if ( 'api' == \Clicalmani\Flesco\Routes\Route::getGateway() ) { 
 	if ( isset($_SERVER['HTTP_ORIGIN']) ) {
 		header("Access-Control-Allow-Origin: {$_SERVER['HTTP_ORIGIN']}");
 		header('Access-Control-Allow-Credentials: true');
@@ -33,8 +33,19 @@ if (preg_match('/^\/api/', current_route())) {
 			http_response_code(204);
 			exit;
 	}
+
+	/*
+	  | -----------------------------------------------------------------
+	  |					API ROUTES GROUP
+	  | -----------------------------------------------------------------
+	 */
+	$routes = \Clicalmani\Flesco\Routes\Route::allRoutes();
 	
 	require_once routes_path( '/api.php' );
+
+	$api_routes = array_diff(\Clicalmani\Flesco\Routes\Route::allRoutes(), $routes);
+	\Clicalmani\Flesco\Routes\Route::setPrefix($api_routes, '/api');
+
 } else {
 	require_once routes_path( '/web.php' );
 }

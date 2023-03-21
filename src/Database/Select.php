@@ -22,56 +22,20 @@ class Select extends DBQueryBuilder implements \IteratorAggregate
 			$this->sql .= '*';
 		}
 		
-		$this->sql .= ' FROM ';
+		$this->sql .= ' FROM ' . join(',', $this->sanitizeTables($this->params['tables'])) . ' ';
 		
-		for ($i=0; $i<(sizeof($this->params['tables'])-1); $i++) {
-			
-			$arr = preg_split('/\s/', $this->params['tables'][$i], -1, PREG_SPLIT_NO_EMPTY);
-			
-			$this->sql .= $this->db->getPrefix() . strtoupper($arr[0]);
-			
-			if ($arr[0] !== $arr[sizeof($arr)-1]) $this->sql .= ' ' . $arr[sizeof($arr)-1];
-			
-			$this->sql .= ', ';
-		}
-		
-		$arr = preg_split('/\s/', $this->params['tables'][sizeof($this->params['tables'])-1], -1, PREG_SPLIT_NO_EMPTY);
-			
-		$this->sql .= $this->db->getPrefix() . strtoupper($arr[0]);
-		
-		if ($arr[0] !== $arr[sizeof($arr)-1]) $this->sql .= ' ' . $arr[sizeof($arr)-1];
-		
-		$this->sql .= ' ';
-		
-		if (isset($this->params['joint'])) {
-			$this->sql .= $this->params['joint'];
+		if (isset($this->params['sub_query'])) {
+			$sub_query = trim($this->params['sub_query']);
+			$alias = substr($sub_query, strrpos($sub_query, ' '));
+
+			$this->sql .= $this->addJoint(['sub_query' => $sub_query, 'alias' => trim($alias)]) . ' ';
 		}
 		
 		if (isset($this->params['join'])) {
 			
-			foreach ($this->params['join'] as $arr) {
+			foreach ($this->params['join'] as $joint) {
 				
-				$types = [
-					'left'=>'LEFT JOIN', 
-					'right'=>'RIGHT JOIN', 
-					'inner'=>'INNER JOIN'
-				];
-				
-				$this->sql .= $types[strtolower($arr['type'])] . ' ';
-				
-				if (isset($arr['table'])) {
-					
-					$arr['table'] = preg_split('/\s/', $arr['table'], -1, PREG_SPLIT_NO_EMPTY);
-				
-					$this->sql .= $this->db->getPrefix() . strtoupper($arr['table'][0]) . ' ' . $arr['table'][sizeof($arr['table'])-1] . ' ' . $arr['criteria'] . ' ';
-				} elseif (isset($arr['sub_query'])) {
-					
-					$this->sql .= '(' . $arr['sub_query'] . ') ';
-					
-					if (isset($arr['alias'])) $this->sql .= $arr['alias'] . ' ';
-					
-					$this->sql .= $arr['criteria'] . ' ';
-				}
+				$this->sql .= $this->addJoint($joint) . ' ';
 			}
 		}
 		
@@ -96,8 +60,7 @@ class Select extends DBQueryBuilder implements \IteratorAggregate
 			$this->sql .= ' ORDER BY ' . $this->params['order_by'];
 		}
 		
-		if (isset($this->params['calc']) AND $this->params['calc'] === true) $this->sql .= ' LIMIT ' . $this->params['offset'] . ', ' . $this->params['limit'];
-		else $this->sql .= '';
+		if ( isset($this->params['limit']) ) $this->sql .= ' LIMIT ' . $this->params['offset'] . ', ' . $this->params['limit'];
 	}
 	
 	function query() { 

@@ -63,9 +63,59 @@ class Route {
         }
     }
 
+    public static function group($args, $callback)
+    {
+        $routes = self::allRoutes();
+
+        // Add grouped routes
+        $callback();
+
+        $grouped_routes = array_diff(self::allRoutes(), $routes);
+
+        /**
+         * Prefix routes
+         */
+        if ( isset($args['prefix']) AND $prefix = $args['prefix']) {
+            self::setPrefix($grouped_routes, $prefix);
+        }
+    }
+
     public static function delete($route, $callback)
     {
         self::$rountines['delete'][$route] = $callback;
+    }
+
+    public static function allRoutes()
+    {
+        $routes = [];
+
+        foreach (self::$rountines as $rountine) {
+            foreach ($rountine as $route => $controller) {
+                $routes[] = $route;
+            }
+        }
+
+        return $routes;
+    }
+
+    public static function setPrefix($routes, $prefix)
+    {
+        if ( is_string($routes) ) {
+            $routes = [$routes];
+        }
+
+        foreach (self::$rountines as $method => $rountine) {
+            foreach ($rountine as $route => $controller) {
+                if ( in_array($route, $routes) ) {
+                    unset(self::$rountines[$method][$route]);
+                    if (false == preg_match('/^\//', $route)) {
+                        self::$rountines[$method][$prefix . '/' . $route] = $controller;
+                    } else {
+                        self::$rountines[$method][$prefix . $route] = $controller;
+                    }
+                }
+            }
+        }
     }
 
     public static function getGateway()
@@ -97,13 +147,7 @@ class Route {
             throw new MiddlewareException('Authorize method not provided');
 
         // Routes before middleware
-        $routes = [];
-
-        foreach (self::$rountines as $rountine) {
-            foreach ($rountine as $route => $controller) {
-                $routes[] = $route;
-            }
-        }
+        $routes = self::allRoutes();
 
         // Register middleware routes
         $handler = $middleware->handler();
