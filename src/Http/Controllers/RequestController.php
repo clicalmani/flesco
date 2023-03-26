@@ -67,6 +67,10 @@ abstract class RequestController extends HttpRequest
 				$request = new Request([]);
 				
 				if ('api' === Route::getGateway()) {
+
+					/**
+					 * @deprecated 
+					 */
 					if ( is_array(self::$controller) AND isset(self::$controller[0]) AND $obj = new self::$controller[0]) {
 						$request = new Request(
 							$obj->{'validate'}()
@@ -79,7 +83,7 @@ abstract class RequestController extends HttpRequest
 					}
 				}
 				
-				if ( isset($middleware) AND Route::isCurrentRouteAuthorized($request) == false ) {
+				if ( isset($middlewares) AND Route::isCurrentRouteAuthorized($request) == false ) {
 					http_response_code(401);
 					exit;
 				}
@@ -185,7 +189,10 @@ abstract class RequestController extends HttpRequest
 				// Parameters provided values through HttpRequest
 				foreach ($mathes as $name) {
 					$name = substr($name, 1);    				  // Remove starting two dots (:)
-					$name = substr($name, 0, strpos($name, '@')); // Remove validation part
+					
+					if (preg_match('/@/', $name)) {
+						$name = substr($name, 0, strpos($name, '@')); // Remove validation part
+					}
 					
 					if ($request->{$name} AND in_array($name, $method_parameters_names)) {
 						$parameters[] = $request->{$name};

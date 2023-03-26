@@ -83,8 +83,7 @@ class Delete extends DBQueryBuilder implements \IteratorAggregate {
 	}
 	
 	function query() { 
-		$bench = new \Clicalmani\Flesco\TestUnits\Benchmark;
-		$bench->watchValue($this->bindVars($this->sql));
+		
 	    $result = $this->db->query($this->bindVars($this->sql));
     	
 		$this->status     = $result ? true: false;

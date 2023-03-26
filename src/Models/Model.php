@@ -7,15 +7,17 @@ use Clicalmani\Flesco\Exceptions\ClassNotFoundException;
 use Clicalmani\Flesco\Exceptions\MethodNotFoundException;
 use Clicalmani\Flesco\Collection\Collection;
 
-class Model implements \JsonSerializable
+class Model implements ModelInterface, \JsonSerializable
 {
+    use ModelTrait;
 
-    protected $id,
+    private $id;
+
+    protected $query,
               $table,
               $primaryKey,
               $attributes = [],
-              $appendAttributes = [],
-              $query;
+              $appendAttributes = [];
 
     /*
      | ------------------------------------------
@@ -39,10 +41,10 @@ class Model implements \JsonSerializable
 
     public function __construct($id = null)
     {
-        $this->id = $id;
+        $this->id    = $id;
         $this->query = new DBQuery;
+
         $this->query->set('tables', [$this->table]);
-        
         $this->boot();
     }
 
@@ -82,53 +84,6 @@ class Model implements \JsonSerializable
     protected function setKeyValue($value)
     {
         $this->id = $value;
-    }
-
-    /**
-     * Removes table alias from the key
-     * 
-     * @param mixed $keys string for single key and array form multiple keys
-     * @return mixed cleaned key(s)
-     */
-    private function cleanKey(mixed $keys) : mixed
-    {
-        /**
-         * Single key table
-         */
-        if ( is_string($keys) ) {
-            $arr = explode('.', $keys);
-            return ( count($arr) > 1 ) ? $arr[1]: $keys;
-        }
-
-        $ret = [];
-
-        foreach ($keys as $key) {
-            $key = explode('.', trim($key));
-            $ret[] = ( count($key) > 1 ) ? end($key): $key;
-        }
-
-        return $ret;
-    }
-
-    private function getCriteria()
-    {
-        $keys = $this->getKey();
-        $criteria = null;
-            
-        if ( is_string($keys) ) {
-            $criteria = $keys . ' = "' . $this->id . '"';
-        } elseif ( is_array($keys) AND is_array($this->id) AND (count($keys) == count($this->id)) ) {
-
-            $criterias = [];
-
-            foreach ($keys as $index => $key) {
-                $criterias[] = "$key = '" . $this->id[$index] . "'";
-            }
-
-            $criteria = join(',', $criterias);
-        }
-
-        return $criteria;
     }
 
     private function getQuery()
@@ -180,7 +135,7 @@ class Model implements \JsonSerializable
         if (empty($this->query->params['where'])) {
 
             if (isset($this->id) AND isset($this->primaryKey)) {
-                $this->query->where($this->getKey() . ' = "' . $this->id . '"');
+                $this->query->where($this->getCriteria());
             } else throw new \Exception("Can not update or delete records when on safe mode");
         }
 
@@ -219,22 +174,22 @@ class Model implements \JsonSerializable
     {
         if (empty($values)) return false;
 
-        if (isset($this->id) AND isset($this->primaryKey)) {
-            $criteria = $this->primaryKey . ' = "' . $this->id . '"';
+        if ($this->id AND $this->primaryKey) {
+            $criteria = $this->getCriteria();
         } else {
             $criteria = $this->query->getParam('where');
         }
 
-        if ( isset($criteria) ) {
+        if ( $criteria ) {
 
-            // Before create boot
+            // Before update boot
             if ($this->before_update) {
                 $this->before_update($this);
             }
 
             $success = $this->query->update($values)->where($criteria)->exec();
 
-            // Before create boot
+            // After update boot
             if ($this->after_update) {
                 $this->after_update($this);
             }
@@ -306,6 +261,12 @@ class Model implements \JsonSerializable
         return $this;
     }
 
+    public function subQuery($query)
+    {
+        $this->query->set('sub_query', $query);
+        return $this;
+    }
+
     /**
      * The current model inherit a foreign key
      * We should match the model key value to obtain its parent model.
@@ -326,24 +287,13 @@ class Model implements \JsonSerializable
         $child = new $class;
 
         $obj = new $class;
-        $key = $this->getKey();
         $my_class = get_class($this);
         return $obj->join($this, $foreign_key, $original_key)
                     ->get()
-                    ->map(function($row) use($my_class, $key) {
-                        
-                        if ( is_array($key) ) {
-
-                            $ids = [];
-
-                            foreach ($key as $k) {
-                                $ids[] = $row[$k];
-                            }
-
-                            return $my_class::find($ids);
-                        }
-
-                        return $my_class::find($row[$key]);
+                    ->map(function($row) use($my_class) {
+                        return $my_class::find(
+                            (new $my_class)->getKeyValuesFromRow($row)
+                        );
                     });
     }
 
@@ -368,21 +318,10 @@ class Model implements \JsonSerializable
         $row = $this->join($class, $foreign_key, $original_key)
                     ->get()
                     ->first(); 
-        $obj = new $class;
-        $key = $obj->getKey();
 
-        if ( is_array($key) ) {
-
-            $ids = [];
-
-            foreach ($key as $k) {
-                $ids[] = $row[$k];
-            }
-
-            return $class::find($ids);
-        }
-        
-        return $class::find($row[$key]);
+        return $class::find(
+            (new $class)->getKeyValuesFromRow($row)
+        );
     }
 
     /**
@@ -405,22 +344,9 @@ class Model implements \JsonSerializable
         return $this->join($class, $foreign_key, $original_key)
                     ->get()
                     ->map(function($row) use($class) {
-
-                        $obj = new $class;
-                        $key = $obj->getKey();
-
-                        if ( is_array($key) ) {
-
-                            $ids = [];
-
-                            foreach ($key as $k) {
-                                $ids[] = $row[$k];
-                            }
-
-                            return $class::find($ids);
-                        }
-                        
-                        return $class::find($row[$key]);
+                        return $class::find(
+                            (new $class)->getKeyValuesFromRow($row)
+                        );
                     });
     }
 
@@ -436,8 +362,8 @@ class Model implements \JsonSerializable
             $obj = $this->insert( [$this->new_records] );
             $this->id = DB::getPdo()->lastInsertId();
 
-            if (!$this->id AND array_key_exists($this->getKey(), $this->new_records)) {
-                $this->id = $this->new_records[$this->getKey()];
+            if (!$this->id) {
+                $this->id = $this->getKeyValuesFromRow($this->new_records);
             }
         }
 
@@ -506,12 +432,28 @@ class Model implements \JsonSerializable
         return $this;
     }
 
-    private function sanitizeAttributeName($name)
+    public function ignore(bool $ignore = false)
     {
-        $collection = new Collection( explode('_', $name) );
-        return 'get' . join('', $collection->map(function($value) {
-            return ucfirst($value);
-        })->toArray()) . 'Attribute';
+        $this->query->set('ignore', $ignore);
+        return $this;
+    }
+
+    public function calcFoundRows(bool $calc = false)
+    {
+        $this->query->set('calc', $calc);
+        return $this;
+    }
+
+    public function limit(int $limit = 0)
+    {
+        $this->query->set('limit', $limit);
+        return $this;
+    }
+
+    public function offset(int $offset = 0)
+    {
+        $this->query->set('offset', $offset);
+        return $this;
     }
 
     public static function find( $id ) 
@@ -528,29 +470,11 @@ class Model implements \JsonSerializable
         $child = new $child_class;
         
         return $child->get()->map(function($row) use($child_class, $child) {
-
-            $key = $child->getKey();
-
-            if ( is_array($key) ) {
-
-                $ids = [];
-
-                foreach ($key as $k) {
-                    $ids[] = $row[$k];
-                }
-
-                return $child_class::find($ids);
-            }
-            
-            return new $child_class($row[$key]);
+            return new $child_class(
+                $child->getKeyValuesFromRow($row)
+            );
         });
     }
-
-    /**
-     * Call for every state modification
-     */
-    protected function boot()
-    {}
 
     protected function beforeCreate($closure) {
         if ($this->before_create AND is_callable($this->before_create, true, $before)) {
@@ -687,5 +611,15 @@ class Model implements \JsonSerializable
         return $collection
             ->exchange(array_merge($data, $data2))
             ->toObject();
+    }
+
+    /**
+     * Call for every state modification
+     */
+    public function boot()
+    {
+        /**
+         * TODO
+         */
     }
 }

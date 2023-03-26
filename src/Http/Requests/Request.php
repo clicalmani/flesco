@@ -108,7 +108,7 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
 
     public function geMethod()
     { 
-        return strtolower( $_SERVER['REQUEST_METHOD']);
+        return strtolower( $_SERVER['REQUEST_METHOD'] );
     }
 
     public function all()

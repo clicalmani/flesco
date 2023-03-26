@@ -20,6 +20,7 @@ class Route {
         'pattern',
         'enum'
     ];
+    public static $current_route;
 
     public static function currentRoute()
     {
@@ -71,12 +72,21 @@ class Route {
         $callback();
 
         $grouped_routes = array_diff(self::allRoutes(), $routes);
-
+        
         /**
          * Prefix routes
          */
         if ( isset($args['prefix']) AND $prefix = $args['prefix']) {
             self::setPrefix($grouped_routes, $prefix);
+            return;
+        }
+
+        /**
+         * Middleware
+         */
+        if ( isset($args['middleware']) AND $name = $args['middleware']) {
+            self::middleware($name);
+            $callback();
         }
     }
 
@@ -129,7 +139,18 @@ class Route {
         return $gateway;
     }
 
-    public static function middleware($name)
+    public static function middleware($name) 
+    {
+        if ( self::isMiddleware($name) ) {
+
+            $gateway = self::getGateway();
+            $middleware = new ServiceProvider::$providers['middleware'][$gateway][$name];
+            
+            self::registerMiddleware($middleware, $name);
+        }
+    }
+
+    private static function isMiddleware($name)
     {
         $gateway = self::getGateway();
 
@@ -146,7 +167,12 @@ class Route {
         if ( ! method_exists( $middleware, 'authorize') ) 
             throw new MiddlewareException('Authorize method not provided');
 
-        // Routes before middleware
+        return true;
+    }
+
+    private static function registerMiddleware($middleware, $name)
+    {
+        // Routes to exclude in the middleware
         $routes = self::allRoutes();
 
         // Register middleware routes
@@ -160,31 +186,34 @@ class Route {
             }
         }
 
-        if ( ! in_array(current_route(), $routes) ) {
+        $method = strtolower( $_SERVER['REQUEST_METHOD'] );
+        $rountine = self::$rountines[$method];
+            
+        foreach ($rountine as $sroute => $controller) {
+            
+            if ( in_array($sroute, $routes)) continue;               // Exclude route
 
-            /**
-             * Check if the current route is part of the middleware routes 
-             */
-            foreach (self::$rountines as $rountine) {
-                foreach ($rountine as $route => $controller) {
-                    // current_route() == $route AND $middleware->authorize() == false
-                    if ( 0 === self::compare($route, current_route()) ) {
-                        if ( !isset(self::$route_middlewares[current_route()]) ) {
-                            self::$route_middlewares[current_route()] = [];
-                            self::$route_middlewares[current_route()][] = $name;
-                        } else {
-                            self::$route_middlewares[current_route()][] = $name; 
-                        }
-                    }
-                }
+            if ( !isset(self::$route_middlewares[$sroute]) ) {
+                self::$route_middlewares[$sroute]   = [];
+                self::$route_middlewares[$sroute][] = $name;
+            } else {
+                self::$route_middlewares[$sroute][] = $name; 
             }
         }
     }
 
     static function getCurrentRouteMiddlewares()
     {
-        if ( isset(self::$route_middlewares[current_route()]) ) {
-            return self::$route_middlewares[current_route()];
+        $current_route = self::$current_route;
+        
+        if ( 'api' === self::getGateway() ) {
+            if ( strpos(self::$current_route, 'api') === 1 ) {
+                $current_route = substr(self::$current_route, 4);           // Remove api prefix
+            }
+        }
+
+        if ( array_key_exists($current_route, self::$route_middlewares) ) {
+            return self::$route_middlewares[$current_route];
         }
 
         return null;
@@ -241,6 +270,8 @@ class Route {
         if (false == strpos($sroute, '?') AND count($sseq) !== count($nseq)) {
             return -1;
         }
+
+        $strack = $ntrack = '/';
 
         for($i=0; $i<count($sseq); $i++) {
             $spart = $sseq[$i];
@@ -319,13 +350,16 @@ class Route {
                         $spart = $arr[0]; // Remove validation part
                     }
 
+                    $ntrack .= "/$npart";
+                    $strack .= "/$spart";
                     $matched = true;
                     
                     switch($index) {
                         case 0:
                             if (false == self::isEligible($nroute) AND preg_match('/^(\S+)$/', $npart)) {
-                                $_GET[substr($spart, 1)] = $npart;
-                                $_REQUEST = $_GET;
+                                $param = substr($spart, 1);
+                                $_GET[$param] = $npart;
+                                $_REQUEST[$param] = $npart;
                                 continue 3;
                             }  
                             
@@ -333,22 +367,26 @@ class Route {
                         break;
 
                         case 1:
-                            if (preg_match('/^([0-9\.,-]+)$/', $npart)) {
+                            if (false == self::isEligible($nroute) AND preg_match('/^(\w+)-(\w+)$/', $npart)) {
                                 $na = explode('-', $npart);
                                 $sa = explode('-', substr($spart, 1));
-                                $_GET[$sa[0]] = $na[0];
-                                $_GET[$sa[1]] = $na[1];
-                                $_REQUEST = $_GET;
+                                $from = $sa[0];
+                                $to = $sa[1];
+                                $_GET[$from] = $na[0];
+                                $_GET[$to] = $na[1];
+                                $_REQUEST[$from] = $na[0];
+                                $_REQUEST[$to] = $na[1];
                                 continue 3;
-                            } 
+                            }
 
                             $matched = false;
                         break;
 
                         case 2:
                             if (false == self::isEligible($nroute) AND (!$npart OR preg_match('/^(.*)$/', $npart))) {
-                                $_GET[rtrim(ltrim($spart, ':'), '?')] = $npart;
-                                $_REQUEST = $_GET;
+                                $param = rtrim(ltrim($spart, ':'), '?');
+                                $_GET[$param] = $npart;
+                                $_REQUEST[$param] = $npart;
                                 continue 3;
                             } 
 
@@ -383,13 +421,15 @@ class Route {
             
             foreach ($rountine as $sroute => $controller) {
                 if (-1 !== self::compare($sroute, current_route())) {
+                    self::$current_route = $sroute;
                     return $sroute;
                 }
             }
         } else {
             foreach (self::$rountines as $rountine) {
                 foreach ($rountine as $sroute => $controller) {
-                    if (-1 !== self::compare($sroute, $nroute)) {
+                    if (-1 !== self::compare($sroute, current_route())) {
+                        self::$current_route = $sroute;
                         return $sroute;
                     }
                 }
@@ -418,5 +458,23 @@ class Route {
         }
 
         return false;
+    }
+
+    /**
+     * Partially match a route with a subroute. This will allow to prioritize route without param at a given position
+     * over route route with param at a given position. Ex: /rooms/:name/teachers and /room/name/teachers
+     * 
+     * @param $strack [string]
+     * @return Boolean true on success, false on failure.
+     */
+    private static function isPartiallyElligible($ntrack)
+    {
+        foreach (self::$rountines as $rountine) {
+            foreach ($rountine as $sroute => $controller) {
+                if (strpos($sroute, $ntrack) == 0) {
+                    return true;
+                }
+            }
+        }
     }
 }

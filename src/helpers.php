@@ -137,3 +137,32 @@ if ( ! function_exists('response') ) {
         return \Clicalmani\Flesco\Http\Response\Response::{$status}($data);
     }
 }
+
+if ( ! function_exists('route') ) {
+    function route($route = '/', $params = []) {
+        if ( empty($params) ) {
+            return $route;
+        }
+
+        $mathes = [];
+        preg_match_all('/:[^\/]+/', $route, $mathes);
+        
+        if ( count($mathes) ) {
+            $mathes = $mathes[0];
+            $parameters = [];
+
+            foreach ($mathes as $param) {
+                $name = substr($param, 1);    				    // Remove starting two dots (:)
+                $name = substr($param, 0, strpos($param, '@')); // Remove validation part
+                
+                if (array_key_exists($name, $params)) {
+                    $route = str_replace($param, $params[$name], $route);
+                }
+            }
+
+            return $route;
+        }
+
+        return null;
+    }
+}

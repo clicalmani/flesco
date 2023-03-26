@@ -20,7 +20,7 @@ if ( 'api' == \Clicalmani\Flesco\Routes\Route::getGateway() ) {
 		header('Access-Control-Max-Age: 86400');				// Save for 1 day
 	}
 
-	// Access-Control headers during OPTIONS requests
+	// Access-Control headers during flight requests
 	if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
 
 		if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_METHOD']))
