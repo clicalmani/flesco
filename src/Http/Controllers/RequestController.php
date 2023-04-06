@@ -56,43 +56,42 @@ abstract class RequestController extends HttpRequest
 			return self::$controller;
 		}
 		
-		foreach (Route::$rountines as $method => $data) {
-			if ($route = Route::exists($method)) { 
-				
-				$middlewares = Route::getCurrentRouteMiddlewares();
-				
-				self::$route      = $route;
-				self::$controller = $data[$route];
+		$request = new Request([]);
+		$method = $request->getMethod();
 
-				$request = new Request([]);
+		if ($route = Route::exists($method)) { 
 				
-				if ('api' === Route::getGateway()) {
+			$middlewares = Route::getCurrentRouteMiddlewares();
+			
+			self::$route      = $route;
+			self::$controller = Route::getController($method, $route);
 
-					/**
-					 * @deprecated 
-					 */
-					if ( is_array(self::$controller) AND isset(self::$controller[0]) AND $obj = new self::$controller[0]) {
-						$request = new Request(
-							$obj->{'validate'}()
-						);
-					}
+			if ('api' === Route::getGateway()) {
 
-					if ( isset($middlewares) AND Route::isCurrentRouteAuthorized($request) == false ) {
-						http_response_code(401);		// Unauthorized
-						exit;
-					}
+				/**
+				 * @deprecated 
+				 */
+				if ( is_array(self::$controller) AND isset(self::$controller[0]) AND $obj = new self::$controller[0]) {
+					$request = new Request(
+						$obj->{'validate'}()
+					);
 				}
-				
+
 				if ( isset($middlewares) AND Route::isCurrentRouteAuthorized($request) == false ) {
-					http_response_code(401);
+					response()->status(401, 'UNAUTHORIZED', 'Request Unauthorized');		// Unauthorized
 					exit;
 				}
-				
-				return self::$controller;
 			}
+			
+			if ( isset($middlewares) AND Route::isCurrentRouteAuthorized($request) == false ) {
+				response()->status(401, 'UNAUTHORIZED', 'Request Unauthorized');		// Unauthorized
+				exit;
+			}
+			
+			return self::$controller;
 		}
 		
-		http_response_code(404);		// Not Found
+		response()->status(404, 'NOT FOUND', 'Request Not Found');		// Not Found
 		exit;
     }
 
@@ -123,7 +122,7 @@ abstract class RequestController extends HttpRequest
 			return $controller($request);
 		}
 		
-		http_response_code(403);		// Forbidden
+		response()->status(403, 'FORBIDEN', 'Request Forbiden');		// Forbiden
 		exit;
 	}
 

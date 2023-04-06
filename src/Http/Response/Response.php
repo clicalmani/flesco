@@ -7,4 +7,19 @@ class Response extends HttpResponse
     {
         return http_response_code($code);
     }
+
+    function notFound()
+    {
+        return http_response_code(404);
+    }
+
+    function unauthorized()
+    {
+        return http_response_code(401);
+    }
+
+    function forbiden()
+    {
+        return http_response_code(403);
+    }
 }

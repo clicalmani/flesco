@@ -9,10 +9,11 @@ global $dotenv;
 $dotenv = Dotenv\Dotenv::createImmutable( root_path() );
 $dotenv->safeLoad();
 
-Clicalmani\Flesco\Routes\Route::$rountines = [
+Clicalmani\Flesco\Routes\Route::$routines = [
     'get'     => [], 
     'post'    => [],
     'options' => [],
     'delete'  => [],
-    'put'     => []
+    'put'     => [],
+    'patch'   => []
 ];

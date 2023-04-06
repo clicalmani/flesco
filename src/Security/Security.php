@@ -54,6 +54,7 @@ class Security {
 							case 'array': settype($tmp[$key], 'array'); break;
 							case 'object': settype($tmp[$key], 'object'); break;
 							case 'email': settype($tmp[$key], 'string'); break;
+							case 'enum':
 							case 'list': settype($tmp[$key], 'string'); break;
 						}
 
@@ -90,7 +91,7 @@ class Security {
 										die("$key is not in the list");
 									}
 									
-									$tmp[$key] = $sig['default'] ? $sig['default']: null;
+									$tmp[$key] = array_key_exists('default', $sig) ? $sig['default']: null;
 
 									if (array_key_exists($key, $_REQUEST)) {
 										$_REQUEST[$key] = null;

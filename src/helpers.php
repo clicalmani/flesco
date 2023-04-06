@@ -119,7 +119,7 @@ if ( ! function_exists('request') ) {
     function request($param = '') {
 
         if (empty($param)) {
-            return \Clicalmani\Flesco\Http\Requests\Request::all();
+            return \Clicalmani\Flesco\Http\Requests\Request::all(); 
         }
         
         $request = \Clicalmani\Flesco\Http\Requests\Request::$current_request;
@@ -133,8 +133,8 @@ if ( ! function_exists('request') ) {
 }
 
 if ( ! function_exists('response') ) {
-    function response($data = null, $status = 'success') {
-        return \Clicalmani\Flesco\Http\Response\Response::{$status}($data);
+    function response() {
+        return new \Clicalmani\Flesco\Http\Response\HttpResponseHelper;
     }
 }
 
@@ -164,5 +164,11 @@ if ( ! function_exists('route') ) {
         }
 
         return null;
+    }
+}
+
+if ( ! function_exists('collection') ) {
+    function collection() {
+        return new \Clicalmani\Flesco\Collection\Collection;
     }
 }

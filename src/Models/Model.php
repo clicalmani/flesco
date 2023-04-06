@@ -412,7 +412,7 @@ class Model implements ModelInterface, \JsonSerializable
         }
 
         $type = ucfirst(strtolower($type));
-
+        
         $this->query->{'join' . $type}($model->getTable(true), $foreign_key, $original_key);
 
         return $this;

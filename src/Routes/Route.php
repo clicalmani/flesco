@@ -6,7 +6,7 @@ use Clicalmani\Flesco\Exceptions\MiddlewareException;
 
 class Route {
     
-    public static $rountines;
+    public static $routines;
     public static $route_middlewares = [];
     
     private const PARAM_TYPES = [
@@ -21,6 +21,7 @@ class Route {
         'enum'
     ];
     public static $current_route;
+    public static $grouping_started = false;
 
     public static function currentRoute()
     {
@@ -32,44 +33,70 @@ class Route {
         return $current_route;
     }
 
-    public static function get($route, $calback) 
+    public static function get($route, $callable) 
     { 
-        self::$rountines['get'][$route] = $calback;
+        return self::bindRoutine('get', $route, $callable);
     }
 
-    public static function post($route, $callback) {
-        self::$rountines['post'][$route] = $callback;
+    public static function post($route, $callable) {
+        return self::bindRoutine('post', $route, $callable);
     }
 
-    public static function options($route, $callback) {
-        self::$rountines['options'][$route] = $callback;
+    public static function patch($route, $callable) {
+        return self::bindRoutine('patch', $route, $callable);
+    }
+
+    public static function put($route, $callable) {
+        return self::bindRoutine('put', $route, $callable);
+    }
+
+    public static function options($route, $callable) {
+        return self::bindRoutine('options', $route, $callable);
     }
 
     public static function any($route, $callback) 
     {
-        foreach (self::$rountines as $method => $arr) {
-            self::$rountines[$method][$route] = $callback;
+        foreach (self::$routines as $method => $arr) {
+            self::$routines[$method][$route] = $callback;
         }
     }
 
-    public static function match($matches, $route, $callback)
+    public static function match($matches, $route, $callable)
     {
         if ( ! is_array($matches) ) return;
 
+        $routines = new Routines;
+
         foreach ($matches as $method) {
             $method = strtolower($method);
-            if ( array_key_exists($method, self::$rountines) ) {
-                self::$rountines[$method][$route] = $callback;
+            if ( array_key_exists($method, self::$routines) ) {
+                $routines[] = self::bindRoutine($method, $route, $callable);
             }
         }
+
+        return $routines;
     }
 
     public static function group($args, $callback)
     {
         $routes = self::allRoutes();
 
+        /**
+         * |--------------------------------------
+         * | Start route grouping
+         * |----------------------------------------
+         * |
+         * | Prepend a prefix placeholder to the route (%PREFIX%)
+         * | which will be replaced by the correct prefix.
+         * |
+         * |
+         */
+        static::$grouping_started = true;
+
         // Add grouped routes
         $callback();
+
+        static::$grouping_started = false;              // Terminate grouping
 
         $grouped_routes = array_diff(self::allRoutes(), $routes);
         
@@ -90,17 +117,75 @@ class Route {
         }
     }
 
-    public static function delete($route, $callback)
+    public static function delete($route, $callable)
     {
-        self::$rountines['delete'][$route] = $callback;
+        return self::bindRoutine('delete', $route, $callable);
+    }
+
+    public static function resources(mixed $resources, string $controller = null) : Routines
+    {
+        if ( isset($controller) AND is_string($resources) ) {
+            $resources = [
+                $resources => $controller
+            ];
+        }
+
+        $routines = new Routines;
+
+        $routes = [
+            'get'    => ['', 'create', ':?', ':?/edit'],
+            'post'   => [''],
+            'put'    => [':?'],
+            'patch'  => [':?'],
+            'delete' => [':?']
+        ];
+
+        foreach ($resources as $resource => $controller) {
+            foreach ($routes as $method => $sigs) {
+                foreach ($sigs as $sig) {
+                    $routines[] = self::bindRoutine($method, $sig, $callable);
+                }
+            }
+        }
+
+        return $routines;
+    }
+
+    public static function apiResources(mixed $resources, string $controller = null) : Routines
+    {
+        if ( isset($controller) AND is_string($resources) ) {
+            $resources = [
+                $resources => $controller
+            ];
+        }
+
+        $routines = new Routines;
+
+        $routes = [
+            'get'    => ['', ':?'],
+            'post'   => [''],
+            'put'    => [':?'],
+            'patch'  => [':?'],
+            'delete' => [':?']
+        ];
+
+        foreach ($resources as $resource => $controller) {
+            foreach ($routes as $method => $sigs) {
+                foreach ($sigs as $sig) {
+                    $routines[] = self::bindRoutine($method, $sig, $callable);
+                }
+            }
+        }
+
+        return $routines;
     }
 
     public static function allRoutes()
     {
         $routes = [];
 
-        foreach (self::$rountines as $rountine) {
-            foreach ($rountine as $route => $controller) {
+        foreach (self::$routines as $routine) {
+            foreach ($routine as $route => $controller) {
                 $routes[] = $route;
             }
         }
@@ -114,15 +199,23 @@ class Route {
             $routes = [$routes];
         }
 
-        foreach (self::$rountines as $method => $rountine) {
-            foreach ($rountine as $route => $controller) {
+        foreach (self::$routines as $method => $routine) {
+            foreach ($routine as $route => $controller) {
                 if ( in_array($route, $routes) ) {
-                    unset(self::$rountines[$method][$route]);
+
+                    unset(self::$routines[$method][$route]);
+
                     if (false == preg_match('/^\//', $route)) {
-                        self::$rountines[$method][$prefix . '/' . $route] = $controller;
-                    } else {
-                        self::$rountines[$method][$prefix . $route] = $controller;
+                        $route = "/$route";
                     }
+
+                    if ( '/api' !== $prefix ) {
+                        $route = str_replace('%PREFIX%', $prefix, $route);
+                    } else {
+                        $route = $prefix . $route;
+                    }
+
+                    self::$routines[$method][$route] = $controller;
                 }
             }
         }
@@ -187,9 +280,9 @@ class Route {
         }
 
         $method = strtolower( $_SERVER['REQUEST_METHOD'] );
-        $rountine = self::$rountines[$method];
+        $routine = self::$routines[$method];
             
-        foreach ($rountine as $sroute => $controller) {
+        foreach ($routine as $sroute => $controller) {
             
             if ( in_array($sroute, $routes)) continue;               // Exclude route
 
@@ -202,7 +295,7 @@ class Route {
         }
     }
 
-    static function getCurrentRouteMiddlewares()
+    public static function getCurrentRouteMiddlewares()
     {
         $current_route = self::$current_route;
         
@@ -267,7 +360,7 @@ class Route {
         
         // The two routes should have same number of sequences
         // if there is no optional parameters
-        if (false == strpos($sroute, '?') AND count($sseq) !== count($nseq)) {
+        if (false === strstr($sroute, '?') AND count($sseq) !== count($nseq)) {
             return -1;
         }
 
@@ -282,9 +375,9 @@ class Route {
             
             // Patterns againts synthetic route
             $patterns = [
-                '/^:(\w+(:?.*))$/',  // :name@{type: number}
+                '/^:(\w+(:?.*))[^?]$/',  // :name@{type: number}
                 '/^:(\w+)-(\w+)$/', // :from-to
-                '/^:(\w+)\?$/'      // :optional?
+                '/^:(\w+(:?.*))\?$/'      // :optional?
             ];
             
             foreach ($patterns as $index => $pattern) {
@@ -356,7 +449,7 @@ class Route {
                     
                     switch($index) {
                         case 0:
-                            if (false == self::isEligible($nroute) AND preg_match('/^(\S+)$/', $npart)) {
+                            if (false == self::isEligible($nroute) AND ($npart AND preg_match('/^(\S+)$/', $npart))) {
                                 $param = substr($spart, 1);
                                 $_GET[$param] = $npart;
                                 $_REQUEST[$param] = $npart;
@@ -394,12 +487,12 @@ class Route {
                         break;
                     }
 
-                    if (false == $matched) {
+                    // if (false == $matched) {
                         
-                        $_GET = [];
-
-                        return -1;
-                    }
+                    //     $_GET = [];
+                        
+                    //     return -1;
+                    // }
                 }
 
                 // In cas there is no parameter
@@ -417,17 +510,17 @@ class Route {
     static function exists($method = null)
     {
         if ( isset($method) ) {
-            $rountine = self::$rountines[$method];
+            $routine = self::$routines[$method];
             
-            foreach ($rountine as $sroute => $controller) {
+            foreach ($routine as $sroute => $controller) {
                 if (-1 !== self::compare($sroute, current_route())) {
                     self::$current_route = $sroute;
                     return $sroute;
                 }
             }
         } else {
-            foreach (self::$rountines as $rountine) {
-                foreach ($rountine as $sroute => $controller) {
+            foreach (self::$routines as $routine) {
+                foreach ($routine as $sroute => $controller) {
                     if (-1 !== self::compare($sroute, current_route())) {
                         self::$current_route = $sroute;
                         return $sroute;
@@ -449,8 +542,8 @@ class Route {
      */
     private static function isEligible($route)
     {
-        foreach (self::$rountines as $rountine) {
-            foreach ($rountine as $sroute => $controller) {
+        foreach (self::$routines as $routine) {
+            foreach ($routine as $sroute => $controller) {
                 if ($sroute == $route) {
                     return true;
                 }
@@ -469,12 +562,34 @@ class Route {
      */
     private static function isPartiallyElligible($ntrack)
     {
-        foreach (self::$rountines as $rountine) {
-            foreach ($rountine as $sroute => $controller) {
+        foreach (self::$routines as $routine) {
+            foreach ($routine as $sroute => $controller) {
                 if (strpos($sroute, $ntrack) == 0) {
                     return true;
                 }
             }
         }
+    }
+
+    private static function bindRoutine(string $method, string $route, mixed $callable, bool $bind = true) : Routine
+    {
+        if ( is_array($callable) AND count($callable) == 2 ) {
+            $routine = new Routine($method, $route, $callable[1], $callable[0], null);
+        } elseif ( is_string($callable) ) {
+            $routine = new Routine($method, $route, 'invoke', $callable, null);
+        } elseif ( 'Closure' instanceof $callable ) {
+            $routine = new Routine($method, $route, null, null, $callable);
+        }
+
+        if ( isset($routine) AND $bind ) {
+            $routine->bind();
+        }
+
+        return $routine;
+    }
+
+    public static function getController($method, $route)
+    {
+        return self::$routines[$method][$route];
     }
 }

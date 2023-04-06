@@ -17,6 +17,13 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
      */
     public static function render() {}
 
+    private function getVars()
+    {
+        if ( in_array($this->getMethod(), ['put', 'patch']) ) {
+            return [...$_GET, ...$_POST];
+        }
+    }
+
     public function validate() {}
 
     public function validation($options = [])
@@ -30,15 +37,22 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
 
     public function __get($property)
     {
+        $vars = $_REQUEST;
+
+        if ( in_array($this->getMethod(), ['patch', 'put']) ) {
+            parse_str(file_get_contents('php://input'), $_PATCH);
+            $vars = $_PATCH;
+        }
+
         $this->signatures = $this->signatures ? $this->signatures: [];
-        $sanitized = Security::sanitizeVars($_REQUEST, $this->signatures);
+        $sanitized = Security::sanitizeVars($vars, $this->signatures);
         
-        if ( array_key_exists($property, $_REQUEST) ) {
+        if ( array_key_exists($property, $vars) ) {
             if ( array_key_exists($property, $sanitized) ) {
                 return $sanitized[$property];
             }
 
-            return $_REQUEST[$property];
+            return $vars[$property];
         }
 		
 		return null;
@@ -106,12 +120,12 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
         header("$name: $value");
     }
 
-    public function geMethod()
+    public function getMethod()
     { 
         return strtolower( $_SERVER['REQUEST_METHOD'] );
     }
 
-    public function all()
+    public static function all()
     {
         return $_REQUEST;
     }
@@ -196,7 +210,10 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
     public function getToken()
     {
         $authorization = $this->getHeader('Authorization');
-        return preg_replace('/^(Bearer )/i', '', $authorization);
+        
+        if ($authorization) {
+            return preg_replace('/^(Bearer )/i', '', $authorization);
+        }
     }
 
     public function user() 
@@ -209,16 +226,13 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
         return $_REQUEST;
     }
 
-    public function __call($method, $args)
+    public function redirect()
     {
-        switch( $method ) {
-            case 'redirect':
-                return new RequestRedirect;
-            break;
+        return new RequestRedirect;
+    }
 
-            case 'request':
-                return isset($args[0]) ? request($args[0]): request();
-            break;
-        }
+    public function request($param = null)
+    {
+        return isset($param) ? request($param): request();
     }
 }

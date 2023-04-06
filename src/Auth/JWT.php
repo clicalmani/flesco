@@ -72,6 +72,10 @@ class JWT
 
     function verifyToken($token)
     {
+        if (!$token) {
+            return false;
+        }
+
         $parts = explode('.', $token);
 
         if ( count( $parts ) < 3 ) {
