@@ -37,12 +37,7 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
 
     public function __get($property)
     {
-        $vars = $_REQUEST;
-
-        if ( in_array($this->getMethod(), ['patch', 'put']) ) {
-            parse_str(file_get_contents('php://input'), $_PATCH);
-            $vars = $_PATCH;
-        }
+        $vars = static::all();
 
         $this->signatures = $this->signatures ? $this->signatures: [];
         $sanitized = Security::sanitizeVars($vars, $this->signatures);
@@ -127,7 +122,15 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
 
     public static function all()
     {
-        return $_REQUEST;
+        $vars = $_REQUEST;
+
+        if ( in_array(strtolower( $_SERVER['REQUEST_METHOD'] ), ['patch', 'put']) ) {
+            $params = [];
+            $parser = new ParseInputStream($params);
+            $vars = array_merge($vars, $params);
+        }
+
+        return $vars;
     }
 
     public function checkCSRFToken()

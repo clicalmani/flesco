@@ -87,7 +87,7 @@ class DBQuery extends DB
 
 	function update($options = [])
 	{
-		$this->query = DB_QUERY_UPDATE;
+		$this->set('query', DB_QUERY_UPDATE);
 
 		$fields = array_keys( $options );
 		$values = array_values( $options );
@@ -95,7 +95,7 @@ class DBQuery extends DB
 		$this->params['fields'] = $fields;
 		$this->params['values'] = $values;
 
-		return $this;
+		return $this->exec()->status() === 'success';
 	}
 
 	function insert($options = [])

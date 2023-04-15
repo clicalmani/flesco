@@ -68,18 +68,23 @@ abstract class RequestController extends HttpRequest
 
 			if ('api' === Route::getGateway()) {
 
-				/**
-				 * @deprecated 
-				 */
-				if ( is_array(self::$controller) AND isset(self::$controller[0]) AND $obj = new self::$controller[0]) {
-					$request = new Request(
-						$obj->{'validate'}()
-					);
-				}
+				// /**
+				//  * @deprecated 
+				//  */
+				// if ( is_array(self::$controller) AND isset(self::$controller[0]) AND $obj = new self::$controller[0]) {
+				// 	$request = new Request(
+				// 		$obj->{'validate'}()
+				// 	);
+				// }
 
-				if ( isset($middlewares) AND Route::isCurrentRouteAuthorized($request) == false ) {
-					response()->status(401, 'UNAUTHORIZED', 'Request Unauthorized');		// Unauthorized
-					exit;
+				// if ( isset($middlewares) AND Route::isCurrentRouteAuthorized($request) == false ) {
+				// 	response()->status(401, 'UNAUTHORIZED', 'Request Unauthorized');		// Unauthorized
+				// 	exit;
+				// }
+				if ( in_array($method, ['patch', 'put']) ) {
+					$params = [];
+					$parser = new \Clicalmani\Flesco\Http\Requests\ParseInputStream($params);
+					$_REQUEST = array_merge($_REQUEST, $params);
 				}
 			}
 			
