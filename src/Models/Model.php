@@ -162,6 +162,16 @@ class Model implements ModelInterface, \JsonSerializable
         return $success;
     }
 
+    public function forceDelete()
+    {
+        // A delete operation must be set on a condition
+        if (!empty($this->query->params['where'])) {
+            return $this->query->delete()->exec()->status() == 'success';
+        }
+
+        throw new \Exception("Can not update or delete records when on safe mode");
+    }
+
     /**
      * Updates current model
      * 
@@ -187,7 +197,14 @@ class Model implements ModelInterface, \JsonSerializable
                 $this->before_update($this);
             }
 
-            $success = $this->query->update($values)->where($criteria)->exec();
+            $fields = array_keys( $values );
+		    $values = array_values( $values );
+
+            $this->query->set('type', DB_QUERY_UPDATE);
+            $this->query->set('fields',  $fields);
+		    $this->query->set('values', $values);
+
+            $success = $this->query->exec()->status() === 'success';
 
             // After update boot
             if ($this->after_update) {
@@ -245,7 +262,7 @@ class Model implements ModelInterface, \JsonSerializable
             $this->before_create($this);
         }
 
-        $success = $this->query->exec();
+        $success = $this->query->exec()->status() === 'success';
 
         // After create boot
         if ($this->after_create) {
@@ -264,6 +281,12 @@ class Model implements ModelInterface, \JsonSerializable
     public function subQuery($query)
     {
         $this->query->set('sub_query', $query);
+        return $this;
+    }
+
+    public function distinct($distinct = true)
+    {
+        $this->select_distinct = $distinct;
         return $this;
     }
 
@@ -359,7 +382,7 @@ class Model implements ModelInterface, \JsonSerializable
         }
 
         if (count($this->new_records)) {
-            $obj = $this->insert( [$this->new_records] );
+            $success = $this->insert( [$this->new_records] );
             $this->id = DB::getPdo()->lastInsertId();
 
             if (!$this->id) {
@@ -367,18 +390,14 @@ class Model implements ModelInterface, \JsonSerializable
             }
         }
 
-        // Reset back to select parameters
+        // Reset back to select parameters 
         $this->changes     = [];
         $this->new_records = [];
         $this->query->set('type', DB_QUERY_SELECT);
         $this->query->set('tables', [$this->table]);
         unset($this->query->params['table']);
 
-        if ($obj) {
-            return $obj->status() == 'success';
-        }
-
-        return false;
+        return isset($success) ? $success: false;
     }
 
     /**

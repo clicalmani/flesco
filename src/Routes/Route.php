@@ -360,7 +360,7 @@ class Route {
         
         // The two routes should have same number of sequences
         // if there is no optional parameters
-        if (false === strstr($sroute, '?') AND count($sseq) !== count($nseq)) {
+        if (false == preg_match("/\?/", $sroute) AND count($sseq) !== count($nseq)) {
             return -1;
         }
 
@@ -498,7 +498,7 @@ class Route {
                 // In cas there is no parameter
                 // the different parts should match
                 // Escape optional parameters
-                if (false == strpos($spart, '?') AND $spart != $npart) {
+                if (false == preg_match("/\?$/", $spart) AND $spart != $npart) {
                     return -1;
                 }
             }
@@ -571,21 +571,22 @@ class Route {
         }
     }
 
-    private static function bindRoutine(string $method, string $route, mixed $callable, bool $bind = true) : Routine
+    private static function bindRoutine(string $method, string $route, mixed $callable, bool $bind = true) : mixed
     {
         if ( is_array($callable) AND count($callable) == 2 ) {
             $routine = new Routine($method, $route, $callable[1], $callable[0], null);
         } elseif ( is_string($callable) ) {
             $routine = new Routine($method, $route, 'invoke', $callable, null);
-        } elseif ( 'Closure' instanceof $callable ) {
+        } elseif ( 'Closure' === get_class($callable) ) {
             $routine = new Routine($method, $route, null, null, $callable);
         }
-
+        
         if ( isset($routine) AND $bind ) {
             $routine->bind();
+            return $routine;
         }
 
-        return $routine;
+        return null;
     }
 
     public static function getController($method, $route)

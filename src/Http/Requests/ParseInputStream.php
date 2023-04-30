@@ -43,7 +43,7 @@ class ParseInputStream
 
         $boundary = $this->boundary();
 
-        if (!strlen($boundary)) {
+        if ( @ !strlen($boundary)) {
             $data = [
                 'parameters' => $this->parse(),
                 'files' => []
@@ -68,7 +68,9 @@ class ParseInputStream
         }
 
         preg_match('/boundary=(.*)$/', $_SERVER['CONTENT_TYPE'], $matches);
-        return $matches[1];
+        if (isset($matches[1])) return @ $matches[1];
+
+        return null;
     }
 
     /**

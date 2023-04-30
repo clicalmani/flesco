@@ -58,14 +58,14 @@ abstract class RequestController extends HttpRequest
 		
 		$request = new Request([]);
 		$method = $request->getMethod();
-
+		
 		if ($route = Route::exists($method)) { 
-				
+			
 			$middlewares = Route::getCurrentRouteMiddlewares();
 			
 			self::$route      = $route;
 			self::$controller = Route::getController($method, $route);
-
+			
 			if ('api' === Route::getGateway()) {
 
 				// /**
@@ -112,7 +112,13 @@ abstract class RequestController extends HttpRequest
 			$class = $controller[0];
 			$obj   = new $class;                                             // An instance of the controller
 			
-			if ( @ isset($controller[1]) AND method_exists($obj, $controller[1])) {
+			if ( @ isset($controller[1]) ) {
+
+				if ( ! method_exists($obj, $controller[1]) ) {
+					response()->status(500, 'INTERNAL SERVER ERROR', 'Method ' . $controller[1] . ' does not exist on class ' . $controller[0]);		// Forbiden
+					exit;
+				}
+
 				return self::invokeControllerMethod($class, $controller[1]);
 			}
 

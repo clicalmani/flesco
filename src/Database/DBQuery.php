@@ -117,9 +117,9 @@ class DBQuery extends DB
 			$this->params['values'][] = $values;
 		}
 
-		$this->set('query', DB_QUERY_INSERT);
+		$this->set('query', DB_QUERY_INSERT); 
 		
-		return $this->exec();
+		return $this->exec()->status() === 'success';
 	}
 
 	function where($criteria, $operator = 'AND')
@@ -153,6 +153,12 @@ class DBQuery extends DB
 	function groupBy($group_by)
 	{
 		$this->params['group_by'] = $group_by;
+		return $this;
+	}
+
+	function distinct($distinct = true)
+	{
+		$this->params['distinct'] = $distinct;
 		return $this;
 	}
 
