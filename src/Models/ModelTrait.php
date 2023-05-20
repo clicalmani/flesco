@@ -46,7 +46,7 @@ Trait ModelTrait
 
     function getCriteria()
     {
-        $keys = $this->getKey();
+        $keys     = $this->getKey();
         $criteria = null;
             
         if ( is_string($keys) ) {

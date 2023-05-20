@@ -168,7 +168,16 @@ abstract class RequestController extends HttpRequest
 			$request = new $requestClass([]);                       // Request objet or an instance
 																	// of class extending Request
 
-			$request->validate();                                   // Call validate method
+			if (method_exists($request, 'authorize')) {
+				if (false == $request->authorize()) {
+					response()->status(403, 'FORBIDEN', 'Unauthorized Request');		// Forbiden
+					exit;
+				}
+			}
+			
+			if (method_exists($request, 'signatures')) {
+				$request->signatures();                             // Call validate method
+			}
 		}
 
 		/**

@@ -24,15 +24,31 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
         }
     }
 
-    public function validate() {}
+    public function signatures() {
+        // TODO: override
+    }
 
+    /**
+     * @deprecated
+     */
     public function validation($options = [])
+    {
+        $this->merge($options);
+    }
+
+    public function validate($options = [])
     {
         $this->merge($options);
     }
 
     public function __construct( $signatures = [] ) {
         $this->signatures = $signatures;
+
+        if ( in_array(strtolower( $_SERVER['REQUEST_METHOD'] ), ['patch', 'put']) ) {
+            $params = [];
+            $parser = new ParseInputStream($params);
+            $_REQUEST = array_merge($_REQUEST, $params);
+        }
     }
 
     public function __get($property)
@@ -51,6 +67,11 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
         }
 		
 		return null;
+    }
+
+    public function __set($property, $value)
+    {
+        $_REQUEST[$property] = $value;
     }
 
     public function hasFile($name) {
@@ -122,15 +143,7 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
 
     public static function all()
     {
-        $vars = $_REQUEST;
-
-        if ( in_array(strtolower( $_SERVER['REQUEST_METHOD'] ), ['patch', 'put']) ) {
-            $params = [];
-            $parser = new ParseInputStream($params);
-            $vars = array_merge($vars, $params);
-        }
-
-        return $vars;
+        return $_REQUEST;
     }
 
     public function checkCSRFToken()

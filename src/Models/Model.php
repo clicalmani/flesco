@@ -189,7 +189,7 @@ class Model implements ModelInterface, \JsonSerializable
         } else {
             $criteria = $this->query->getParam('where');
         }
-
+        
         if ( $criteria ) {
 
             // Before update boot
@@ -203,7 +203,8 @@ class Model implements ModelInterface, \JsonSerializable
             $this->query->set('type', DB_QUERY_UPDATE);
             $this->query->set('fields',  $fields);
 		    $this->query->set('values', $values);
-
+            $this->query->set('where', $criteria);
+            
             $success = $this->query->exec()->status() === 'success';
 
             // After update boot
@@ -270,6 +271,20 @@ class Model implements ModelInterface, \JsonSerializable
         }
 
         return $success;
+    }
+
+    public function create($field = [])
+    {
+        return $this->insert($field);
+    }
+
+    public function createOrFail($field = [])
+    {
+        try {
+            return $this->create($field);
+        } catch (\PDOException $e) {
+            return false;
+        }
     }
 
     public function from($fields)
@@ -375,10 +390,8 @@ class Model implements ModelInterface, \JsonSerializable
 
     public function save()
     {
-        $obj = null;
-        
         if (count($this->changes)) {
-            $obj = $this->update( $this->changes );
+            $success = $this->update( $this->changes );
         }
 
         if (count($this->new_records)) {
@@ -603,18 +616,18 @@ class Model implements ModelInterface, \JsonSerializable
         }
 
         $row = $collection->first();
-
+        
         $collection
             ->exchange($this->getAttributes() ? $this->getAttributes(): array_keys($row))
             ->map(function($value, $key) use($row) {
-                return isset($row[$value]) ? [$value => $row[$value]]: null;
+                return isset($row[$value]) ? [$value => $row[$value]]: [$value => null];
             });
-
+        
         $data = [];
         foreach ($collection as $row) {
             if ($row) $data[array_keys($row)[0]] = array_values($row)[0];
         }
-
+        
         // Appended attributes
         $appended = $this->getAppendAttributes();
 

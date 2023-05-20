@@ -172,3 +172,21 @@ if ( ! function_exists('collection') ) {
         return new \Clicalmani\Flesco\Collection\Collection;
     }
 }
+
+if ( ! function_exists('sanitize_attribute') ) {
+    function sanitize_attribute($attr) {
+        return preg_replace('/[^0-9a-z-_]+/', '', \Clicalmani\Flesco\Support\Str::slug($attr));
+    }
+}
+
+if ( ! function_exists('now') ) {
+    function now() {
+        return \Carbon\Carbon::now('Africa/Porto-Novo');
+    }
+}
+
+if ( ! function_exists('slug') ) {
+    function slug($str) {
+        return \Clicalmani\Flesco\Support\Str::slug($str);
+    }
+}
