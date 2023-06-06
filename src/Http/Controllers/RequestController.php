@@ -4,9 +4,12 @@ namespace Clicalmani\Flesco\Http\Controllers;
 use Clicalmani\Flesco\Http\Requests\Request;
 use Clicalmani\Flesco\Http\Requests\HttpRequest;
 use Clicalmani\Flesco\Routes\Route;
+use Clicalmani\Flesco\Routes\Routine;
+use Clicalmani\Flesco\Routes\Routines;
 use Clicalmani\Flesco\Exceptions\HttpRequestException;
 use Clicalmani\Flesco\Exceptions\MethodNotFoundException;
 use Clicalmani\Flesco\Exceptions\RouteNotFoundException;
+use Clicalmani\Flesco\Exceptions\ModelNotFoundException;
 
 require_once dirname( dirname( __DIR__ ) ) . '/bootstrap/index.php';
 
@@ -19,35 +22,8 @@ abstract class RequestController extends HttpRequest
 	{
 		$request = new Request;
 		$request->checkCSRFToken();
-		
-		$controller = self::getController();
-		
-		if (is_array($controller) AND !empty($controller)) {
-			$class = $controller[0];
-		} elseif ($controller instanceof \Closure) {
-			return self::getRoutine(
-				new Request([])
-			);
-		}
-		
-		if (isset($class) AND class_exists($class)) {
 
-			$obj = new $class();
-			
-			if(method_exists($obj, 'validate')) {
-				return self::getRoutine(
-					new Request(
-						$obj->{'validate'}()
-					)
-				);
-			}
-
-			return self::getRoutine(
-				new Request([])
-			);
-		}
-		
-		throw new MethodNotFoundException();
+		return self::getRoutine($request);
 	}
 
     public static function getController() 
@@ -65,28 +41,6 @@ abstract class RequestController extends HttpRequest
 			
 			self::$route      = $route;
 			self::$controller = Route::getController($method, $route);
-			
-			if ('api' === Route::getGateway()) {
-
-				// /**
-				//  * @deprecated 
-				//  */
-				// if ( is_array(self::$controller) AND isset(self::$controller[0]) AND $obj = new self::$controller[0]) {
-				// 	$request = new Request(
-				// 		$obj->{'validate'}()
-				// 	);
-				// }
-
-				// if ( isset($middlewares) AND Route::isCurrentRouteAuthorized($request) == false ) {
-				// 	response()->status(401, 'UNAUTHORIZED', 'Request Unauthorized');		// Unauthorized
-				// 	exit;
-				// }
-				if ( in_array($method, ['patch', 'put']) ) {
-					$params = [];
-					$parser = new \Clicalmani\Flesco\Http\Requests\ParseInputStream($params);
-					$_REQUEST = array_merge($_REQUEST, $params);
-				}
-			}
 			
 			if ( isset($middlewares) AND Route::isCurrentRouteAuthorized($request) == false ) {
 				response()->status(401, 'UNAUTHORIZED', 'Request Unauthorized');		// Unauthorized
@@ -163,8 +117,26 @@ abstract class RequestController extends HttpRequest
 		 * Validate request
 		 */
 		if ( $first_param_type ) {
-			
+
 			$requestClass = $first_param_type->getName();
+
+			// Model binding request
+			if ( self::isModelBind($requestClass) ) {
+				try {
+					return self::bindModel($requestClass, $controllerClass, $method);
+				} catch(ModelNotFoundException $e) {
+
+					$resource = self::getResource();
+
+					if ( array_key_exists('missing', $resource->methods) ) {
+						return $resource->methods['missing']['caller']();
+					}
+
+					response()->status(404, 'NOT_FOUND', 'Resource not found');		// Not Found
+					exit;
+				}
+			}
+
 			$request = new $requestClass([]);                       // Request objet or an instance
 																	// of class extending Request
 
@@ -194,30 +166,10 @@ abstract class RequestController extends HttpRequest
 			foreach ($method_parameters as $param) {
 				$method_parameters_names[] = $param->getName();
 			}
-		
-			// Get parameters names
-			// Current route parameters
-			$mathes = [];
-			preg_match_all('/:[^\/]+/', self::$route, $mathes);
-			
-			if ( count($mathes) ) {
 
-				$mathes = $mathes[0];
-				$parameters = [];
+			$parameters = self::getParameters($request);
 
-				// Parameters provided values through HttpRequest
-				foreach ($mathes as $name) {
-					$name = substr($name, 1);    				  // Remove starting two dots (:)
-					
-					if (preg_match('/@/', $name)) {
-						$name = substr($name, 0, strpos($name, '@')); // Remove validation part
-					}
-					
-					if ($request->{$name} AND in_array($name, $method_parameters_names)) {
-						$parameters[] = $request->{$name};
-					}
-				}
-				
+			if ( $parameters ) {
 				// Call controller whith a Request object
 				if (count($method_parameters) === count($parameters) ) {
 					
@@ -232,5 +184,207 @@ abstract class RequestController extends HttpRequest
 		 * Method does not support request parameters
 		 */
 		return $obj->{$method}($request);
+	}
+
+	private static function getParameters($request)
+    {
+        preg_match_all('/:[^\/]+/', self::$route, $mathes);
+
+        $parameters = [];
+        
+        if ( count($mathes) ) {
+
+            $mathes = $mathes[0];
+            
+            foreach ($mathes as $name) {
+                $name = substr($name, 1);    				      // Remove starting two dots (:)
+                
+                if (preg_match('/@/', $name)) {
+                    $name = substr($name, 0, strpos($name, '@')); // Remove validation part
+                }
+                
+                if ($request->{$name}) {
+                    $parameters[] = $request->{$name};
+                }
+            }
+        }
+
+        return $parameters;
+    }
+
+	private static function isModelBind($model)
+	{
+		return is_subclass_of($model, \Clicalmani\Flesco\Models\Model::class);
+	}
+
+	private static function bindModel($model, $controller, $method)
+	{
+		$request = new Request;
+		$obj     = new $model;
+
+		// Primary keys
+		$keys = $obj->getKey();
+
+		if ( in_array($method, ['create', 'show', 'update', 'destroy']) ) {
+
+			// Request parameters
+			$parameters = explode(',', $request->id);
+			
+			if ( count($parameters) ) {
+				if ( count($parameters) === 1 ) $parameters = $parameters[0];	// Single primary key
+				
+				$obj = new $model($parameters);
+				
+				/**
+				 * Bind resources
+				 */
+				self::bindResources($method, $obj);
+				
+				$collection = $obj->get();
+
+				if ( $collection->isEmpty() ) throw new ModelNotFoundException($model);
+				
+				return (new $controller)->{$method}($obj, new Request);
+
+			} else throw new ModelNotFoundException($model);
+		}
+
+		$obj = new $model;
+
+		/**
+		 * Bind resources
+		 */
+		self::bindResources($method, $obj);
+		
+		return (new $controller)->{$method}($obj, new Request);
+	}
+
+	private static function bindResources($method, $obj)
+	{
+		$resource = self::getResource();
+		
+		if ( $resource ) {
+
+			/**
+			 * Select distinct
+			 */
+			self::getResourceDistinct($resource, $method, $obj);
+
+			/**
+			 * Insert ignore
+			 */
+			self::createResourceIgnore($resource, $method, $obj);
+
+			/**
+			 * Join to other models
+			 */
+			self::resourceJoin($resource, $method, $obj);
+
+			/**
+			 * Delete multiple
+			 */
+			self::resourceDeleteFrom($resource, $method, $obj);
+
+			/**
+			 * Pagination
+			 */
+			self::resourceCalcRows($resource, $method, $obj);
+
+			/**
+			 * Limit rows
+			 */
+			self::resourceLimit($resource, $method, $obj);
+
+			/**
+			 * Row offset
+			 */
+			self::resourceOffset($resource, $method, $obj);
+
+			/**
+			 * Row order by
+			 */
+			self::resourceOrderBy($resource, $method, $obj);
+		}
+	}
+
+	private static function getResource()
+	{
+		// Resource
+		$sseq = preg_split('/\//', self::$route, -1, PREG_SPLIT_NO_EMPTY);
+		$resource = Route::getGateway() == 'api' ? $sseq[1]: $sseq[0];
+		
+		if ( array_key_exists($resource, Routines::$resources) ) {
+			return (object) Routines::$resources[$resource];
+		}
+
+		return null;
+	}
+
+	private static function getResourceDistinct($resource, $method, $obj)
+	{
+		if ( $method == 'index' AND array_key_exists('distinct', $resource->properties) ) {
+			$obj->distinct($resource->properties['distinct']);
+		}
+	}
+
+	private static function createResourceIgnore($resource, $method, $obj)
+	{
+		if ( $method == 'create' AND array_key_exists('ignore', $resource->properties) ) {
+			$obj->ignore($resource->properties['ignore']);
+		}
+	}
+
+	private static function resourceJoin($resource, $method, $obj)
+	{
+		$methods = ['index', 'create', 'show', 'edit', 'update', 'destroy'];
+
+		if ( in_array($method, ['index', 'show', 'update']) AND array_key_exists('joints', $resource->joints) ) {
+			foreach ($resource->joints as $joint) {
+				$stack = [];
+
+				if ( $joint['includes'] ) $stack = $joint['includes'];
+				else $stack = $methods;
+
+				if ( $joint['excludes'] ) $stack = array_diff($joint['excludes'], $stack);
+
+				if ( in_array($method, $stack) ) 
+					$obj->join($joint['class'], $joint['foreign'], $joint['original']);
+			}
+		}
+	}
+
+	private static function resourceDeleteFrom($resource, $method, $obj)
+	{
+		if ( $method == 'destroy' AND array_key_exists('from', $resource->properties) ) {
+			$obj->from($resource->properties['from']);
+		}
+	}
+
+	private static function resourceCalcRows($resource, $method, $obj)
+	{
+		if ( $method == 'index' AND array_key_exists('calc', $resource->properties) ) {
+			$obj->calcRoundRows($resource->properties['calc']);
+		}
+	}
+
+	private static function resourceLimit($resource, $method, $obj)
+	{
+		if ( $method == 'index' AND array_key_exists('limit', $resource->properties) ) {
+			$obj->limit($resource->properties['limit']);
+		}
+	}
+
+	private static function resourceOffset($resource, $method, $obj)
+	{
+		if ( $method == 'index' AND array_key_exists('offset', $resource->properties) ) {
+			$obj->offset($resource->properties['offset']);
+		}
+	}
+
+	private static function resourceOrderBy($resource, $method, $obj)
+	{
+		if ( $method == 'index' AND array_key_exists('order_by', $resource->properties) ) {
+			$obj->orderBy($resource->properties['order_by']);
+		}
 	}
 }

@@ -216,7 +216,7 @@ class DBQuery extends DB
 			'type'     => 'LEFT',
 			'criteria' => ($parent_id == $child_id) ? 'USING(' . $parent_id . ')': 'ON(' . $parent_id . '=' . $child_id . ')'
 		];
-
+		
 		if ( isset($this->params['join']) AND is_array($this->params['join'])) {
 			$this->params['join'][] = $joint;
 		} else {

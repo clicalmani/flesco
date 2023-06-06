@@ -60,10 +60,12 @@ class Collection extends SPLCollection
         return $this;
     }
 
-    function merge()
+    function merge(mixed $val)
     {
+        if ( !is_array($val) ) $val = [$val];
+
         $this->exchange(
-            array_merge([], (array) $this)
+            array_merge($val, (array) $this)
         );
 
         return $this;

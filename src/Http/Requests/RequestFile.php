@@ -33,7 +33,7 @@ class RequestFile {
         $dir = isset($dir) ? $dir: storage_path('/uploads');
         $name = isset($name) ? $name: $this->getName();
         if (is_dir($dir)) {
-            if (false == $this->getFile($name)->uploaded) return move_uploaded_file($this->getFile()->tmp_name, $dir . DIRECTORY_SEPARATOR . $name);
+            if (false == @ $this->getFile($name)->uploaded) return move_uploaded_file($this->getFile()->tmp_name, $dir . DIRECTORY_SEPARATOR . $name);
             else return rename(sys_get_temp_dir() . DIRECTORY_SEPARATOR . $this->getFile()->tmp_name, $dir . DIRECTORY_SEPARATOR . $name);
         }
 

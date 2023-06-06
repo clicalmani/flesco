@@ -8,6 +8,7 @@ class Route {
     
     public static $routines;
     public static $route_middlewares = [];
+    public static $registered_guards = [];
     
     private const PARAM_TYPES = [
         'numeric',
@@ -122,59 +123,76 @@ class Route {
         return self::bindRoutine('delete', $route, $callable);
     }
 
-    public static function resources(mixed $resources, string $controller = null) : Routines
+    public static function resource(string $resource, string $controller = null) : Routines
     {
-        if ( isset($controller) AND is_string($resources) ) {
-            $resources = [
-                $resources => $controller
-            ];
-        }
-
         $routines = new Routines;
 
         $routes = [
-            'get'    => ['', 'create', ':?', ':?/edit'],
-            'post'   => [''],
-            'put'    => [':?'],
-            'patch'  => [':?'],
-            'delete' => [':?']
+            'get'    => ['index' => '', 'create' => 'create', 'show' => ':id', 'edit' => ':id/edit'],
+            'post'   => ['store' => ''],
+            'put'    => ['update' => ':id'],
+            'patch'  => ['update' => ':id'],
+            'delete' => ['destroy' => ':id']
         ];
 
-        foreach ($resources as $resource => $controller) {
-            foreach ($routes as $method => $sigs) {
-                foreach ($sigs as $sig) {
-                    $routines[] = self::bindRoutine($method, $sig, $callable);
-                }
+        foreach ($routes as $method => $sigs) {
+            foreach ($sigs as $action => $sig) {
+                $routines[] = self::bindRoutine($method, $resource . '/' . $sig, [$controller, $action]);
             }
         }
 
         return $routines;
     }
 
-    public static function apiResources(mixed $resources, string $controller = null) : Routines
+    public static function resources(mixed $resources) : Routines
     {
-        if ( isset($controller) AND is_string($resources) ) {
-            $resources = [
-                $resources => $controller
-            ];
+        $routines = new Routines;
+
+        foreach ($resources as $resource => $controller) {
+            $routines->merge(self::resource($resource, $controller));
         }
 
+        return $routines;
+    }
+
+    /**
+     * Binds resource routes
+     * 
+     * Query id: comma separated values for resources with multiple keys
+     * 
+     * @param $resource [mixed] string or array
+     * @param $controller [string] string a class extending \Clicalmani\Flesco\Http\Controllers\RequestController::class
+     * @return \Clicalmani\Flesco\Routes\Routines
+     */
+    public static function apiResource(mixed $resource, string $controller = null) : Routines
+    {
         $routines = new Routines;
 
         $routes = [
-            'get'    => ['', ':?'],
-            'post'   => [''],
-            'put'    => [':?'],
-            'patch'  => [':?'],
-            'delete' => [':?']
+            'get'    => ['index' => '', 'create' => ':id'],
+            'post'   => ['store' => ''],
+            'put'    => ['update' => ':id'],
+            'patch'  => ['update' => ':id'],
+            'delete' => ['destroy' => ':id']
         ];
 
-        foreach ($resources as $resource => $controller) {
-            foreach ($routes as $method => $sigs) {
-                foreach ($sigs as $sig) {
-                    $routines[] = self::bindRoutine($method, $sig, $callable);
-                }
+        foreach ($routes as $method => $sigs) {
+            foreach ($sigs as $action => $sig) {
+                $routines[] = self::bindRoutine($method, $resource . '/' . $sig, [$controller, $action]);
             }
+        }
+
+        $routines->addResource($resource, $routines);
+
+        return $routines;
+    }
+
+    public static function apiResources(mixed $resources) : Routines
+    {
+        $routines = new Routines;
+
+        foreach ($resources as $resource => $controller) {
+            $routines->merge(self::apiResource($resource, $controller));
         }
 
         return $routines;
@@ -388,6 +406,8 @@ class Route {
 
                         $arr = explode('@', $spart);
                         $validator = json_decode($arr[1]);
+
+                        $param = substr($arr[0], 1);
                         
                         if ($validator) {
 
@@ -430,10 +450,16 @@ class Route {
                                     $valid = true;
                                 }
                             } elseif(@ $validator->pattern) {
-                                if (@preg_match('/' . $validator->pattern . '/', $npart)) {
+                                if (@preg_match('/^' . $validator->pattern . '$/', $npart)) {
                                     $valid = true;
                                 }
-                            } 
+                            } elseif (@ $validator->uid) { // Route guard
+                                $guard = @ self::$registered_guards[$validator->uid];
+
+                                if ( $guard AND $guard['param'] == $param ) {
+                                    $valid = $guard['callback']($npart);
+                                }
+                            }
 
                             if (false === $valid) {
                                 return -1;

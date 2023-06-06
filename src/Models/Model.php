@@ -43,22 +43,24 @@ class Model implements ModelInterface, \JsonSerializable
     {
         $this->id    = $id;
         $this->query = new DBQuery;
-
+        
         $this->query->set('tables', [$this->table]);
         $this->boot();
     }
 
-    protected function getTable($add_alias = false)
+    public function getTable($add_alias = false)
     {
         if ($add_alias) return $this->table;
-
+       
         $arr = explode(' ', $this->table);
         return count($arr) > 1 ? $arr[0]: $this->table;
     }
 
-    protected function getKey()
+    public function getKey($add_alias = false)
     {
-        return $this->cleanKey( $this->primaryKey );
+        if (false == $add_alias) return $this->cleanKey( $this->primaryKey );
+
+        return $this->primaryKey;
     }
 
     protected function getAttributes()
@@ -93,14 +95,18 @@ class Model implements ModelInterface, \JsonSerializable
 
     public function get($fields = '*')
     {
-        if ( !$this->query->getParam('where') AND $this->id) {
-            $this->query->set('where', $this->getCriteria());
+        try {
+            if ( !$this->query->getParam('where') AND $this->id) {
+                $this->query->set('where', $this->getCriteria(true));
+            }
+    
+            $this->query->set('distinct', $this->select_distinct);
+            $this->query->set('calc', $this->calc_found_rows);
+            
+            return $this->query->get($fields);
+        } catch (\PDOException $e) {
+            throw new \Clicalmani\Flesco\Exceptions\DBQueryException($e->getMessage());
         }
-
-        $this->query->set('distinct', $this->select_distinct);
-        $this->query->set('calc', $this->calc_found_rows);
-        
-        return $this->query->get($fields);
     }
 
     public static function where($criteria = '1')
@@ -183,7 +189,7 @@ class Model implements ModelInterface, \JsonSerializable
     public function update($values = [])
     {
         if (empty($values)) return false;
-
+        
         if ($this->id AND $this->primaryKey) {
             $criteria = $this->getCriteria();
         } else {
@@ -353,13 +359,19 @@ class Model implements ModelInterface, \JsonSerializable
 
         $parent = new $class;
 
-        $row = $this->join($class, $foreign_key, $original_key)
-                    ->get()
-                    ->first(); 
+        $collection = $this->join($class, $foreign_key, $original_key)
+                        ->get();
+                
+        if (false == $collection->isEmpty()) {
 
-        return $class::find(
-            (new $class)->getKeyValuesFromRow($row)
-        );
+            $row = $collection->first();
+
+            return $class::find(
+                (new $class)->getKeyValuesFromRow($row)
+            );
+        }
+            
+        return null;
     }
 
     /**
@@ -422,7 +434,7 @@ class Model implements ModelInterface, \JsonSerializable
      */
     public function join($model, $foreign_key = null, $original_key = null, $type = 'LEFT')
     {
-        $original_key = is_null($original_key) ? $this->getKey(): $original_key;     // The original key is the parent
+        $original_key = $original_key ?? $this->getKey();                              // The original key is the parent
                                                                                        // primary key
 
         $foreign_key  = is_null($foreign_key) ? $original_key: $foreign_key;           // If $foreign_key is not set
@@ -493,10 +505,26 @@ class Model implements ModelInterface, \JsonSerializable
         $child_class = get_called_class();
         $child = new $child_class;
         $child->setKeyValue($id);
-        return $child;
+        return $child->get()->count() ? $child: null;
     }
 
+    /**
+     * @deprecated
+     * @see all method
+     */
     public static function findAll() 
+    {
+        $child_class = get_called_class();
+        $child = new $child_class;
+        
+        return $child->get()->map(function($row) use($child_class, $child) {
+            return new $child_class(
+                $child->getKeyValuesFromRow($row)
+            );
+        });
+    }
+
+    public static function all() 
     {
         $child_class = get_called_class();
         $child = new $child_class;
@@ -560,7 +588,7 @@ class Model implements ModelInterface, \JsonSerializable
             return $this->{$attribute}();
         }
 
-        $collection = $this->query->set('where', $this->getCriteria())->get("`$attribute`");
+        $collection = $this->query->set('where', $this->getCriteria(true))->get("`$attribute`");
             
         if ($collection->count()) {
             return $collection->first()[$attribute];
@@ -609,7 +637,7 @@ class Model implements ModelInterface, \JsonSerializable
             return null;
         }
 
-        $collection = DB::table($this->getTable())->where($this->getCriteria())->get();
+        $collection = DB::table($this->getTable(true))->where($this->getCriteria(true))->get();
         
         if (0 === $collection->count()) {
             return null;

@@ -5,6 +5,7 @@ use Clicalmani\Flesco\Http\Controllers\RequestController;
 use Clicalmani\Flesco\Http\Requests\RequestFile;
 use Clicalmani\Flesco\Http\Requests\RequestRedirect;
 use Clicalmani\Flesco\Security\Security;
+use Clicalmani\Flesco\Routes\Route;
 
 class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \JsonSerializable {
 
@@ -44,9 +45,15 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
     public function __construct( $signatures = [] ) {
         $this->signatures = $signatures;
 
-        if ( in_array(strtolower( $_SERVER['REQUEST_METHOD'] ), ['patch', 'put']) ) {
+        if ('api' === Route::getGateway() AND in_array(static::getMethod(), ['patch', 'put'])) {
             $params = [];
-            $parser = new ParseInputStream($params);
+            $parser = new \Clicalmani\Flesco\Http\Requests\ParseInputStream($params);
+            
+            /**
+             * Header application/json
+             */
+            if ( array_key_exists('parameters', $params) ) $params = $params['parameters'];
+
             $_REQUEST = array_merge($_REQUEST, $params);
         }
     }

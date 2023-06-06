@@ -19,10 +19,10 @@ Trait ModelTrait
             return ( count($arr) > 1 ) ? $arr[1]: $keys;
         }
         
-        return (array) (new \Clicalmani\Flesco\Collection\Collection)
+        return (new \Clicalmani\Flesco\Collection\Collection)
             ->exchange($keys)->map(function($key) {
                 $key = explode('.', trim($key));
-                return ( count($key) > 1 ) ? end($key): $key;
+                return ( count($key) > 1 ) ? end($key): $key[0];
             })->toArray();
     }
 
@@ -44,15 +44,15 @@ Trait ModelTrait
         return $row[$key];
     }
 
-    function getCriteria()
+    function getCriteria($add_alias = false)
     {
-        $keys     = $this->getKey();
+        $keys     = $this->getKey($add_alias);
         $criteria = null;
-            
+        
         if ( is_string($keys) ) {
             $criteria = $keys . ' = "' . $this->id . '"';
         } elseif ( is_array($keys) AND is_array($this->id) AND (count($keys) == count($this->id)) ) {
-
+            
             $criterias = [];
             
             for ($i=0; $i<count($keys); $i++) {
@@ -61,7 +61,7 @@ Trait ModelTrait
 
             $criteria = join(' AND ', $criterias);
         }
-
+        
         return $criteria;
     }
 

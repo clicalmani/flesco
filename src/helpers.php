@@ -190,3 +190,37 @@ if ( ! function_exists('slug') ) {
         return \Clicalmani\Flesco\Support\Str::slug($str);
     }
 }
+
+if ( ! function_exists('recursive_unlink') ) {
+    function recursive_unlink($path) {
+	
+	    if (is_dir($path) === true) {
+		
+		    $files = new \RecursiveIteratorIterator(
+                new \RecursiveDirectoryIterator($path), 
+                \RecursiveIteratorIterator::CHILD_FIRST
+            );
+			
+			foreach ($files as $file) {
+			    
+				if (in_array($file->getBaseName(), array('.', '..')) !== true) {
+				    
+					if ($file->isDir() === true) {
+					    
+						@ rmdir($file->getPathName());
+					} elseif (($file->isFile() === true) || ($file->isLink() === true)) {
+					    
+						@ unlink($file->getPathName());
+					}
+				}
+			}
+			
+			return @ rmdir($path);
+		} elseif ((is_file($path) === true) || (is_link($path) === true)) {
+		    
+			return @ unlink($path);
+		}
+		
+		return false;
+	}
+}
