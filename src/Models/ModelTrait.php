@@ -11,6 +11,8 @@ Trait ModelTrait
      */
     function cleanKey(mixed $keys) : mixed
     {
+        if (!$keys) return false;
+
         /**
          * Single key table
          */
@@ -28,7 +30,7 @@ Trait ModelTrait
 
     function getKeyValuesFromRow($row)
     {
-        $key = $this->getKey();
+        $key = $this->cleanKey( $this->getKey() );
 
         if ( is_array($key) ) {
 
@@ -44,9 +46,9 @@ Trait ModelTrait
         return $row[$key];
     }
 
-    function getCriteria($add_alias = false)
+    function getCriteria($required_alias = false)
     {
-        $keys     = $this->getKey($add_alias);
+        $keys     = $this->getKey($required_alias);
         $criteria = null;
         
         if ( is_string($keys) ) {

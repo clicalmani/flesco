@@ -6,4 +6,3 @@ class ModelNotFoundException extends \Exception {
 		parent::__construct("The specified model $model could not been found.");
 	}
 }
-?>

@@ -50,7 +50,8 @@ class Delete extends DBQueryBuilder implements \IteratorAggregate {
 
 				// Remove table alias
 				$this->params['tables'][0] = $this->db->getPrefix() . preg_split('/\s/', $this->params['tables'][0], -1, PREG_SPLIT_NO_EMPTY)[0];
-
+				$this->params['where'] = preg_replace('/([a-zA-Z0-9-_]+)\./', '', $this->params['where']);
+				
 				$this->sql .= 'FROM ' . $this->params['tables'][0] . ' ';
 
 				/**

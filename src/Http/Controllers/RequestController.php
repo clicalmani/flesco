@@ -132,8 +132,7 @@ abstract class RequestController extends HttpRequest
 						return $resource->methods['missing']['caller']();
 					}
 
-					response()->status(404, 'NOT_FOUND', 'Resource not found');		// Not Found
-					exit;
+					return response()->status(404, 'NOT_FOUND', $e->getMessage());		// Not Found
 				}
 			}
 
@@ -142,9 +141,12 @@ abstract class RequestController extends HttpRequest
 
 			if (method_exists($request, 'authorize')) {
 				if (false == $request->authorize()) {
-					response()->status(403, 'FORBIDEN', 'Unauthorized Request');		// Forbiden
-					exit;
+					return response()->status(403, 'FORBIDEN', 'Unauthorized Request');		// Forbiden
 				}
+			}
+
+			if (method_exists($request, 'prepareForValidation')) {
+				$request->prepareForValidation();                    // Call prepareForValidation method
 			}
 			
 			if (method_exists($request, 'signatures')) {

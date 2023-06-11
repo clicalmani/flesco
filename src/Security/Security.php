@@ -112,7 +112,7 @@ class Security {
 										$format = str_replace($k, $v, $format);
 									}
 									
-									if (false == preg_match('/^(' . $format . ')$/i', $tmp[$key])) {
+									if (false == @ preg_match('/^(' . $format . ')$/i', $tmp[$key])) {
 										if ($sig['required']) {
 											if($redirect) {
 												header("Location: $redirect");
@@ -147,7 +147,7 @@ class Security {
 										$format = str_replace($k, $v, $format);
 									}
 
-									if (false == preg_match('/^(' . $format . ')$/i', $tmp[$key])) {
+									if (false == @ preg_match('/^(' . $format . ')$/i', $tmp[$key])) {
 										if ($sig['required']) {
 											if($redirect) {
 												header("Location: $redirect");
@@ -167,7 +167,7 @@ class Security {
 								break;
 
 							case 'regex':
-								if (isset($sig['pattern']) AND false == preg_match($sig['pattern'], $tmp[$key])) {
+								if (array_key_exists('pattern', $sig) AND false == @ preg_match($sig['pattern'], $tmp[$key])) {
 									if ($sig['required']) {
 										if($redirect) {
 											header("Location: $redirect");

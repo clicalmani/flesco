@@ -29,6 +29,10 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
         // TODO: override
     }
 
+    public function prepareForValidation() {
+        // TODO: override
+    }
+
     /**
      * @deprecated
      */

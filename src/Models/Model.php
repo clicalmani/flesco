@@ -4,6 +4,7 @@ namespace Clicalmani\Flesco\Models;
 use Clicalmani\Flesco\Database\DB;
 use Clicalmani\Flesco\Database\DBQuery;
 use Clicalmani\Flesco\Exceptions\ClassNotFoundException;
+use Clicalmani\Flesco\Exceptions\ModelException;
 use Clicalmani\Flesco\Exceptions\MethodNotFoundException;
 use Clicalmani\Flesco\Collection\Collection;
 
@@ -48,17 +49,35 @@ class Model implements ModelInterface, \JsonSerializable
         $this->boot();
     }
 
-    public function getTable($add_alias = false)
+    public function getTable($required_alias = false)
     {
-        if ($add_alias) return $this->table;
+        if ($required_alias) return $this->table;
        
         $arr = explode(' ', $this->table);
         return count($arr) > 1 ? $arr[0]: $this->table;
     }
 
-    public function getKey($add_alias = false)
+    private function isAliasRequired()
     {
-        if (false == $add_alias) return $this->cleanKey( $this->primaryKey );
+        /**
+         * Insert query
+         */
+        if ( $this->query->getParam('table') ) return false;
+
+        /**
+         * If table has alias then alias is required for attributes
+         */
+        if ( $this->query->getParam('tables') ) 
+            foreach ($this->query->getParam('tables') as $table ) {
+                if ( count( explode(' ', $table) ) > 1) return true;
+            }
+        
+        return false;
+    }
+
+    public function getKey($required_alias = false)
+    {
+        if (false == $required_alias) return $this->cleanKey( $this->primaryKey );
 
         return $this->primaryKey;
     }
@@ -97,7 +116,7 @@ class Model implements ModelInterface, \JsonSerializable
     {
         try {
             if ( !$this->query->getParam('where') AND $this->id) {
-                $this->query->set('where', $this->getCriteria(true));
+                $this->query->set('where', $this->getCriteria( $this->isAliasRequired() ));
             }
     
             $this->query->set('distinct', $this->select_distinct);
@@ -137,35 +156,33 @@ class Model implements ModelInterface, \JsonSerializable
 
     public function delete()
     {
-        // A delete operation must contain a key
-        if (empty($this->query->params['where'])) {
+        if (isset($this->id) AND isset($this->primaryKey)) {
 
-            if (isset($this->id) AND isset($this->primaryKey)) {
-                $this->query->where($this->getCriteria());
-            } else throw new \Exception("Can not update or delete records when on safe mode");
-        }
+            /**
+             * Don't add table alias for single delete.
+             */
+            $is_alias_required = count( $this->query->getParam('tables') ) > 1 ? true: false;
+            $this->query->set('where', $this->getCriteria($is_alias_required));
+            
+        } else throw new \Exception("Can not update or delete records when on safe mode");
 
-        /**
-         * Keep a copy for the object passed to the closure can be modified at any time
-         */
-        // $clone = clone $this->query;
-        
-        // Before create boot
-        if ($this->before_delete) {
-            $closure = $this->before_delete;
-            $closure(self::find($this->id));
-        }
-
-        // $this->query = $clone;
+        // Before delete boot
+        $this->callBootObserver('before_delete');
         
         $success = $this->query->delete()->exec()->status() == 'success';
 
-        // Before create boot
-        if ($this->after_delete) {
-            $this->after_delete($this);
-        }
+        // After delete boot
+        $this->callBootObserver('after_delete');
 
         return $success;
+    }
+
+    private function callBootObserver($observer)
+    {
+        if ($this->{$observer}) {
+            $closure = $this->{$observer};
+            $closure(static::find($this->id));
+        }
     }
 
     public function forceDelete()
@@ -198,9 +215,9 @@ class Model implements ModelInterface, \JsonSerializable
         
         if ( $criteria ) {
 
-            // Before update boot
-            if ($this->before_update) {
-                $this->before_update($this);
+            if ($this->id AND $this->primaryKey) {
+                // Before update boot
+                $this->callBootObserver('before_update');
             }
 
             $fields = array_keys( $values );
@@ -213,11 +230,36 @@ class Model implements ModelInterface, \JsonSerializable
             
             $success = $this->query->exec()->status() === 'success';
 
-            // After update boot
-            if ($this->after_update) {
-                $this->after_update($this);
-            }
+            $record = [];       // Updated attributes
 
+            foreach ($fields as $index => $attr) {
+                $record[$attr] = $values[$index];
+            }
+            
+            /**
+             * Check key change
+             * 
+             * Verify whether key(s) is/are among the updated attributes
+             */
+            $primary = is_string($this->primaryKey) ? [$this->primaryKey]: $this->primaryKey;
+            $primary = $this->cleanKey($primary);  // Remove table alias
+
+            collection()->exchange($primary)->map(function($pkey, $index) use($record) {
+                if ( array_key_exists($pkey, $record) ) {               // The current key has been updated
+                    if ( is_string($this->id) ) {
+                        $this->id = $record[$pkey];                     // Update key value
+                        return;
+                    }
+
+                    $this->id[$index] = $record[$pkey];                 // Update key value
+                }
+            });
+            
+            if ($this->id AND $this->primaryKey) {      
+                // After update boot
+                $this->callBootObserver('after_update');
+            }
+            
             return $success;
         } 
         
@@ -265,16 +307,22 @@ class Model implements ModelInterface, \JsonSerializable
         $this->query->set('values', $values);
 
         // Before create boot
-        if ($this->before_create) {
-            $this->before_create($this);
-        }
+        $this->callBootObserver('before_create');
 
         $success = $this->query->exec()->status() === 'success';
 
-        // After create boot
-        if ($this->after_create) {
-            $this->after_create($this);
+        $values = end($values);
+
+        $record = [];
+
+        foreach ($keys as $index => $key) {
+            $record[$key] = $values[$index];
         }
+        
+        $this->id = $this->lastInsertId($record);
+        
+        // After create boot
+        $this->callBootObserver('after_create');
 
         return $success;
     }
@@ -408,11 +456,7 @@ class Model implements ModelInterface, \JsonSerializable
 
         if (count($this->new_records)) {
             $success = $this->insert( [$this->new_records] );
-            $this->id = DB::getPdo()->lastInsertId();
-
-            if (!$this->id) {
-                $this->id = $this->getKeyValuesFromRow($this->new_records);
-            }
+            $this->id = $this->lastInsertId($this->new_records);
         }
 
         // Reset back to select parameters 
@@ -423,6 +467,32 @@ class Model implements ModelInterface, \JsonSerializable
         unset($this->query->params['table']);
 
         return isset($success) ? $success: false;
+    }
+
+    public function lastInsertId($record = null)
+    {
+        $last_insert_id = DB::getPdo()->lastInsertId();
+
+        if (!$last_insert_id AND $record) {
+            $last_insert_id = $this->getKeyValuesFromRow($record);
+        }
+
+        return $last_insert_id;
+    }
+
+    public function first()
+    {
+        $collection = $this->get();
+        
+        if (false == $collection->isEmpty()) {
+            $row = $collection->first();
+            
+            $primary_key = $this->getKeyValuesFromRow($row);
+
+            return static::find($primary_key);
+        }
+
+        return null;
     }
 
     /**
@@ -437,10 +507,22 @@ class Model implements ModelInterface, \JsonSerializable
         $original_key = $original_key ?? $this->getKey();                              // The original key is the parent
                                                                                        // primary key
 
-        $foreign_key  = is_null($foreign_key) ? $original_key: $foreign_key;           // If $foreign_key is not set
-                                                                                       // suppose that the foreign key is the
+        if ( is_array($original_key) ) 
+            throw new ModelException("Original key must be of type string, array given " . json_encode($original_key));
+
+        $foreign_key  = $foreign_key ?? $original_key;                                 // If $foreign_key is not set
+                                                                                       // suppose that the foreign key is equal to
                                                                                        // original key
         
+        /**
+         * USING operator will be used to join the tables in case foreign key match original key
+         * make sure that there is no alias in the key
+         */
+        if ($original_key == $foreign_key) {
+            $original_key = $this->cleanKey($original_key);
+            $foreign_key  = $this->cleanKey($foreign_key);
+        }
+
         if (is_string($model)) {
             $model = new $model;
         }
@@ -537,26 +619,26 @@ class Model implements ModelInterface, \JsonSerializable
     }
 
     protected function beforeCreate($closure) {
-        if ($this->before_create AND is_callable($this->before_create, true, $before)) {
-            $this->before_create = $before;
+        if ($closure AND is_callable($closure, true, $before)) {
+            $this->before_create = $closure;
         }
     }
 
     protected function afterCreate($closure) {
-        if ($this->after_create AND is_callable($this->after_create, true, $after)) {
-            $this->after_create = $after;
+        if ($closure AND is_callable($closure, true, $after)) {
+            $this->after_create = $closure;
         }
     }
 
     protected function beforeUpdate($closure) {
-        if ($this->before_update AND is_callable($this->before_update, true, $before)) {
-            $this->before_update = $before;
+        if ($closure AND is_callable($closure, true, $before)) {
+            $this->before_update = $closure;
         }
     }
 
     protected function afterUpdate($closure) {
-        if ($this->after_update AND is_callable($this->after_update, true, $after)) {
-            $this->after_update = $after;
+        if ($closure AND is_callable($closure, true, $after)) {
+            $this->after_update = $closure;
         }
     }
 
@@ -567,8 +649,8 @@ class Model implements ModelInterface, \JsonSerializable
     }
 
     protected function afterDelete($closure) {
-        if ($this->after_delete AND is_callable($this->after_delete, true, $after)) {
-            $this->after_delete = $after;
+        if ($closure AND is_callable($closure, true, $after)) {
+            $this->after_delete = $closure;
         }
     }
 
@@ -637,7 +719,7 @@ class Model implements ModelInterface, \JsonSerializable
             return null;
         }
 
-        $collection = DB::table($this->getTable(true))->where($this->getCriteria(true))->get();
+        $collection = DB::table($this->getTable())->where($this->getCriteria())->get();
         
         if (0 === $collection->count()) {
             return null;

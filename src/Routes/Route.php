@@ -355,11 +355,7 @@ class Route {
     }
 
     /**
-     * Comapre two routes
-     * @param [string] $sroute Synthetic route
-     * @param [string] $nroute Navigation route
-     * @return [integer] 
-     * returns 0 if matched, otherwise -1
+     * @deprecated
      */
     static function compare($sroute, $nroute)
     {
@@ -390,6 +386,7 @@ class Route {
             
             // different parts does not contain parameter
             if ($spart == $npart) continue;
+            if ( ! in_array($npart, self::getParamesters($sroute)) AND $npart == $spart ) continue;
             
             // Patterns againts synthetic route
             $patterns = [
@@ -399,8 +396,10 @@ class Route {
             ];
             
             foreach ($patterns as $index => $pattern) {
-                
+
                 if (preg_match($pattern, $spart)) {
+
+                    // if (false == self::isParameter($npart, $sroute)) continue;
                     
                     if (strpos($spart, '@')) { // Has validators
 
@@ -472,6 +471,10 @@ class Route {
                     $ntrack .= "/$npart";
                     $strack .= "/$spart";
                     $matched = true;
+
+                    if (! in_array($npart, self::getParamesters($sroute))) {
+                        echo $npart . ' => ' . $sroute . '<br>';
+                    }
                     
                     switch($index) {
                         case 0:
@@ -535,36 +538,19 @@ class Route {
 
     static function exists($method = null)
     {
-        if ( isset($method) ) {
-            $routine = self::$routines[$method];
-            
-            foreach ($routine as $sroute => $controller) {
-                if (-1 !== self::compare($sroute, current_route())) {
-                    self::$current_route = $sroute;
-                    return $sroute;
-                }
-            }
-        } else {
-            foreach (self::$routines as $routine) {
-                foreach ($routine as $sroute => $controller) {
-                    if (-1 !== self::compare($sroute, current_route())) {
-                        self::$current_route = $sroute;
-                        return $sroute;
-                    }
-                }
-            }
-        }
+        $alpha = self::getAlpha($method);
+        $sroute = self::compareSequences($alpha);
         
+        if ($sroute) {
+            self::$current_route = $sroute;
+            return $sroute;
+        }
+
         return false;
     }
 
     /**
-     * Route without parameters and route with parameter that resemble in structure with same length
-     * have the same priority. Ex: api/rooms/add and api/rooms/:promo. To differenciate them, we prioritize
-     * route without parameter.
-     * 
-     * @param $route [string] 
-     * @return Boolean true on success, false on failure.
+     * @deprecated
      */
     private static function isEligible($route)
     {
@@ -580,11 +566,34 @@ class Route {
     }
 
     /**
-     * Partially match a route with a subroute. This will allow to prioritize route without param at a given position
-     * over route route with param at a given position. Ex: /rooms/:name/teachers and /room/name/teachers
-     * 
-     * @param $strack [string]
-     * @return Boolean true on success, false on failure.
+     * @deprecated
+     */
+    private static function getParamesters($sroute)
+    {
+        $sseq = preg_split('/\//', $sroute, -1, PREG_SPLIT_NO_EMPTY);
+        
+        $params = [];
+
+        foreach ($sseq as $seq) {
+            if (preg_match('/^:/', $seq)) {
+                $arr = explode('@', $seq);
+                $params[] = substr($arr[0], 1);
+            }
+        }
+        
+        return $params;
+    }
+
+    /**
+     * @deprecated
+     */
+    private static function isParameter($part, $sroute)
+    {
+        return ! in_array($part, self::getParamesters($sroute));
+    }
+
+    /**
+     * @deprecated
      */
     private static function isPartiallyElligible($ntrack)
     {
@@ -597,6 +606,9 @@ class Route {
         }
     }
 
+    /**
+     * @deprecated
+     */
     private static function bindRoutine(string $method, string $route, mixed $callable, bool $bind = true) : mixed
     {
         if ( is_array($callable) AND count($callable) == 2 ) {
@@ -618,5 +630,162 @@ class Route {
     public static function getController($method, $route)
     {
         return self::$routines[$method][$route];
+    }
+
+    /**
+     * Explodes route against back slashes (/)
+     * 
+     * @param $route [string] the route to explode
+     * @return array result
+     */
+    private static function getSequence($route)
+    {
+        $seq = preg_split('/\//', $route, -1, PREG_SPLIT_NO_EMPTY);
+
+        return collection()->exchange($seq)->map(function($part) {
+            return explode('@', $part)[0];
+        })->toArray();
+    }
+
+    /**
+     * Computes routes with same length as the current route
+     * 
+     * The recipe here is to grab the most relevant routes, to avoid searching all the mesh
+     * The current route will be compared to each of the selected routes
+     * We first search for differences by comparing all the part broked against back slashes (/)
+     * that allows us to find easily route parameters for the first try (that means some sequence may not be probabily a parameter)
+     * that's not a matter for now because will deal with them later.
+     * After replacing all the parameters, will try to rebuild the route and then compare it to the current route.
+     * 
+     * @param $method [string] Request method
+     * @return Array containing the routes
+     */
+    private static function getAlpha($method)
+    {
+        $alpha = [];
+
+        $nseq = self::getSequence( current_route() );
+        
+        $len     = count($nseq);
+        $routine = self::$routines[$method];
+            
+        foreach ($routine as $sroute => $controller) {
+            $sseq = self::getSequence($sroute);
+
+            if ($len !== count($sseq)) continue;
+
+            $alpha[$sroute] = $sseq;
+        }
+
+        return $alpha;
+    }
+
+    /**
+     * Each route is exploded against back slash (/), that allows to find easily the different parts of the route
+     * 
+     * @param $alpha [array] an array of the routes with the same length as the current route
+     * @return mixed string on success or false on failure
+     */
+    private static function compareSequences($alpha)
+    {
+        $nseq  = self::getSequence( current_route() );
+        $beta  = [];
+        
+        foreach ($alpha as $sroute => $sseq) {
+            if ( self::isSameRoute( self::build($sroute, $sseq) ) ) {
+                $beta[$sroute] = $sseq;
+            } else unset($beta[$sroute]);
+        }
+
+        // Find real params (indexes and values)
+        $a = array_diff($nseq, ...array_values($beta));
+        
+        if ( count($beta) == 1) {
+            // $bench = new \Clicalmani\Flesco\TestUnits\Benchmark;
+            // $bench->watchValue(json_encode([current_route(), $a]));
+            $sroute = array_keys($beta)[0];
+            $sseq   = $beta[$sroute];
+
+            foreach ($a as $key => $value) {
+                self::registerParameter($sseq[$key], $value);
+            }
+
+            return $sroute;
+        }
+        
+        if ( !empty($a) ) {
+            $params_keys = [];
+            
+            foreach ($a as $key => $value) {
+                foreach ($beta as $sroute => $sseq) {
+                    // $pos = array_search($value, $nseq);
+                    $b = array_splice($sseq, $key, 1, $value);
+                    if (self::isSameRoute($sseq)) {
+                        self::registerParameter($b[0], $value);
+                        return $sroute;
+                    }
+                }
+            }
+        } else {
+            foreach ($beta as $sroute => $sseq) {
+                if (self::isSameRoute($sseq)) return $sroute;
+            }
+        }
+        
+        return false;
+    }
+
+    /**
+     * Builds route parts to be comparable to the current route. This method is capable of finding 
+     * the exact parameters passed to the route. It replace each parameter to the appropriate position 
+     * for it to be comparable to the current route.
+     * 
+     * @param $sroute [string] The syntical route to be matched with
+     * @param $sseq [array] The route sequences 
+     * @see \Clicalmani\Flesco\Routes::getSequence for mor details
+     * @return array different sequences of the route after parameters replaced.
+     */
+    private static function build($sroute, $sseq)
+    {
+        $nseq  = self::getSequence( current_route() );
+        $beta  = [];
+        
+        foreach ($nseq as $index => $part) {
+
+            if ( in_array($sseq[$index], array_diff($sseq, $nseq)) ) {
+                $beta[] = $part . '@' . $index;
+            }
+        }
+
+        if (empty($beta)) return $nseq;
+        
+        foreach ($beta as $param) {
+            $arr = explode('@', $param);
+            $param = $arr[0];
+            $index = $arr[1];
+
+            if (preg_match('/^:/', $sseq[$index])) {
+                array_splice($sseq, $index, 1, $param);
+            }
+        }
+        
+        return $sseq;
+    }
+
+    /**
+     * compares to the current route
+     * 
+     * @param $sequences [array] 
+     * @see \Clicalmani\Flesco\Routes::getSequence for mor details
+     * @return boolean true on success, of false on failure.
+     */
+    private static function isSameRoute($sequences)
+    {
+        return '/' . join('/', $sequences) == current_route();
+    }
+
+    private static function registerParameter($name, $value)
+    {
+        $_REQUEST[substr($name, 1)] = $value;
     }
 }
