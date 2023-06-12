@@ -6,4 +6,3 @@ class MethodNotFoundException extends \Exception {
 		parent::__construct("Call to undefined method $method");
 	}
 }
-?>

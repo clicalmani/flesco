@@ -224,3 +224,34 @@ if ( ! function_exists('recursive_unlink') ) {
 		return false;
 	}
 }
+
+if ( ! function_exists('mail_smtp') ) {
+    function mail_smtp($to, $from, $subject, $body, $cc = false, $bc = false)
+    {
+        $mail = new \Clicalmani\Flesco\Mail\MailSMTP;
+
+        $mail->setSubject($subject);
+        $mail->setBody($body);
+        $mail->setFromAddress($from['email'], $from['name']);
+
+        foreach ($to as $email => $name) {
+            $mail->addAddress($email, $name);
+        }
+
+		if ($cc) {
+            foreach ($cc as $email => $name) {
+                $mail->addCC($email, $name);
+            }
+		}
+
+		if ($bc) {
+            foreach ($cc as $email => $name) {
+                $mail->addBC($email, $name);
+            }
+		}
+
+		$mail->isHTML(true);
+        
+        return $mail->send();
+    }
+}
