@@ -354,188 +354,6 @@ class Route {
         return $authorize;
     }
 
-    /**
-     * @deprecated
-     */
-    static function compare($sroute, $nroute)
-    {
-        // Home
-        if ($nroute == '/' AND $sroute != '/') {
-            return -1;
-        }
-        
-        // If there is no parameters the two route match in structure.
-        if ($sroute == $nroute) {
-            return 0;
-        }
-
-        $sseq = preg_split('/\//', $sroute, -1, PREG_SPLIT_NO_EMPTY);
-        $nseq = preg_split('/\//', $nroute, -1, PREG_SPLIT_NO_EMPTY);
-        
-        // The two routes should have same number of sequences
-        // if there is no optional parameters
-        if (false == preg_match("/\?/", $sroute) AND count($sseq) !== count($nseq)) {
-            return -1;
-        }
-
-        $strack = $ntrack = '/';
-
-        for($i=0; $i<count($sseq); $i++) {
-            $spart = $sseq[$i];
-            $npart = isset($nseq[$i]) ? $nseq[$i]: null;
-            
-            // different parts does not contain parameter
-            if ($spart == $npart) continue;
-            if ( ! in_array($npart, self::getParamesters($sroute)) AND $npart == $spart ) continue;
-            
-            // Patterns againts synthetic route
-            $patterns = [
-                '/^:(\w+(:?.*))[^?]$/',  // :name@{type: number}
-                '/^:(\w+)-(\w+)$/', // :from-to
-                '/^:(\w+(:?.*))\?$/'      // :optional?
-            ];
-            
-            foreach ($patterns as $index => $pattern) {
-
-                if (preg_match($pattern, $spart)) {
-
-                    // if (false == self::isParameter($npart, $sroute)) continue;
-                    
-                    if (strpos($spart, '@')) { // Has validators
-
-                        $arr = explode('@', $spart);
-                        $validator = json_decode($arr[1]);
-
-                        $param = substr($arr[0], 1);
-                        
-                        if ($validator) {
-
-                            $valid = false;
-
-                            if (@ $validator->type) {
-
-                                if (in_array(@ $validator->type, self::PARAM_TYPES)) {
-                                    switch($validator->type) {
-                                        case 'numeric':
-                                            if (is_numeric($npart)) {
-                                                $valid = true;
-                                            }
-                                        break;
-
-                                        case 'int':
-                                        case 'integer':
-                                            if (is_int($npart)) {
-                                                $valid = true;
-                                            }
-                                        break;
-
-                                        case 'float':
-                                            if (is_float($npart)) {
-                                                $valid = true;
-                                            }
-                                        break;
-
-                                        case 'string':
-                                            if (is_string($npart)) {
-                                                $valid = true;
-                                            }
-                                        break;
-                                    }
-                                }
-                            } elseif(@ $validator->enum) {
-                                $enum = explode(',', $validator->enum);
-
-                                if (in_array($npart, $enum)) {
-                                    $valid = true;
-                                }
-                            } elseif(@ $validator->pattern) {
-                                if (@preg_match('/^' . $validator->pattern . '$/', $npart)) {
-                                    $valid = true;
-                                }
-                            } elseif (@ $validator->uid) { // Route guard
-                                $guard = @ self::$registered_guards[$validator->uid];
-
-                                if ( $guard AND $guard['param'] == $param ) {
-                                    $valid = $guard['callback']($npart);
-                                }
-                            }
-
-                            if (false === $valid) {
-                                return -1;
-                            }
-                        }
-
-                        $spart = $arr[0]; // Remove validation part
-                    }
-
-                    $ntrack .= "/$npart";
-                    $strack .= "/$spart";
-                    $matched = true;
-
-                    if (! in_array($npart, self::getParamesters($sroute))) {
-                        echo $npart . ' => ' . $sroute . '<br>';
-                    }
-                    
-                    switch($index) {
-                        case 0:
-                            if (false == self::isEligible($nroute) AND ($npart AND preg_match('/^(\S+)$/', $npart))) {
-                                $param = substr($spart, 1);
-                                $_GET[$param] = $npart;
-                                $_REQUEST[$param] = $npart;
-                                continue 3;
-                            }  
-                            
-                            $matched = false;
-                        break;
-
-                        case 1:
-                            if (false == self::isEligible($nroute) AND preg_match('/^(\w+)-(\w+)$/', $npart)) {
-                                $na = explode('-', $npart);
-                                $sa = explode('-', substr($spart, 1));
-                                $from = $sa[0];
-                                $to = $sa[1];
-                                $_GET[$from] = $na[0];
-                                $_GET[$to] = $na[1];
-                                $_REQUEST[$from] = $na[0];
-                                $_REQUEST[$to] = $na[1];
-                                continue 3;
-                            }
-
-                            $matched = false;
-                        break;
-
-                        case 2:
-                            if (false == self::isEligible($nroute) AND (!$npart OR preg_match('/^(.*)$/', $npart))) {
-                                $param = rtrim(ltrim($spart, ':'), '?');
-                                $_GET[$param] = $npart;
-                                $_REQUEST[$param] = $npart;
-                                continue 3;
-                            } 
-
-                            $matched = false;
-                        break;
-                    }
-
-                    // if (false == $matched) {
-                        
-                    //     $_GET = [];
-                        
-                    //     return -1;
-                    // }
-                }
-
-                // In cas there is no parameter
-                // the different parts should match
-                // Escape optional parameters
-                if (false == preg_match("/\?$/", $spart) AND $spart != $npart) {
-                    return -1;
-                }
-            }
-        }
-        
-        return 0;
-    }
-
     static function exists($method = null)
     {
         $alpha = self::getAlpha($method);
@@ -549,66 +367,6 @@ class Route {
         return false;
     }
 
-    /**
-     * @deprecated
-     */
-    private static function isEligible($route)
-    {
-        foreach (self::$routines as $routine) {
-            foreach ($routine as $sroute => $controller) {
-                if ($sroute == $route) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * @deprecated
-     */
-    private static function getParamesters($sroute)
-    {
-        $sseq = preg_split('/\//', $sroute, -1, PREG_SPLIT_NO_EMPTY);
-        
-        $params = [];
-
-        foreach ($sseq as $seq) {
-            if (preg_match('/^:/', $seq)) {
-                $arr = explode('@', $seq);
-                $params[] = substr($arr[0], 1);
-            }
-        }
-        
-        return $params;
-    }
-
-    /**
-     * @deprecated
-     */
-    private static function isParameter($part, $sroute)
-    {
-        return ! in_array($part, self::getParamesters($sroute));
-    }
-
-    /**
-     * @deprecated
-     */
-    private static function isPartiallyElligible($ntrack)
-    {
-        foreach (self::$routines as $routine) {
-            foreach ($routine as $sroute => $controller) {
-                if (strpos($sroute, $ntrack) == 0) {
-                    return true;
-                }
-            }
-        }
-    }
-
-    /**
-     * @deprecated
-     */
     private static function bindRoutine(string $method, string $route, mixed $callable, bool $bind = true) : mixed
     {
         if ( is_array($callable) AND count($callable) == 2 ) {
@@ -641,10 +399,10 @@ class Route {
     private static function getSequence($route)
     {
         $seq = preg_split('/\//', $route, -1, PREG_SPLIT_NO_EMPTY);
-
-        return collection()->exchange($seq)->map(function($part) {
-            return explode('@', $part)[0];
-        })->toArray();
+        return $seq;
+        // return collection()->exchange($seq)->map(function($part) {
+        //     return explode('@', $part)[0];
+        // })->toArray();
     }
 
     /**
@@ -652,10 +410,10 @@ class Route {
      * 
      * The recipe here is to grab the most relevant routes, to avoid searching all the mesh
      * The current route will be compared to each of the selected routes
-     * We first search for differences by comparing all the part broked against back slashes (/)
+     * We first search for differences by comparing all the part broken against back slashes (/)
      * that allows us to find easily route parameters for the first try (that means some sequence may not be probabily a parameter)
-     * that's not a matter for now because will deal with them later.
-     * After replacing all the parameters, will try to rebuild the route and then compare it to the current route.
+     * that's not a matter for now because we will deal with them later.
+     * After replacing all the parameters, we then try to rebuild the route and compare it to the current route to find a mamtch.
      * 
      * @param $method [string] Request method
      * @return Array containing the routes
@@ -701,13 +459,13 @@ class Route {
         $a = array_diff($nseq, ...array_values($beta));
         
         if ( count($beta) == 1) {
-            // $bench = new \Clicalmani\Flesco\TestUnits\Benchmark;
-            // $bench->watchValue(json_encode([current_route(), $a]));
             $sroute = array_keys($beta)[0];
             $sseq   = $beta[$sroute];
 
             foreach ($a as $key => $value) {
-                self::registerParameter($sseq[$key], $value);
+                $valid = self::registerParameter($sseq[$key], $value);
+
+                if (false == $valid) return false;
             }
 
             return $sroute;
@@ -721,8 +479,7 @@ class Route {
                     // $pos = array_search($value, $nseq);
                     $b = array_splice($sseq, $key, 1, $value);
                     if (self::isSameRoute($sseq)) {
-                        self::registerParameter($b[0], $value);
-                        return $sroute;
+                        return self::registerParameter($b[0], $value) ? $sroute: false;
                     }
                 }
             }
@@ -784,8 +541,158 @@ class Route {
         return '/' . join('/', $sequences) == current_route();
     }
 
-    private static function registerParameter($name, $value)
+    /**
+     * Register a request parameter
+     * 
+     * Here we are simply using the default global variable $_REQUEST to populate request parameters
+     * 
+     * @param $param [string] parameter name
+     * @param $value [string] parameter value
+     * @return boolean true on success, or false on failure
+     */
+    private static function registerParameter($param, $value)
     {
-        $_REQUEST[substr($name, 1)] = $value;
+        if (self::isParamHasValidator($param)) {
+            
+            $validator = self::getValidator($param);
+            
+            if ($validator AND self::validateParameter($validator, $value)) $name = self::getParameterName($param);
+            else return false;
+
+        } else $name = substr($param, 1);
+
+        $_REQUEST[$name] = $value;
+
+        return true;
+    }
+
+    /**
+     * Determine whether the specified parameter name as argument has validator or not
+     * 
+     * @see \Clicalmani\Flesco\Routes\Route::validateParameter for possible validators
+     * @param $param [string] parameter name
+     * @return boolean true on success, or false on failure
+     */
+    private static function isParamHasValidator($param)
+    {
+        return strpos($param, '@');
+    }
+
+    /**
+     * Retrive the parameter validator part
+     */
+    private static function getValidator($param)
+    {
+        $validator = json_decode( substr($param, strpos($param, '@') + 1) );
+
+        if ( ! json_last_error() ) return $validator;
+
+        return null;
+    }
+
+    /**
+     * Retrive parameter name
+     */
+    private static function getParameterName($param)
+    {
+        return substr($param, 1, strpos($param, '@') - 1);
+    }
+
+    /**
+     * Validate a parameter which name is provided as first argument and its value as second argument
+     * 
+     * @param $param [string] parameter to be validated
+     * @param $value [string] parameter value
+     * @return boolean true on success, or false on failure
+     */
+    private static function validateParameter($validator, $value)
+    {
+        $valid = false;
+
+        if ( @ $validator->type) {
+
+            if (in_array(@ $validator->type, self::PARAM_TYPES)) {
+
+                /**
+                 * |----------------------------------------------------------------------------
+                 * |                 ***** Primitive types validation *****
+                 * |----------------------------------------------------------------------------
+                 * 
+                 * Usage:
+                 * 
+                 * {"type": "validator"} 
+                 * 
+                 * validators match one of the following: numeric, int, integer and float
+                 */
+                switch($validator->type) {
+
+                    /**
+                     * Number validation: whether parameter value is a numerical value
+                     */
+                    case 'numeric': $valid = is_numeric($value); break;
+
+                    /**
+                     * Integer validation: whether parameter value is an int
+                     * Not to be confound with numerical value. An int is not forcibly a string
+                     */
+                    case 'int':
+                    case 'integer': $valid = is_int($value); break;
+
+                    /**
+                     * Float validation: whether parameter value is a float value
+                     */
+                    case 'float': $valid = is_float($value); break;
+                }
+            }
+        } 
+        
+        /**
+         * |----------------------------------------------------------------------
+         * |                    ***** Enumeration *****
+         * |----------------------------------------------------------------------
+         * 
+         * Parameter will be validated against a predefined values (a list of values)
+         * 
+         * Usage:
+         * 
+         * {"enum": "value1, valu2, ..."}
+         */
+        elseif(@ $validator->enum) {
+            $enum = explode(',', $validator->enum);
+            $valid = in_array($value, $enum);
+        } 
+        
+        /**
+         * |---------------------------------------------------------------------
+         * |              ***** Regular Expression *****
+         * |---------------------------------------------------------------------
+         * |
+         * 
+         * Usage:
+         * {"pattern": "a regular expression pattern without delimeters"}
+         */
+        elseif(@ $validator->pattern) {
+            $valid = @ preg_match('/^' . $validator->pattern . '$/', $value);
+        } 
+        
+        /**
+         * |---------------------------------------------------------------------
+         * |              ***** Route Guards *****
+         * |---------------------------------------------------------------------
+         * |
+         * 
+         * Route guard is a user provided callback function which returning value allows to determine whether
+         * to navigate to the route or not.
+         * Each guard is registered with a unique id.
+         */
+        elseif (@ $validator->uid) { 
+            $guard = @ self::$registered_guards[$validator->uid];
+
+            if ( $guard AND $guard['param'] == $param ) {
+                $valid = $guard['callback']($npart);
+            }
+        }
+
+        return $valid;
     }
 }
