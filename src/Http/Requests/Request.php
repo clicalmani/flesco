@@ -159,17 +159,6 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
 
     public function checkCSRFToken()
     {
-        if (session_status() == PHP_SESSION_NONE) {
-            session_start();
-        }
-
-        $csrf = new \Clicalmani\Flesco\Security\CSRF;
-        $token = $csrf->getToken();
-    
-        if ( ! isset($_SESSION['csrf-token']) ) {
-            $_SESSION['csrf-token'] = $token;
-        }
-
         $check_csrf = false;
 
         if (preg_match('/^\/api/', current_route())) {
@@ -179,7 +168,7 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
         }
         
         if ( $check_csrf ) {
-            if ( @ $this->getHeader('X-CSRF-TOKEN') != $token) {
+            if ( @ $this->{'csrf-token'} != csrf()) {
                 http_response_code(403);
                 die('403 Forbiden');
 

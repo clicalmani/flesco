@@ -47,5 +47,36 @@ if ( 'api' == \Clicalmani\Flesco\Routes\Route::getGateway() ) {
 	\Clicalmani\Flesco\Routes\Route::setPrefix($api_routes, '/api');
 
 } else {
+
+	/**
+	 * |---------------------------------------------------------------------------
+	 * |                  ***** CSRF Token Validation *****
+	 * |---------------------------------------------------------------------------
+	 * |
+	 * 
+	 * Any request apart from GET request will be subject to CSRF validation
+	 * We stock the token in user session variable which can be retrieve throug the
+	 * helper function csrf().
+	 * Use must provide a csrf-token request parameter to validate a request other thant GET
+	 * 
+	 * 
+	 * 
+	 * 
+	 * 
+	 * 
+	 * 
+	 */
+	
+	if (session_status() == PHP_SESSION_NONE) {
+		session_start();
+	}
+
+	$csrf = new \Clicalmani\Flesco\Security\CSRF;
+	$token = $csrf->getToken();
+
+	if ( ! isset($_SESSION['csrf-token']) ) {
+		$_SESSION['csrf-token'] = $token;
+	}
+
 	require_once routes_path( '/web.php' );
 }
