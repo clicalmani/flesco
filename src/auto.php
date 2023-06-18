@@ -18,6 +18,7 @@ function loadClass($className) {
 
     $bindings = [
         'App/' => 'app/',
+        'Http/' => 'http/',
         'Models/' => 'models/',
         'Middleware/' => 'middleware/',
         'Controllers/' => 'controllers/',

@@ -5,8 +5,8 @@ class MailSMTP
 {
     function __construct(private $mail = null)
     {
-        $this->mail             = new PHPMailer\PHPMailer;
-
+        $this->mail             = new \PHPMailer\PHPMailer\PHPMailer;
+        
         $this->mail->CharSet    = env('MAIL_CHARSET', 'UTF-8');
         $this->mail->Encoding   = env('MAIL_ENCODING', 'base64');
         $this->mail->Host       = env('MAIL_HOST', 'localhost');
@@ -39,7 +39,7 @@ class MailSMTP
     function __call($method, $args)
     {
         $mailer_methods = [
-            'setFromAddress',
+            'setFrom',
             'addAddress',
             'addCC',
             'addBC',
@@ -48,8 +48,7 @@ class MailSMTP
         ];
 
         if ( in_array($method, $mailer_methods) ) {
-            if ( isset($args) ) $this->mail->{$method}($args);
-            else $this->mail->{$method}();
+            return $this->mail->{$method}(...$args);
         } else throw new \Clicalmani\Flesco\Exceptions\MailException("Unsupported method $method has been called on " . static::class);
     }
 }

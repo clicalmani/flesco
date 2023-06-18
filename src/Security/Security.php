@@ -1,6 +1,8 @@
 <?php
 namespace Clicalmani\Flesco\Security;
 
+use Clicalmani\Flesco\Exceptions\ValidationFailedException;
+
 class Security {
 	
 	static function cleanStr($str) {
@@ -26,18 +28,14 @@ class Security {
 	 *
 	 * @return Array <br> Sanitized array.
 	 */
-	static function sanitizeVars($vars, $signatures, $redirect = NULL) {
-		$tmp = array();
-
+	static function sanitizeVars($vars, $signatures, $redirect = NULL) 
+	{
+		$tmp = [];
+		
 		foreach ($signatures as $key => $sig) {
-			if(!isset($vars[$key]) && isset($sig['required']) && $sig['required']){
-				if($redirect) {
-					header("Location: $redirect");
-				} else {
-					echo "Parameter $key is missing, and there is no redirect url.";
-				}
-				exit();
-			} else {
+			if(!isset($vars[$key]) && isset($sig['required']) && $sig['required']) 
+				throw new ValidationFailedException($key, $sig['required'], $redirect);
+			else {
 				if(isset($vars[$key])) {
 
 					$tmp[$key] = $vars[$key];
@@ -57,135 +55,46 @@ class Security {
 							case 'enum':
 							case 'list': settype($tmp[$key], 'string'); break;
 						}
-
+						
 						// Custom type checking
 						switch ($sig['type']) {
 							case 'email':
-								if (false == filter_var($tmp[$key], FILTER_VALIDATE_EMAIL)) {
-									if ($sig['required']) {
-										if($redirect) {
-											header("Location: $redirect");
-											exit;
-										}
-	
-										die("Parameter $key is not a valid email");
-									}
-									
-									unset($tmp[$key]);
-
-									if (array_key_exists($key, $_REQUEST)) {
-										$_REQUEST[$key] = null;
-									}
-								}
+								if (false == self::validateEmail($tmp[$key])) 
+									throw new ValidationFailedException($key, $sig['required'], $redirect);
 								break;
 
 							case 'enum':
 							case 'list':
-								if (!in_array($tmp[$key], $sig['list'])) {
-									if ($sig['required']) {
-										if($redirect) {
-											header("Location: $redirect");
-											exit;
-										}
-	
-										die("$key is not in the list");
-									}
-									
-									$tmp[$key] = array_key_exists('default', $sig) ? $sig['default']: null;
-
-									if (array_key_exists($key, $_REQUEST)) {
-										$_REQUEST[$key] = null;
-									}
+								if ( !in_array($tmp[$key], $sig['list']) ) {
+									if ( array_key_exists('default', $sig) ) $tmp[$key] = $sig['default'];
+									else throw new ValidationFailedException($key, $sig['required'], $redirect);
 								}
 								break;
 
 							case 'date':
 								if (isset($sig['format'])) {
-									$format = $sig['format'];
-									$bindings = [
-										'Y' => '[0-9]{4}',
-										'm' => '[0-9]{2}',
-										'd' => '[0-9]{2}'
-									];
-
-									foreach ($bindings as $k => $v) {
-										$format = str_replace($k, $v, $format);
-									}
-									
-									if (false == @ preg_match('/^(' . $format . ')$/i', $tmp[$key])) {
-										if ($sig['required']) {
-											if($redirect) {
-												header("Location: $redirect");
-												exit;
-											}
-		
-											die("$key is not a valid date");
-										}
-										
-										unset($tmp[$key]);
-
-										if (array_key_exists($key, $_REQUEST)) {
-											$_REQUEST[$key] = null;
-										}
-									}
-								}
+									if ( false == self::validateDate($tmp[$key], $sig['format']) )
+										throw new ValidationFailedException($key, $sig['required'], $redirect);
+								} else throw new \Exception("Attribute `format` is required for `date` type");
 								break;
 
 							case 'datetime':
 								if (isset($sig['format'])) {
-									$format = $sig['format'];
-									$bindings = [
-										'Y' => '[0-9]{4}',
-										'm' => '[0-9]{2}',
-										'd' => '[0-9]{2}',
-										'H' => '[0-9]{2}',
-										'i' => '[0-9]{2}',
-										's' => '[0-9]{2}'
-									];
-
-									foreach ($bindings as $k => $v) {
-										$format = str_replace($k, $v, $format);
-									}
-
-									if (false == @ preg_match('/^(' . $format . ')$/i', $tmp[$key])) {
-										if ($sig['required']) {
-											if($redirect) {
-												header("Location: $redirect");
-												exit;
-											}
-		
-											die("$key is not a valid a datetime");
-										}
-										
-										unset($tmp[$key]);
-
-										if (array_key_exists($key, $_REQUEST)) {
-											$_REQUEST[$key] = null;
-										}
-									}
-								}
+									if ( false == self::validateDate($tmp[$key], $sig['format']) )
+										throw new ValidationFailedException($key, $sig['required'], $redirect);
+								} else throw new \Exception("Attribute `format` is required for `datetime` type");
 								break;
 
 							case 'regex':
-								if (array_key_exists('pattern', $sig) AND false == @ preg_match($sig['pattern'], $tmp[$key])) {
-									if ($sig['required']) {
-										if($redirect) {
-											header("Location: $redirect");
-											exit;
-										}
-	
-										die("$key pattern does not match");
+								if (array_key_exists('pattern', $sig)) {
+									if ( false == @ preg_match($sig['pattern'], $tmp[$key]) ) {
+										if ( $sig['required'] ) throw new ValidationFailedException($key, $sig['required'], $redirect);
+										else $tmp[$key] = null;
 									}
-									
-									unset($tmp[$key]);
-
- 									if (array_key_exists($key, $_REQUEST)) {
-										$_REQUEST[$key] = null;
-									}
-								}
+								} else throw new \Exception("Attribute `pattern` is required for `regex` type, $key");
 								break;
 						}
-
+						
 						if(isset($sig['max'])) {
 							switch ($sig['type']) {
 								case 'integer':
@@ -202,25 +111,11 @@ class Security {
 							}
 						}
 
-						if (isset($sig['length']) AND $sig['type'] == 'string' AND strlen($tmp[$key]) !== $sig['length']) {
-							if ($sig['required']) {
-								if($redirect) {
-									header("Location: $redirect");
-									exit;
-								}
+						if (isset($sig['length']) AND $sig['type'] == 'string' AND strlen($tmp[$key]) !== $sig['length']) 
+							if ($sig['required']) throw new \Exception("The data length is too long for attribute `$key`");
+							else $tmp[$key] = null;
 
-								die("$key length does not match");
-							}
-							
-							$tmp[$key] = null;
-						}
-					} else if(isset($sig['max'])) {
-						if($redirect) {
-							header("Location: $redirect");
-						} else {
-							echo "Max is set on a non-specified type.";
-						}
-						exit();
+						if (isset($sig['nullable'])  AND $sig['nullable'] AND !$tmp[$key]) $tmp[$key] = null;
 					}
 
 					if(isset($sig['function']) && array_key_exists($key, $tmp)){
@@ -230,6 +125,29 @@ class Security {
 			}
 		}
 		return $tmp;
+	}
+
+	static function validateEmail($email)
+	{
+		return filter_var($email, FILTER_VALIDATE_EMAIL);
+	}
+
+	static function validateDate($date, $format)
+	{
+		$bindings = [
+			'Y' => '[0-9]{4}',
+			'm' => '[0-9]{2}',
+			'd' => '[0-9]{2}',
+			'H' => '[0-9]{2}',
+			'i' => '[0-9]{2}',
+			's' => '[0-9]{2}'
+		];
+
+		foreach ($bindings as $k => $v) {
+			$format = str_replace($k, $v, $format);
+		}
+		
+		return @ preg_match('/^' . trim($format) . '$/i', $date);
 	}
     	
     static function hash($data, $method = '') 

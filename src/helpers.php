@@ -232,21 +232,21 @@ if ( ! function_exists('mail_smtp') ) {
 
         $mail->setSubject($subject);
         $mail->setBody($body);
-        $mail->setFromAddress($from['email'], $from['name']);
+        $mail->setFrom($from['email'], $from['name']);
 
-        foreach ($to as $email => $name) {
-            $mail->addAddress($email, $name);
+        foreach ($to as $data) {
+            $mail->addAddress($data['email'], $data['name']);
         }
 
 		if ($cc) {
-            foreach ($cc as $email => $name) {
-                $mail->addCC($email, $name);
+            foreach ($cc as $data) {
+                $mail->addCC($data['email'], $data['name']);
             }
 		}
 
 		if ($bc) {
-            foreach ($cc as $email => $name) {
-                $mail->addBC($email, $name);
+            foreach ($cc as $data) {
+                $mail->addBC($data['email'], $data['name']);
             }
 		}
 
@@ -254,4 +254,10 @@ if ( ! function_exists('mail_smtp') ) {
         
         return $mail->send();
     }
+}
+
+function catch_error()
+{
+    $error = error_get_last();
+    print_r($error);
 }

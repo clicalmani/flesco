@@ -110,7 +110,7 @@ class ParseInputStream
                 continue;
 
             $block = $this->decide($value);
-
+            
 			foreach ( $block['parameters'] as $key => $val ) {
 				$this->parse_parameter( $results, $key, $val );
 			}
@@ -119,7 +119,7 @@ class ParseInputStream
 				$this->parse_parameter( $results, $key, $val );
 			}
         }
-
+        
 		return $results;
     }
 
@@ -250,7 +250,7 @@ class ParseInputStream
         $data = [];
 
         if ( preg_match('/name=\"([^\"]*)\"[\n|\r]+([^\n\r].*)?\r$/s', $string, $match) ) {
-	        if (preg_match('/^(.*)\[\]$/i', $match[1], $tmp)) {
+	        if (preg_match('/^(.*)\[\]$/i', $match[1], $tmp)) { 
 	            $data[$tmp[1]][] = ($match[2] !== NULL ? $match[2] : '');
 	        } else {
 	            $data[$match[1]] = (@ $match[2] !== NULL ? $match[2] : '');
@@ -311,7 +311,7 @@ class ParseInputStream
     }
 
 	function parse_parameter( &$params, $parameter, $value ) {
-		if ( strpos($parameter, '[') !== FALSE ) {
+		if ( strpos($parameter, '[') !== FALSE ) {  
 			$matches = array();
 			if ( preg_match( '/^([^[]*)\[([^]]*)\](.*)$/', $parameter, $match ) ) {
 				$name = $match[1];
@@ -364,7 +364,8 @@ class ParseInputStream
 				// Log::warning( "ParseInputStream.parse_parameter() Parameter name regex failed: '" . $parameter . "'" );
 			}
 		} else {
-			$params[$parameter] = $value;
+            if (array_key_exists($parameter, $params)) $params[$parameter] = array_merge($params[$parameter], $value);
+			else $params[$parameter] = $value;
 		}
 	}
 }

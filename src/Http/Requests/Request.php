@@ -64,20 +64,33 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
 
     public function __get($property)
     {
-        $vars = static::all();
+        try {
+            $vars = static::all();
 
-        $this->signatures = $this->signatures ? $this->signatures: [];
-        $sanitized = Security::sanitizeVars($vars, $this->signatures);
-        
-        if ( array_key_exists($property, $vars) ) {
-            if ( array_key_exists($property, $sanitized) ) {
-                return $sanitized[$property];
+            $this->signatures = $this->signatures ? $this->signatures: [];
+            $sanitized = Security::sanitizeVars($vars, $this->signatures);
+            
+            if ( array_key_exists($property, $vars) ) {
+                if ( array_key_exists($property, $sanitized) ) {
+                    return $sanitized[$property];
+                }
+
+                return $vars[$property];
             }
+            
+            return null;
 
-            return $vars[$property];
+        } catch(\Clicalmani\Flesco\Exceptions\ValidationFailedException $e) {
+            if ($e->isRequired()) {
+                if($e->redirectBack()) {
+                    return $this->redirect()->error($e->getMessage());
+                }
+
+                die($e->getMessage());
+            }
+        } catch(\Exception $e) {
+            die($e->getMessage());
         }
-		
-		return null;
     }
 
     public function __set($property, $value)

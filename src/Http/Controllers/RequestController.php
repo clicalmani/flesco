@@ -50,8 +50,7 @@ abstract class RequestController extends HttpRequest
 			return self::$controller;
 		}
 		
-		response()->status(404, 'NOT FOUND', 'Request Not Found');		// Not Found
-		exit;
+		throw new RouteNotFoundException;
     }
 
 	public static function getRoutine($request)
@@ -69,7 +68,7 @@ abstract class RequestController extends HttpRequest
 			if ( @ isset($controller[1]) ) {
 
 				if ( ! method_exists($obj, $controller[1]) ) {
-					response()->status(500, 'INTERNAL SERVER ERROR', 'Method ' . $controller[1] . ' does not exist on class ' . $controller[0]);		// Forbiden
+					response()->status(500, 'INTERNAL_SERVER_ERROR', 'Method ' . $controller[1] . ' does not exist on class ' . $controller[0]);		// Forbiden
 					exit;
 				}
 
