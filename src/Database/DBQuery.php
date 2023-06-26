@@ -2,11 +2,13 @@
 namespace Clicalmani\Flesco\Database;
 
 use Clicalmani\Flesco\Collection\Collection;
+use Clicalmani\Flesco\Database\Factory\Create;
 
 define('DB_QUERY_SELECT', 0);
 define('DB_QUERY_INSERT', 1);
 define('DB_QUERY_DELETE', 2);
 define('DB_QUERY_UPDATE', 3);
+define('DB_QUERY_CREATE', 4);
 
 class DBQuery extends DB
 {
@@ -69,6 +71,11 @@ class DBQuery extends DB
 				
 			case DB_QUERY_UPDATE:
 				$obj = new Update($this->params);
+				$obj->query();
+				return $obj;
+
+			case DB_QUERY_CREATE:
+				$obj = new Create($this->params);
 				$obj->query();
 				return $obj;
 		}

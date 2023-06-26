@@ -1,5 +1,5 @@
 <?php
-namespace Clicalmani\Flesco\Ressources\Views;
+namespace Clicalmani\Flesco\Resources\Views;
 
 class View 
 {
@@ -9,16 +9,15 @@ class View
             return '';
         }
         
-        $template_path = ressources_path( '/views/' . $args[0] . '.template.php' );
+        $template_path = resources_path( '/views/' . $args[0] . '.template.php' );
 
         if ( file_exists( $template_path ) AND is_readable( $template_path ) ) {
 
-            if ( isset( $args[1] ) AND is_array( $args[1] ) ) {
-                return @ self::eval(file_get_contents($template_path), $args[1]);
-            }
+            $args = ( isset( $args[1] ) AND is_array( $args[1] ) ) ? $args[1]: [];
+            return @ self::eval(file_get_contents($template_path), $args);
         }
 
-        throw new \Clicalmani\Flesco\Exceptions\RessourceViewException('No ressource found');
+        throw new \Clicalmani\Flesco\Exceptions\ResourceViewException('No resource found');
     }
 
     static function eval($exec, $args) {

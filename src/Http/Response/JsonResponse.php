@@ -32,6 +32,6 @@ Trait JsonResponse
     function status($status_code, $code = null, $message = '')
     {
         $this->sendStatus($status_code);
-        return $this->json(['success' => false, 'error_code' => $code, 'error_message' => $message], $status_code);
+        echo $this->json(['success' => false, 'error_code' => $code, 'error_message' => $message], $status_code);
     }
 }

@@ -82,10 +82,10 @@ abstract class DB
 		return null;
 	}
 	
-	public function getRow($statement) 
+	public function getRow($statement, $flag = PDO::FETCH_NUM) 
 	{
 		
-		if ($statement instanceof PDOStatement) return $statement->fetch(PDO::FETCH_NUM);
+		if ($statement instanceof PDOStatement) return $statement->fetch($flag);
 		
 		return [];
 	}
@@ -98,9 +98,9 @@ abstract class DB
 		return 0;
 	}
 
-	public function prepare($sql)
+	public function prepare($sql, $options = [])
 	{
-		return static::$pdo->prepare($sql);
+		return static::$pdo->prepare($sql, $options);
 	}
 	
 	public function error() { return static::$pdo->errorInfo(); }

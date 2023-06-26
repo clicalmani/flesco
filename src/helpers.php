@@ -24,9 +24,9 @@ if ( ! function_exists( 'routes_path' ) ) {
     }
 }
 
-if ( ! function_exists( 'ressources_path' ) ) {
-    function ressources_path( $path = '/' ) {
-        return root_path( '/ressources' . $path );
+if ( ! function_exists( 'resources_path' ) ) {
+    function resources_path( $path = '/' ) {
+        return root_path( '/resources' . $path );
     }
 }
 
@@ -50,7 +50,7 @@ if ( ! function_exists( 'database_path' ) ) {
 
 if ( ! function_exists( 'view' ) ) {
     function view( ...$args ) {
-        return Clicalmani\Flesco\Ressources\Views\View::render( ...$args );
+        return Clicalmani\Flesco\Resources\Views\View::render( ...$args );
     }
 }
 

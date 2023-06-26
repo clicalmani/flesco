@@ -78,33 +78,33 @@ class Route {
         return $routines;
     }
 
-    public static function group($args, $callback)
+    public static function group($args, $callable)
     {
-        $routes = self::allRoutes();
-
-        /**
-         * |--------------------------------------
-         * | Start route grouping
-         * |----------------------------------------
-         * |
-         * | Prepend a prefix placeholder to the route (%PREFIX%)
-         * | which will be replaced by the correct prefix.
-         * |
-         * |
-         */
-        static::$grouping_started = true;
-
-        // Add grouped routes
-        $callback();
-
-        static::$grouping_started = false;              // Terminate grouping
-
-        $grouped_routes = array_diff(self::allRoutes(), $routes);
-        
         /**
          * Prefix routes
          */
         if ( isset($args['prefix']) AND $prefix = $args['prefix']) {
+
+            $routes = self::allRoutes();
+
+            /**
+             * |--------------------------------------
+             * | Start route grouping
+             * |----------------------------------------
+             * |
+             * | Prepend a prefix placeholder to the route (%PREFIX%)
+             * | which will be replaced by the correct prefix.
+             * |
+             * |
+             */
+            static::$grouping_started = true;
+
+            // Add grouped routes
+            $callable();
+
+            static::$grouping_started = false;              // Terminate grouping
+
+            $grouped_routes = array_diff(self::allRoutes(), $routes);
             self::setPrefix($grouped_routes, $prefix);
             return;
         }
@@ -113,8 +113,8 @@ class Route {
          * Middleware
          */
         if ( isset($args['middleware']) AND $name = $args['middleware']) {
-            self::middleware($name);
-            $callback();
+            self::middleware($name, $callable);
+            // $callable();
         }
     }
 
@@ -250,14 +250,14 @@ class Route {
         return $gateway;
     }
 
-    public static function middleware($name) 
+    public static function middleware($name, $callable = false) 
     {
         if ( self::isMiddleware($name) ) {
 
             $gateway = self::getGateway();
             $middleware = new ServiceProvider::$providers['middleware'][$gateway][$name];
             
-            self::registerMiddleware($middleware, $name);
+            self::registerMiddleware($callable ? $callable: $middleware, $name);
         }
     }
 
@@ -286,14 +286,19 @@ class Route {
         // Routes to exclude in the middleware
         $routes = self::allRoutes();
 
-        // Register middleware routes
-        $handler = $middleware->handler();
+        if ('Closure' === get_class($middleware)) {
+            $middleware();
+        } else {
 
-        if (false != $handler) {
-            if ( file_exists( $handler ) ) {
-                include_once $handler;
-            } else {
-                throw new MiddlewareException('Can not find handler provided');
+            // Register middleware routes
+            $handler = $middleware->handler();
+            
+            if (false != $handler) {
+                if ( file_exists( $handler ) ) {
+                    include_once $handler;
+                } else {
+                    throw new MiddlewareException('Can not find handler provided');
+                }
             }
         }
 
@@ -463,6 +468,34 @@ class Route {
             $sseq   = $beta[$sroute];
 
             foreach ($a as $key => $value) {
+
+                /**
+                 * Twin parameters are sperated by a slash (-)
+                 */
+                $twin = explode('-', $sseq[$key]);
+                $twin_values = explode('-', $value);
+
+                if (count($twin) == 2 AND count($twin_values) == 2) {
+                    $first_twin = self::registerParameter($twin[0], $twin_values[0]);
+                    $second_twin = self::registerParameter($twin[1], $twin_values[1]);
+
+                    if (false == $first_twin OR false == $second_twin) return false;
+                }
+
+                /**
+                 * Spread parameters are sperated by amper's and (&)
+                 */
+                $spread = explode('&', $sseq[$key]);
+                $values = explode('&', $value);
+
+                if (count($spread) == count($values)) {
+                    foreach ($spread as $i => $k) {
+                        $valid = self::registerParameter($k, $values[$i]);
+
+                        if (false == $valid) return false;
+                    }
+                }
+                
                 $valid = self::registerParameter($sseq[$key], $value);
 
                 if (false == $valid) return false;
@@ -688,8 +721,8 @@ class Route {
         elseif (@ $validator->uid) { 
             $guard = @ self::$registered_guards[$validator->uid];
 
-            if ( $guard AND $guard['param'] == $param ) {
-                $valid = $guard['callback']($npart);
+            if ( $guard ) {
+                $valid = $guard['callback']($value);
             }
         }
 

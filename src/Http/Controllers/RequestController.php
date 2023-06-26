@@ -23,7 +23,7 @@ abstract class RequestController extends HttpRequest
 		$request = new Request;
 		$request->checkCSRFToken();
 
-		return self::getRoutine($request);
+		die(self::getRoutine($request));
 	}
 
     public static function getController() 

@@ -378,15 +378,20 @@ class Model implements ModelInterface, \JsonSerializable
 
         $child = new $class;
 
-        $obj = new $class;
-        $my_class = get_class($this);
-        return $obj->join($this, $foreign_key, $original_key)
-                    ->get()
-                    ->map(function($row) use($my_class) {
-                        return $my_class::find(
-                            (new $my_class)->getKeyValuesFromRow($row)
-                        );
-                    });
+        $collection = $child->join($this, $foreign_key, $original_key)
+                        ->get();
+        
+        if (false == $collection->isEmpty()) {
+
+            $row = $collection->first();
+            $key = (new $class)->getKeyValuesFromRow($row);
+            
+            if (!is_array($key)) $key = $row[$this->cleanKey($foreign_key)];
+
+            return $class::find($key);
+        }
+            
+        return null;
     }
 
     /**
@@ -442,9 +447,11 @@ class Model implements ModelInterface, \JsonSerializable
         return $this->join($class, $foreign_key, $original_key)
                     ->get()
                     ->map(function($row) use($class) {
-                        return $class::find(
-                            (new $class)->getKeyValuesFromRow($row)
-                        );
+                        $key = (new $class)->getKeyValuesFromRow($row);
+                        if (!is_array($key)) $key = $row[$this->cleanKey($foreign_key)];
+                        return $class::find($key);
+                    })->filter(function($instance) {
+                        return ! is_null($instance);
                     });
     }
 
@@ -504,7 +511,7 @@ class Model implements ModelInterface, \JsonSerializable
      */
     public function join($model, $foreign_key = null, $original_key = null, $type = 'LEFT')
     {
-        $original_key = $original_key ?? $this->getKey();                              // The original key is the parent
+        $original_key = $original_key ?? $foreign_key;                              // The original key is the parent
                                                                                        // primary key
 
         if ( is_array($original_key) ) 
