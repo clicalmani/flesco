@@ -256,8 +256,8 @@ if ( ! function_exists('mail_smtp') ) {
     }
 }
 
-function catch_error()
-{
-    $error = error_get_last();
-    print_r($error);
+if ( ! function_exists('with') ) {
+    function with($obj) {
+        return $obj;
+    }
 }

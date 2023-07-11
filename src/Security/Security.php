@@ -54,6 +54,8 @@ class Security {
 							case 'email': settype($tmp[$key], 'string'); break;
 							case 'enum':
 							case 'list': settype($tmp[$key], 'string'); break;
+							case 'boolean':
+							case 'bool': settype($tmp[$key], 'boolean'); break;
 						}
 						
 						// Custom type checking

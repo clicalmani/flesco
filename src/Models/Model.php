@@ -112,6 +112,17 @@ class Model implements ModelInterface, \JsonSerializable
         return $this->query;
     }
 
+    private static function getClassName()
+    {
+        return get_called_class();
+    }
+
+    private static function getInstance($id = null)
+    {
+        $class = static::getClassName();
+        return with ( new $class($id) );
+    }
+
     public function get($fields = '*')
     {
         try {
@@ -123,17 +134,26 @@ class Model implements ModelInterface, \JsonSerializable
             $this->query->set('calc', $this->calc_found_rows);
             
             return $this->query->get($fields);
+            
         } catch (\PDOException $e) {
             throw new \Clicalmani\Flesco\Exceptions\DBQueryException($e->getMessage());
         }
     }
 
+    public function fetch()
+    {
+        return $this->get()->map(function($row) {
+            $instance = static::getInstance();
+            return static::getInstance( $instance->guessKeyValue($row) );
+        });
+    }
+
     public static function where($criteria = '1')
     {
-        $child_class = get_called_class();
-        $child = new $child_class;
-        $child->getQuery()->where($criteria);
-        return $child;
+        $instance = static::getInstance();
+        $instance->getQuery()->where($criteria);
+
+        return $instance;
     }
 
     public function whereAnd($criteria = '1')
@@ -371,7 +391,6 @@ class Model implements ModelInterface, \JsonSerializable
      */
     protected function belongsTo($class, $foreign_key = null, $original_key = null)
     { 
-        // Make sure the model exists
         if (!$this->id) {
             return null;
         }
@@ -379,12 +398,13 @@ class Model implements ModelInterface, \JsonSerializable
         $child = new $class;
 
         $collection = $child->join($this, $foreign_key, $original_key)
+                        ->whereAnd($this->getCriteria(true))
                         ->get();
         
         if (false == $collection->isEmpty()) {
 
             $row = $collection->first();
-            $key = (new $class)->getKeyValuesFromRow($row);
+            $key = (new $class)->guessKeyValue($row);
             
             if (!is_array($key)) $key = $row[$this->cleanKey($foreign_key)];
 
@@ -411,17 +431,18 @@ class Model implements ModelInterface, \JsonSerializable
         }
 
         $parent = new $class;
-
+        
         $collection = $this->join($class, $foreign_key, $original_key)
+                        ->whereAnd($this->getCriteria(true))
                         ->get();
-                
+           
         if (false == $collection->isEmpty()) {
 
             $row = $collection->first();
-
+              
             return $class::find(
-                (new $class)->getKeyValuesFromRow($row)
-            );
+                (new $class)->guessKeyValue($row)
+            ); 
         }
             
         return null;
@@ -441,17 +462,17 @@ class Model implements ModelInterface, \JsonSerializable
         if (!$this->id) {
             return null;
         }
-
+        
         $child = new $class;
-
+        
         return $this->join($class, $foreign_key, $original_key)
+                    ->whereAnd($this->getCriteria(true))
                     ->get()
-                    ->map(function($row) use($class) {
-                        $key = (new $class)->getKeyValuesFromRow($row);
-                        if (!is_array($key)) $key = $row[$this->cleanKey($foreign_key)];
+                    ->map(function($row) use($class, $foreign_key) {
+                        $key = (new $class)->guessKeyValue($row);
                         return $class::find($key);
-                    })->filter(function($instance) {
-                        return ! is_null($instance);
+                    })->filter(function($instance)  use($class) {
+                        return $instance instanceof $class;
                     });
     }
 
@@ -481,7 +502,7 @@ class Model implements ModelInterface, \JsonSerializable
         $last_insert_id = DB::getPdo()->lastInsertId();
 
         if (!$last_insert_id AND $record) {
-            $last_insert_id = $this->getKeyValuesFromRow($record);
+            $last_insert_id = $this->guessKeyValue($record);
         }
 
         return $last_insert_id;
@@ -494,7 +515,7 @@ class Model implements ModelInterface, \JsonSerializable
         if (false == $collection->isEmpty()) {
             $row = $collection->first();
             
-            $primary_key = $this->getKeyValuesFromRow($row);
+            $primary_key = $this->guessKeyValue($row);
 
             return static::find($primary_key);
         }
@@ -511,7 +532,7 @@ class Model implements ModelInterface, \JsonSerializable
      */
     public function join($model, $foreign_key = null, $original_key = null, $type = 'LEFT')
     {
-        $original_key = $original_key ?? $foreign_key;                              // The original key is the parent
+        $original_key = $original_key ?? $this->getKey();                              // The original key is the parent
                                                                                        // primary key
 
         if ( is_array($original_key) ) 
@@ -565,15 +586,15 @@ class Model implements ModelInterface, \JsonSerializable
         return $this;
     }
 
-    public function ignore(bool $ignore = false)
+    public function ignore(bool $ignore = true)
     {
-        $this->query->set('ignore', $ignore);
+        $this->insert_ignore = $ignore;
         return $this;
     }
 
-    public function calcFoundRows(bool $calc = false)
+    public function calcFoundRows(bool $calc = true)
     {
-        $this->query->set('calc', $calc);
+        $this->calc_found_rows = $calc;
         return $this;
     }
 
@@ -591,10 +612,8 @@ class Model implements ModelInterface, \JsonSerializable
 
     public static function find( $id ) 
     {
-        $child_class = get_called_class();
-        $child = new $child_class;
-        $child->setKeyValue($id);
-        return $child->get()->count() ? $child: null;
+        $instance = static::getInstance($id);
+        return $instance->get()->count() ? $instance: null;
     }
 
     /**
@@ -603,26 +622,81 @@ class Model implements ModelInterface, \JsonSerializable
      */
     public static function findAll() 
     {
-        $child_class = get_called_class();
-        $child = new $child_class;
+        $instance = static::getInstance();
         
-        return $child->get()->map(function($row) use($child_class, $child) {
-            return new $child_class(
-                $child->getKeyValuesFromRow($row)
-            );
+        return $instance->get()->map(function($row) use($instance) {
+            return static::getInstance( $instance->guessKeyValue($row) );
         });
     }
 
     public static function all() 
     {
-        $child_class = get_called_class();
-        $child = new $child_class;
+        return static::findAll();
+    }
+
+    public static function filter($exclude = [], $flag = [])
+    {
+        $flag = (object) $flag;
+
+        $filters     = (new \Clicalmani\Flesco\Http\Requests\Request)->where($exclude);
+        $child_class = static::getClassName();
+        $child       = new $child_class;
+
+        if ( $filters ) {
+            try {
+                $obj = $child_class::where(join(' AND ', $filters));
+
+                if (@ $flag->order_by) {
+                    $obj->orderBy($flag->order_by);
+                }
+
+                if (@ $flag->offset) {
+                    $obj->offset($flag->offset);
+                }
+
+                if (@ $flag->limit) {
+                    $obj->limit($flag->limit);
+                }
+
+                return $obj->fetch();
+
+            } catch (\PDOException $e) {
+                return collection();
+            }
+        }
+
+        return $child_class::all();
+    }
+
+    public function swap()
+    {
+        $db          = \Clicalmani\Flesco\Database\DB::getInstance();
+        $table       = $db->getPrefix() . $this->getTable();
+        $statement   = $db->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '" . env('DB_NAME', '') . "' AND TABLE_NAME = '$table'");
         
-        return $child->get()->map(function($row) use($child_class, $child) {
-            return new $child_class(
-                $child->getKeyValuesFromRow($row)
-            );
-        });
+        while($row = $db->fetch($statement, \PDO::FETCH_NUM)) {
+            foreach (array_keys(request()) as $attribute) {
+                if ($row[0] == $attribute) {
+                    $this->{$attribute} = request($attribute);
+                    break;
+                }
+            }
+        }
+        
+        return $this;
+    }
+
+    public static function swapIn()
+    {}
+
+    public function swapOut()
+    {
+        try {
+            $this->swap();
+            $this->save();
+        } catch (\PDOException $e) {
+            throw new ModelException($e->getMessage());
+        }
     }
 
     protected function beforeCreate($closure) {
@@ -677,7 +751,18 @@ class Model implements ModelInterface, \JsonSerializable
             return $this->{$attribute}();
         }
 
+        /**
+         * Hold up joints because the request will be make on the main query
+         */
+        $joint = $this->query->getParam('join');
+        $this->query->unset('join');
+
         $collection = $this->query->set('where', $this->getCriteria(true))->get("`$attribute`");
+
+        /**
+         * Restore joints
+         */
+        $this->query->set('join', $joint);
             
         if ($collection->count()) {
             return $collection->first()[$attribute];
@@ -715,9 +800,7 @@ class Model implements ModelInterface, \JsonSerializable
 
     function __toString()
     {
-        $child_class = get_called_class();
-        $child = new $child_class;
-        return $child_class;
+        return json_encode( $this );
     }
 
     function jsonSerialize() : mixed

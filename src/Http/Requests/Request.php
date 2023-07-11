@@ -247,7 +247,16 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
 
     public function user() 
     {
-        return new \App\Authenticate\User( $this->session('user-id') );
+        $jwt = new \Clicalmani\Flesco\Auth\JWT;
+
+        $user_data = null;
+
+        if ($payload = $jwt->verifyToken($this->getToken())) {
+
+            $user_data  = json_decode($payload->jti);
+        }
+
+        return ( new \App\Authenticate\User( $this->session('user-id') ) )->user($user_data);
     }
 
     public function jsonSerialize() : mixed
@@ -263,5 +272,21 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
     public function request($param = null)
     {
         return isset($param) ? request($param): request();
+    }
+
+    public function where($exclude = [])
+    {
+        $filters = [];
+
+        if ( request() ) {
+            $filters = collection()->exchange(array_keys(request()))
+                            ->filter(function($param) use($exclude) {
+                                return ! in_array($param, $exclude);
+                            })->map(function($param) {
+                                return is_string(request($param)) ? sanitize_attribute($param) . '="' . request($param) . '"': request($param);
+                            })->toArray();
+        }
+
+        return $filters;
     }
 }

@@ -43,7 +43,7 @@ abstract class RequestController extends HttpRequest
 			self::$controller = Route::getController($method, $route);
 			
 			if ( isset($middlewares) AND Route::isCurrentRouteAuthorized($request) == false ) {
-				response()->status(401, 'UNAUTHORIZED', 'Request Unauthorized');		// Unauthorized
+				response()->status(401, 'UNAUTHORISED_REQUEST_ERROR', 'Request Unauthorized');		// Unauthorized
 				exit;
 			}
 			
@@ -86,7 +86,7 @@ abstract class RequestController extends HttpRequest
 			return $controller($request);
 		}
 		
-		response()->status(403, 'FORBIDEN', 'Request Forbiden');		// Forbiden
+		response()->status(403, 'FORBIDEN_REQUEST_ERROR', 'Request Forbiden');		// Forbiden
 		exit;
 	}
 

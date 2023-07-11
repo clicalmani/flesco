@@ -25,7 +25,10 @@ class Str extends Facade
      *                       Defaults to the current locale.
      * @return string Filtered string with replaced "nice" characters.
      */
-    public static function removeAccents( $string, $locale = '' ) {
+    public static function removeAccents( $string, $locale = '' ) 
+    {
+        if (! $string) return '';
+        
         if ( ! preg_match( '/[\x80-\xff]/', $string ) ) {
             return $string;
         }

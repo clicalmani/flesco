@@ -28,10 +28,10 @@ Trait ModelTrait
             })->toArray();
     }
 
-    function getKeyValuesFromRow($row)
+    function guessKeyValue($row)
     {
         $key = $this->cleanKey( $this->getKey() );
-
+        
         if ( is_array($key) ) {
 
             $ids = [];
@@ -42,8 +42,8 @@ Trait ModelTrait
 
             return $ids;
         }
-
-        return $row[$key];
+        
+        return @ $row[$key];
     }
 
     function getCriteria($required_alias = false)
@@ -52,8 +52,32 @@ Trait ModelTrait
         $criteria = null;
         
         if ( is_string($keys) ) {
+
+            /**
+             * |--------------------------------------------
+             * |          ***** Warning *****
+             * |--------------------------------------------
+             * 
+             * A string key type could not accept an array value.
+             * This would result to a simple warning. But to avoid a possible mislead we just throw an exception
+             */
+            if ( is_array($this->id) ) throw new \InvalidArgumentException("String expected for $keys; got array " . json_encode($this->id));
+            
             $criteria = $keys . ' = "' . $this->id . '"';
-        } elseif ( is_array($keys) AND is_array($this->id) AND (count($keys) == count($this->id)) ) {
+        
+        } elseif ( is_array($keys) ) {
+
+            /**
+             * |--------------------------------------------
+             * |          ***** Warning *****
+             * |--------------------------------------------
+             * 
+             * An array key type could not accept a string value.
+             * This would result to a simple warning. But to avoid a possible mislead we just throw an exception
+             */
+            if ( ! is_array($this->id) ) throw new \InvalidArgumentException("Array expected for key " . json_encode($keys) . "; got string $this->id");
+
+            if ( count($keys) !== count($this->id) ) throw new \InvalidArgumentException("Keys count should match values count for " . json_encode($keys) . "; got " . json_encode($this->id));
             
             $criterias = [];
             
