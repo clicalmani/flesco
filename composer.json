@@ -6,7 +6,8 @@
         "php": ">=7.4.9",
         "phpmailer/phpmailer": ">=6.7",
         "vlucas/phpdotenv": ">=5.5.0",
-        "nesbot/carbon": "^2.16"
+        "nesbot/carbon": "^2.16",
+        "symfony/console": "6.4.x-dev"
     },
     "license": "proprietary",
     "autoload": {
