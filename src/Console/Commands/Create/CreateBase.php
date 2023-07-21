@@ -1,22 +1,29 @@
 <?php
 
-namespace Clicalmani\Flesco\Console\Commands\Controllers;
+namespace Clicalmani\Flesco\Console\Commands\Create;
 
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
-class Create extends Command
+class CreateBase extends Command
 {
-    protected static $defaultName = 'create:controller';
+
+    protected static $defaultName = "";
+
+    protected string $description = "";
+    protected string $help = "";
+    protected string $_path = "";
+    protected string $prototype = "";
 
     protected function configure()
     {
+
         $this
-            ->setDescription('Create a new controller')
-            ->setHelp('Create a new controller')
-            ->addArgument('name', InputArgument::REQUIRED, 'Name of the controller')
+            ->setDescription($this->description)
+            ->setHelp($this->help)
+            ->addArgument('name', InputArgument::REQUIRED, 'The filename')
         ;
     }
 
@@ -24,12 +31,12 @@ class Create extends Command
     {
         $name = $input->getArgument('name');
 
-        $path = dirname(__DIR__, 8) . '/app/http/controllers/';
-        // $path = __DIR__ . "/"; // (for testing)
+        // $path = dirname(__DIR__, 8) . $this->_path;
+        $path = __DIR__ . "/"; // (for testing)
 
         $file = $path . $name . '.php';
 
-        $content = file_get_contents(__DIR__ . "/Prototype.php");
+        $content = file_get_contents($this->prototype);
 
         if (! file_exists($file)) {
 
