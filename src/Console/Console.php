@@ -2,13 +2,14 @@
 
 namespace Clicalmani\Flesco\Console;
 use Symfony\Component\Console\Application;
+use Symfony\Component\Console\Command\Command;
 
 class Console {
 
 
     private $application = null;
 
-    public function __construct(string $appName = "Tonka Console", string $appVersion = "0.0.1") {
+    public function __construct( string $appName = "Tonka Console", string $appVersion = "0.0.1") {
 
         $this->application = new Application($appName, $appVersion);
 
