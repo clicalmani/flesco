@@ -13,5 +13,6 @@ return [
 
     \Clicalmani\Flesco\Console\Commands\Create\Controllers\CreateController::class,
     \Clicalmani\Flesco\Console\Commands\Create\Models\CreateModel::class,
+    \Clicalmani\Flesco\Console\Commands\Create\Middlewares\CreateMiddleware::class,
 
 ];

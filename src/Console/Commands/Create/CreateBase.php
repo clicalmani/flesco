@@ -31,8 +31,8 @@ class CreateBase extends Command
     {
         $name = $input->getArgument('name');
 
-        // $path = dirname(__DIR__, 8) . $this->_path;
-        $path = __DIR__ . "/"; // (for testing)
+        $path = dirname(__DIR__, 8) . $this->_path;
+        // $path = __DIR__ . "/"; // (for testing)
 
         $file = $path . $name . '.php';
 
