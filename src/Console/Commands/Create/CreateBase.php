@@ -7,9 +7,13 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
+const PREFIX = 'create:';
+
 class CreateBase extends Command
 {
 
+    protected string $name;
+    
     protected static $defaultName = "";
 
     protected string $description = "";
