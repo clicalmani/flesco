@@ -23,5 +23,6 @@ return [
     \Clicalmani\Flesco\Console\Commands\Create\Models\CreateModel::class,
     \Clicalmani\Flesco\Console\Commands\Create\Middlewares\CreateMiddleware::class,
     \Clicalmani\Flesco\Console\Commands\Create\Requests\CreateRequest::class,
+    \Clicalmani\Flesco\Console\Commands\Create\Providers\CreateServiceProvider::class,
 
 ];
