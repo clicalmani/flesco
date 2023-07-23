@@ -7,7 +7,7 @@ use Clicalmani\Flesco\Console\Commands\Create\CreateBase;
 class CreateServiceProvider extends CreateBase 
 {
 
-    protected static $defaultName = 'create:provider';
+    protected static $defaultName = 'make:provider';
 
     protected string $description = 'Create a new service provider';
 

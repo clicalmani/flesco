@@ -4,10 +4,10 @@ namespace Clicalmani\Flesco\Console\Commands\Create\Controllers;
 
 use Clicalmani\Flesco\Console\Commands\Create\CreateBase;
 
+$name = 'prefix';
 class CreateController extends CreateBase 
 {
-
-    protected static $defaultName = 'create:controller';
+    protected static $defaultName = 'make:controller';
 
     protected string $description = 'Create a new controller';
 

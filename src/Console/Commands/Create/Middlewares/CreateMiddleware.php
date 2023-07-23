@@ -7,7 +7,7 @@ use Clicalmani\Flesco\Console\Commands\Create\CreateBase;
 class CreateMiddleware extends CreateBase 
 {
 
-    protected static $defaultName = 'create:middleware';
+    protected static $defaultName = 'make:middleware';
 
     protected string $description = 'Create a new middleware';
 

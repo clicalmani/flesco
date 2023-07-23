@@ -7,7 +7,7 @@ use Clicalmani\Flesco\Console\Commands\Create\CreateBase;
 class CreateModel extends CreateBase 
 {
 
-    protected static $defaultName = 'create:model';
+    protected static $defaultName = 'make:model';
 
     protected string $description = 'Create a new model';
 

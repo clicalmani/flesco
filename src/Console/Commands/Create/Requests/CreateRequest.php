@@ -7,7 +7,7 @@ use Clicalmani\Flesco\Console\Commands\Create\CreateBase;
 class CreateRequest extends CreateBase 
 {
 
-    protected static $defaultName = 'create:request';
+    protected static $defaultName = 'make:request';
 
     protected string $description = 'Create a new request';
 

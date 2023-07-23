@@ -25,4 +25,9 @@ return [
     \Clicalmani\Flesco\Console\Commands\Create\Requests\CreateRequest::class,
     \Clicalmani\Flesco\Console\Commands\Create\Providers\CreateServiceProvider::class,
 
+    /** --------- ABOUT COMMANDS ---------- */
+
+    \Clicalmani\Flesco\Console\Commands\About\AboutAll::class,
+
+
 ];

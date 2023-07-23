@@ -7,7 +7,7 @@ use Symfony\Component\Console\Command\Command;
 class Console {
 
 
-    private $application = null;
+    private ?Application $application = null;
 
     public function __construct( string $appName = "Tonka Console", string $appVersion = "0.0.1") {
 
