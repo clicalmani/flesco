@@ -2,3 +2,4 @@
 /composer.lock
 tonka
 /.vscode
+/src/test/

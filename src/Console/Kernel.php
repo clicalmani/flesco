@@ -24,4 +24,9 @@
     /** --------- ABOUT COMMANDS ---------- */
 
     \Clicalmani\Flesco\Console\Commands\About\AboutAll::class,
+
+    /** RUN COMMANDS */
+
+    \Clicalmani\Flesco\Console\Commands\Run\RunMigration::class,
+
  ];

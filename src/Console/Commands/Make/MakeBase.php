@@ -36,7 +36,7 @@ class MakeBase extends Command
 
         $file = $root_path . DIRECTORY_SEPARATOR . $this->_path . $filename . '.php';
 
-        // $file = $filename . '.php'; // (for testing)
+        // $file = $root_path . "/src/test/" . $filename . '.php'; // (for testing)
 
         $content = file_get_contents($this->prototype);
 
