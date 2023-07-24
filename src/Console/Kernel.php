@@ -19,6 +19,7 @@
     \Clicalmani\Flesco\Console\Commands\Make\Middlewares\MakeMiddleware::class,
     \Clicalmani\Flesco\Console\Commands\Make\Requests\MakeRequest::class,
     \Clicalmani\Flesco\Console\Commands\Make\Providers\MakeServiceProvider::class,
+    \Clicalmani\Flesco\Console\Commands\Make\Migrations\MakeMigration::class,
 
     /** --------- ABOUT COMMANDS ---------- */
 

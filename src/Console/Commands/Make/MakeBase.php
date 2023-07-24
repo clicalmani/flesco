@@ -13,6 +13,8 @@ class MakeBase extends Command
     protected string $_path = "";
     protected string $prototype = "";
 
+    protected bool $filenameDatePrefix = false;
+
     protected function configure()
     {
 
@@ -24,11 +26,17 @@ class MakeBase extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $filename = $input->getArgument('name') . '.php';
+        $filename = $input->getArgument('name');
+
+        if ($this->filenameDatePrefix){
+            $filename = date('Y_m_d_His') . '_' . $filename;
+        }
 
         $root_path = getenv('APP_ROOT_PATH') ?? "";
 
-        $file = $root_path . DIRECTORY_SEPARATOR . $this->_path . $filename;
+        $file = $root_path . DIRECTORY_SEPARATOR . $this->_path . $filename . '.php';
+
+        // $file = $filename . '.php'; // (for testing)
 
         $content = file_get_contents($this->prototype);
 
