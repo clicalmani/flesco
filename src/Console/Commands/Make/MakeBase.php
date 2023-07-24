@@ -1,22 +1,14 @@
 <?php
 
-namespace Clicalmani\Flesco\Console\Commands\Create;
+namespace Clicalmani\Flesco\Console\Commands\Make;
 
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
-const PREFIX = 'make:';
-
-class CreateBase extends Command
+class MakeBase extends Command
 {
-
-    protected string $name;
-    
-    protected static $defaultName = "";
-
-    protected string $description = "";
     protected string $help = "";
     protected string $_path = "";
     protected string $prototype = "";
@@ -25,7 +17,6 @@ class CreateBase extends Command
     {
 
         $this
-            ->setDescription($this->description)
             ->setHelp($this->help)
             ->addArgument('name', InputArgument::REQUIRED, 'The filename')
         ;
@@ -35,10 +26,9 @@ class CreateBase extends Command
     {
         $name = $input->getArgument('name');
 
-        $path = dirname(__DIR__, 8) . $this->_path;
-        // $path = __DIR__ . "/"; // (for testing)
+        // $this->_path = ""; // (for testing)
 
-        $file = $path . $name . '.php';
+        $file = $this->_path . $name . '.php';
 
         $content = file_get_contents($this->prototype);
 

@@ -1,33 +1,26 @@
 <?php
 
-namespace Clicalmani\Flesco\Console;
-
 /**
- * |-------------------------------------------------------------------------------
- * |                ***** Register Console Commands *****
- * |-------------------------------------------------------------------------------
+ * |---------------------------------------------------------------
+ * |            ***** Register Console Commands *****
+ * |---------------------------------------------------------------
  * 
- * Import the new commands here for registration
- * 
+ * Register Console commands
  */
 
-return [
-    
-    /** --------- LOCAL COMMANDS ----------- */
+ return [
+   
+    \Clicalmani\Flesco\Console\Commands\Local\StartCommand::class,
 
-    \Clicalmani\Flesco\Console\Commands\Local\Server::class,
+    /** --------- MAKER COMMANDS -------- */
 
-    /** --------- CREATE COMMANDS -------- */
-
-    \Clicalmani\Flesco\Console\Commands\Create\Controllers\CreateController::class,
-    \Clicalmani\Flesco\Console\Commands\Create\Models\CreateModel::class,
-    \Clicalmani\Flesco\Console\Commands\Create\Middlewares\CreateMiddleware::class,
-    \Clicalmani\Flesco\Console\Commands\Create\Requests\CreateRequest::class,
-    \Clicalmani\Flesco\Console\Commands\Create\Providers\CreateServiceProvider::class,
+    \Clicalmani\Flesco\Console\Commands\Make\Controllers\MakeController::class,
+    \Clicalmani\Flesco\Console\Commands\Make\Models\MakeModel::class,
+    \Clicalmani\Flesco\Console\Commands\Make\Middlewares\MakeMiddleware::class,
+    \Clicalmani\Flesco\Console\Commands\Make\Requests\MakeRequest::class,
+    \Clicalmani\Flesco\Console\Commands\Make\Providers\MakeServiceProvider::class,
 
     /** --------- ABOUT COMMANDS ---------- */
 
     \Clicalmani\Flesco\Console\Commands\About\AboutAll::class,
-
-
-];
+ ];

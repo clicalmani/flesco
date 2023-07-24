@@ -124,7 +124,7 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
 
     public function offsetUnset( mixed $property ) : void {
         if ($this->$property) {
-            $this->$property = null;
+            unset($_REQUEST[$property]);
         }
     }
 
