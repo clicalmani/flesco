@@ -24,17 +24,17 @@ class MakeBase extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $name = $input->getArgument('name');
+        $filename = $input->getArgument('name') . '.php';
 
-        // $this->_path = ""; // (for testing)
+        $root_path = getenv('APP_ROOT_PATH') ?? "";
 
-        $file = $this->_path . $name . '.php';
+        $file = $root_path . DIRECTORY_SEPARATOR . $this->_path . $filename;
 
         $content = file_get_contents($this->prototype);
 
         if (! file_exists($file)) {
 
-            $content = str_replace('ClassName', $name, $content);
+            $content = str_replace('ClassName', $filename, $content);
             
             if (file_put_contents($file, $content)) {
 

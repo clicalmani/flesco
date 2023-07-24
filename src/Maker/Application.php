@@ -7,6 +7,7 @@ class Application extends \Symfony\Component\Console\Application
 {
     function __construct(private $root_path = null)
     {
+        putenv("APP_ROOT_PATH=$root_path");
         parent::__construct();
     }
 
