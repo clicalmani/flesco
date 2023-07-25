@@ -11,6 +11,7 @@
  return [
    
     \Clicalmani\Flesco\Console\Commands\Local\StartCommand::class,
+    \Clicalmani\Flesco\Console\Commands\Local\StartConsole::class,
 
     /** --------- MAKER COMMANDS -------- */
 
