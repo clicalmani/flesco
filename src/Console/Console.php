@@ -1,31 +1,27 @@
 <?php
 
 namespace Clicalmani\Flesco\Console;
-use Symfony\Component\Console\Application;
-use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Output\OutputInterface;
 
 class Console {
 
 
-    private ?Application $application = null;
+    public static function printLine(OutputInterface $output, array $data) : void {
 
-    public function __construct( string $appName = "Tonka Console", string $appVersion = "0.0.1") {
+        if(count($data) > 1) {
 
-        $this->application = new Application($appName, $appVersion);
+            $key = $data[0] ?? "";
+            $value = $data[1] ?? "";
 
-        $this->register();
+            $output->write("<info>$key</info>");
 
-    }
+            for($i = 1; $i < 25; $i++) {
 
-    public function register() {
-
-        $commands = require(__DIR__ . '/Kernel.php');
-
-        foreach($commands as $command) {
+                $output->write(" . ");
+            }
             
-            $this->application->add(new $command);
+            $output->writeln("<comment>$value</comment>");
         }
 
-        $this->application->run();
     }
 }

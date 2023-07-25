@@ -2,7 +2,7 @@
 
 namespace Clicalmani\Flesco\Console\Commands\Run;
 
-use Clicalmani\Flesco\Database\Factory\Factory;
+use Clicalmani\Flesco\Console\Console;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -53,7 +53,7 @@ class RunMigration extends Command
 
             $class -> create();
 
-            $output->writeln("\n<info>Migration run succefully !</info>");
+            Console::printLine($output, [$name, 'Done']);
 
 
         }catch (\Error | \Exception $e) {
