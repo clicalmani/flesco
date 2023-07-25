@@ -6,7 +6,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 class Console {
 
 
-    public static function printLine(OutputInterface $output, array $data) : void {
+    public static function printLine(OutputInterface $output, array $data, int $sleepTime = 500) : void {
 
         if(count($data) > 1) {
 
@@ -16,8 +16,8 @@ class Console {
             $output->write("<info>$key</info>");
 
             for($i = 1; $i < 25; $i++) {
-
-                $output->write(" . ");
+                $output->write(". ");
+                usleep($sleepTime);
             }
             
             $output->writeln("<comment>$value</comment>");

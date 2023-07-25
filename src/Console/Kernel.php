@@ -24,6 +24,7 @@
     /** --------- ABOUT COMMANDS ---------- */
 
     \Clicalmani\Flesco\Console\Commands\About\AboutAll::class,
+    \Clicalmani\Flesco\Console\Commands\About\AboutPackages::class,
 
     /** RUN COMMANDS */
 
