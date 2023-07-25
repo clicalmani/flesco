@@ -30,4 +30,9 @@
 
     \Clicalmani\Flesco\Console\Commands\Run\RunMigration::class,
 
+    /** ROUTE COMMANDS */
+
+    \Clicalmani\Flesco\Console\Commands\Route\RouteList::class,
+
+
  ];
