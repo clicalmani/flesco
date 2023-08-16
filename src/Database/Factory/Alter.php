@@ -5,7 +5,7 @@ use Clicalmani\Flesco\Database\DBQueryBuilder;
 use Clicalmani\Flesco\Database\Factory\DataTypes\DataType;
 use Clicalmani\Flesco\Exceptions\DataTypeException;
 
-class Create extends DBQueryBuilder implements \IteratorAggregate 
+class Alter extends DBQueryBuilder implements \IteratorAggregate 
 {
 	private $dataType;
 
@@ -16,10 +16,10 @@ class Create extends DBQueryBuilder implements \IteratorAggregate
     { 
 		parent::__construct($params, $options);
 		
-		$this->sql .= 'CREATE TABLE IF NOT EXISTS ' . $this->db->getPrefix() . $this->params['table'];
+		$this->sql .= 'ALTER TABLE ' . $this->db->getPrefix() . $this->params['table'];
 		
 		if (isset($this->params['definition'])) {
-            $this->sql .= ' (' . join(',', $this->params['definition']) . ') ';
+            $this->sql .= ' ' . join(',', $this->params['definition']) . ' ';
 		}
 		
 		if (isset($this->params['engine'])) $this->sql .= 'ENGINE = ' . $this->params['engine'];
@@ -31,7 +31,7 @@ class Create extends DBQueryBuilder implements \IteratorAggregate
 
 	function query() 
 	{
-	    $result = $this->db->query($this->sql);
+	    $result = $this->db->execute($this->sql);
     		
 		$this->status     = $result ? true: false;
 	    $this->error_code = $this->db->errno();

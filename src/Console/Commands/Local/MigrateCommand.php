@@ -12,14 +12,9 @@ use Symfony\Component\Console\Output\OutputInterface;
     description: 'Start web server',
     hidden: false
 )]
-class StartCommand extends Command
+class MigrateCommand extends Command
 {
-    protected static $defaultDescription = 'Start the server';
-
-    public function __construct(private $root_path)
-    {
-        parent::__construct();
-    }
+    protected static $defaultDescription = 'Start database migration';
 
     protected function execute(InputInterface $input, OutputInterface $output) : int
     {

@@ -1,12 +1,25 @@
 <?php
 namespace Clicalmani\Flesco\Database;
 
+/**
+ * |-----------------------------------------------------------------
+ * |              ***** DBQueryBuilder Class *****
+ * |-----------------------------------------------------------------
+ * 
+ * Database Query Builder
+ * 
+ * Builds a SQL query to be executed in a database statement.
+ * 
+ * @package Flesco\Database
+ * @author @clicalmani
+ */
+
 use Clicalmani\Flesco\Collection\Collection;
 
-abstract class DBQueryBuilder {
+abstract class DBQueryBuilder 
+{
 	
 	protected $sql;
-	protected $options;
 	protected $db;
 	protected $range;
 	protected $limit;
@@ -26,15 +39,19 @@ abstract class DBQueryBuilder {
 
 	public $table;
 	
-	function __construct($params = array()){
-		
+	function __construct(
+		protected $params = [],
+		protected $options = []
+	)
+	{
 		$this->params = $params; 
 		
 		$default = array(
 			'offset'    => 0, 
 			'limit'     => null,
 			'num_rows'  => 25,
-			'query_str' => []                                        
+			'query_str' => [],
+			'options'   => []                                        
 		);
 		
 		foreach ($default as $key => $option){
@@ -47,31 +64,13 @@ abstract class DBQueryBuilder {
 	
 	abstract function query();
 	
-	function execSQL($sql) {
-		
-		$sql    = str_replace('%PREFIX%', $this->db->getPrefix(), $sql);
-		$result = $this->bd->query($sql);
-		
-		$this->status     = $result;
-		$this->error_code = $this->db->errno();
-		$this->error_msg  = $this->db->error();
-		
-		if ($result instanceof \mysqli_result) {
-			
-			$this->num_rows = $this->db->numRows($result);
-		
-			while($row = $this->db->chercheTable($result)) {
-				$this->result->push($row);
-			}
-		} 
-		
-		$this->db->free($result);
-		
-		return $this->result;
+	function execSQL(string $sql) : int|false
+	{
+		return $this->bd->exec($this->bindVars($sql));
 	}
 	
-	function bindVars($str) {
-		
+	function bindVars($str) 
+	{
 		$bindings = array(
 			'%PREFIX%'=>$this->db->getPrefix(),
 			'%APP_KEY%'=>'vie',
@@ -210,4 +209,3 @@ abstract class DBQueryBuilder {
 		else echo "";
 	}
 }
-?>

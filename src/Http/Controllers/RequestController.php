@@ -312,7 +312,7 @@ abstract class RequestController extends HttpRequest
 	{
 		// Resource
 		$sseq = preg_split('/\//', self::$route, -1, PREG_SPLIT_NO_EMPTY);
-		$resource = Route::getGateway() == 'api' ? $sseq[1]: $sseq[0];
+		$resource = Route::isApi() ? $sseq[1]: $sseq[0];
 		
 		if ( array_key_exists($resource, Routines::$resources) ) {
 			return (object) Routines::$resources[$resource];

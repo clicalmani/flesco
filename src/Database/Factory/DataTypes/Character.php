@@ -6,14 +6,16 @@ trait Character
     function char($len = null)
     {
         $this->data .= ' CHAR';
-        if ($len) $this->data .= $this->length($len);
+        if ($len) $this->length($len);
+        else $this->length(45);
         return $this;
     }
 
     function varchar($len = null)
     {
         $this->data .= ' VARCHAR';
-        if ($len) $this->data .= $this->length($len);
+        if ($len) $this->length($len);
+        else $this->length(45);
         return $this;
     }
 

@@ -5,57 +5,39 @@ use Clicalmani\Flesco\Database\DBQueryBuilder;
 
 class Update extends DBQueryBuilder implements \IteratorAggregate {
 	
-	function __construct($params = array()) { 
-		parent::__construct($params);
+	function __construct(
+		protected $params = array(), 
+		protected $options = []
+	) 
+	{ 
+		parent::__construct($params, $options);
 		
-		$this->sql = 'UPDATE ';
-		
-		for ($i=0; $i<(sizeof($this->params['tables'])-1); $i++) {
+		$this->sql = 'UPDATE ' . (isset($this->params['low_priority']) ? 'LOW_PRIORITY ': '') . (isset($this->params['ignore']) ? 'IGNORE ': '') . collection()->exchange($this->params['tables'])->map(function($table) {
+			$arr = preg_split('/\s/', $table, -1, PREG_SPLIT_NO_EMPTY);
+			$table = $arr[0];
+
+			if ($arr[0] !== $arr[sizeof($arr)-1]) $table .= ' ' . end($arr);
+
+			return $this->db->getPrefix() . $table;
+		})->join(',');
+
+		if (isset($this->params['join'])) {
+
+			$tables = [];
 			
-			$arr = preg_split('/\s/', $this->params['tables'][$i], -1, PREG_SPLIT_NO_EMPTY);
-			
-			$this->sql .= $this->db->getPrefix() . strtoupper($arr[0]);
-			
-			if ($arr[0] !== $arr[sizeof($arr)-1]) $this->sql .= ' ' . $arr[sizeof($arr)-1];
-			
-			$this->sql .= ', ';
+			foreach ($this->params['join'] as $joint) {
+				
+				$tables[] = $this->db->getPrefix() . $joint['table'];
+			}
+
+			$this->sql .= ', ' . join(',', $tables);
 		}
 		
-		$arr = preg_split('/\s/', $this->params['tables'][sizeof($this->params['tables'])-1], -1, PREG_SPLIT_NO_EMPTY);
-			
-		$this->sql .= $this->db->getPrefix() . strtoupper($arr[0]);
+		$this->sql .= ' SET ' . collection()->exchange($this->params['fields'])->map(function($field, $index) {
+			return "`$field` = :$field";
+		})->join(',');
 		
-		if ($arr[0] !== $arr[sizeof($arr)-1]) $this->sql .= ' ' . $arr[sizeof($arr)-1];
-		
-		$this->sql .= ' SET ';
-		
-		if (isset($this->params['fields'])) {
-			
-			for ($i=0; $i<(sizeof($this->params['fields'])-1); $i++) {
-				
-				$this->sql .= $this->params['fields'][$i] . ' = ';
-				
-				if (isset($this->params['values'][$i])) {
-					
-					$this->sql .= $this->sanitizeValue($this->params['values'][$i]) . ', ';
-				} else {
-					
-					$this->sql .= 'NULL, ';
-				}
-			}
-			
-			$this->sql .= $this->params['fields'][sizeof($this->params['fields'])-1] . ' = ';
-			
-			if (isset($this->params['values'][sizeof($this->params['fields'])-1])) {
-					
-				$this->sql .= $this->sanitizeValue($this->params['values'][sizeof($this->params['fields'])-1]) . ' ';
-			} else {
-				
-				$this->sql .= 'NULL ';
-			}
-		}
-		
-		$this->sql .= 'WHERE TRUE ';
+		$this->sql .= ' WHERE TRUE ';
 		
 		if (isset($this->params['where'])) {
 			
@@ -63,13 +45,25 @@ class Update extends DBQueryBuilder implements \IteratorAggregate {
 		}
 	}
 	
-	function query() { 
-		
-	    $result = $this->db->query($this->bindVars($this->sql));
+	function query() 
+	{ 
+		$statement = $this->db->prepare($this->sql, $this->params['options']);
+
+		foreach ($this->params['values'] as $i => $value) {
+			$statement->bindValue($this->params['fields'][$i], $value);
+		}
+
+		foreach ($this->options as $param => $value) {
+			$statement->bindValue($param, $value);
+		}
+
+		$statement->execute();
     		
-		$this->status     = $result ? true: false;
+		$this->status     = $statement ? true: false;
 	    $this->error_code = $this->db->errno();
 	    $this->error_msg  = $this->db->error();
+
+		$statement = null;
 	}
 	
 	function getIterator() : \Traversable {

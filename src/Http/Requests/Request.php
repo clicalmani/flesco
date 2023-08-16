@@ -247,16 +247,14 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
 
     public function user() 
     {
-        $jwt = new \Clicalmani\Flesco\Auth\JWT;
-
         $user_data = null;
 
-        if ($payload = $jwt->verifyToken($this->getToken())) {
+        if ($payload = with ( new \Clicalmani\Flesco\Auth\JWT )->verifyToken($this->getToken())) {
 
             $user_data  = json_decode($payload->jti);
         }
 
-        return ( new \App\Authenticate\User( $this->session('user-id') ) )->user($user_data);
+        return with ( new \App\Authenticate\User( $this->session('user-id') ) )->user($user_data);
     }
 
     public function jsonSerialize() : mixed

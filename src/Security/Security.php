@@ -58,7 +58,7 @@ class Security {
 							case 'bool': settype($tmp[$key], 'boolean'); break;
 						}
 						
-						// Custom type checking
+						// Custom type check
 						switch ($sig['type']) {
 							case 'email':
 								if (false == self::validateEmail($tmp[$key])) 
@@ -75,8 +75,9 @@ class Security {
 
 							case 'date':
 								if (isset($sig['format'])) {
-									if ( false == self::validateDate($tmp[$key], $sig['format']) )
+									if ( false == self::validateDate($tmp[$key], $sig['format']) ) {
 										throw new ValidationFailedException($key, $sig['required'], $redirect);
+									}
 								} else throw new \Exception("Attribute `format` is required for `date` type");
 								break;
 
@@ -117,7 +118,9 @@ class Security {
 							if ($sig['required']) throw new \Exception("The data length is too long for attribute `$key`");
 							else $tmp[$key] = null;
 
-						if (isset($sig['nullable'])  AND $sig['nullable'] AND !$tmp[$key]) $tmp[$key] = null;
+						if (isset($sig['nullable'])  AND $sig['nullable'] AND !$tmp[$key]) {
+							$tmp[$key] = null;
+						}
 					}
 
 					if(isset($sig['function']) && array_key_exists($key, $tmp)){

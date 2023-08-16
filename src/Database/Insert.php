@@ -3,77 +3,45 @@ namespace Clicalmani\Flesco\Database;
 
 class Insert extends DBQueryBuilder implements \IteratorAggregate {
 	
-	function __construct($params = []) { 
-		parent::__construct($params);
+	function __construct(
+		protected $params = array(), 
+		protected $options = []
+	) 
+	{ 
+		parent::__construct($params, $options);
 		
 		$this->sql .= 'INSERT ' . ((isset($params['ignore']) AND $params['ignore'] == true) ? 'IGNORE': '') . ' INTO ' . $this->db->getPrefix() . $this->params['table'];
 		
 		if (isset($this->params['fields'])) {
+
+			$this->sql .= ' (' . collection()->exchange($this->params['fields'])->map(function($value) {
+				return "`$value`";
+			})->join(',') . ') ';
 			
-			$this->sql .= ' (';
-			
-			for ($i=0; $i<(sizeof($this->params['fields'])-1); $i++) {
-				
-				$this->sql .= '`' . $this->params['fields'][$i] . '`, ';
-			}
-			
-			$this->sql .= '`' . $this->params['fields'][sizeof($this->params['fields'])-1] . '`) ';
-		}
-		
-		$this->sql .= ' VALUES ';
-		
-		for ($i=0; $i<(sizeof($this->params['values'])-1); $i++) {
-			
-			$this->sql .= '(';
-			
-			for ($j=0; $j<(sizeof($this->params['values'][$i])-1); $j++) {
-				
-				if (isset($this->params['values'][$i][$j])) {
-					$this->sql .= $this->sanitizeValue($this->params['values'][$i][$j]) . ', ';
-				} else {
-					$this->sql .= 'NULL, ';
-				}
-			}
-			
-			if (isset($this->params['values'][$i][sizeof($this->params['values'][$i])-1])) {
-				
-				$this->sql .= $this->sanitizeValue($this->params['values'][$i][sizeof($this->params['values'][$i])-1]) . '), ';
-			} else {
-				
-				$this->sql .= 'NULL), ';
-			}
-		}
-		
-		$this->sql .= '(';
-			
-		for ($j=0; $j<(sizeof($this->params['values'][sizeof($this->params['values'])-1])-1); $j++) {
-			
-			if (isset($this->params['values'][sizeof($this->params['values'])-1][$j])) {
-				
-				$this->sql .= $this->sanitizeValue($this->params['values'][sizeof($this->params['values'])-1][$j]) . ', ';
-			} else {
-				
-				$this->sql .= 'NULL, ';
-			}
-		}
-		
-		if (isset($this->params['values'][sizeof($this->params['values'])-1][sizeof($this->params['values'][sizeof($this->params['values'])-1])-1])) {
-			
-			$this->sql .= $this->sanitizeValue($this->params['values'][sizeof($this->params['values'])-1][sizeof($this->params['values'][sizeof($this->params['values'])-1])-1]) . '); ';
-		} else {
-			
-			$this->sql .= 'NULL); ';
+			$this->sql .= 'VALUES (' . collection()->exchange($this->params['fields'])->map(function($value) {
+				return ":$value";
+			})->join(',') . ')';
 		}
 	}
 	
 	function query() 
 	{
-	    $result = $this->db->query($this->bindVars($this->sql));
-    		
-		$this->status     = $result ? true: false;
+		$statement = $this->db->prepare($this->bindVars($this->sql), $this->params['options']);
+
+		foreach ($this->params['values'] as $row) {
+			foreach ($row as $i => $value) {
+				$statement->bindValue($this->params['fields'][$i], $value);
+			}
+
+			$statement->execute();
+		}
+		
+		$this->status     = $statement ? true: false;
 	    $this->error_code = $this->db->errno();
 	    $this->error_msg  = $this->db->error();
-		$this->insert_id  = $this->db->insertId($result);
+		$this->insert_id  = $this->db->insertId();
+
+		$statement = null;
 	}
 	
 	function getIterator() : \Traversable

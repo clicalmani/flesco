@@ -5,7 +5,7 @@ use Symfony\Component\Console\Command\Command;
 
 class Application extends \Symfony\Component\Console\Application
 {
-    function __construct(private $root_pah = null)
+    function __construct(private $root_path = null)
     {
         parent::__construct();
     }
@@ -16,7 +16,7 @@ class Application extends \Symfony\Component\Console\Application
         $kernel = require_once dirname(__DIR__) . '/Console/Kernel.php';
 
         foreach ($kernel as $command) {
-            $this->add(new $command);
+            $this->add(new $command($this->root_path));
         }
     }
 }

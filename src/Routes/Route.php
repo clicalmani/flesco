@@ -78,14 +78,22 @@ class Route {
         return $routines;
     }
 
-    public static function group($args, $callable)
+    public static function group( ...$parameters )
     {
+        switch( count($parameters) ) {
+            case 1: return new RouteGroup($parameters[0]);
+            case 2: 
+                $args = $parameters[0];
+                $callable = $parameters[1];
+                break;
+        }
+
         /**
          * Prefix routes
          */
         if ( isset($args['prefix']) AND $prefix = $args['prefix']) {
 
-            $routes = self::allRoutes();
+            $routes = self::all();
 
             /**
              * |--------------------------------------
@@ -97,14 +105,9 @@ class Route {
              * |
              * |
              */
-            static::$grouping_started = true;
+            self::startGrouping($callable);
 
-            // Add grouped routes
-            $callable();
-
-            static::$grouping_started = false;              // Terminate grouping
-
-            $grouped_routes = array_diff(self::allRoutes(), $routes);
+            $grouped_routes = array_diff(self::all(), $routes);
             self::setPrefix($grouped_routes, $prefix);
             return;
         }
@@ -114,8 +117,29 @@ class Route {
          */
         if ( isset($args['middleware']) AND $name = $args['middleware']) {
             self::middleware($name, $callable);
-            // $callable();
         }
+    }
+
+    public static function startGrouping($callable)
+    {
+        /**
+         * |--------------------------------------
+         * | Start route grouping
+         * |----------------------------------------
+         * |
+         * | Prepend a prefix placeholder to the route (%PREFIX%)
+         * | which will be replaced by the correct prefix.
+         * |
+         * |
+         */
+        static::$grouping_started = true;
+
+        $callable();    
+
+        /**
+         * Terminate grouping
+         */
+        static::$grouping_started = false;
     }
 
     public static function delete($route, $callable)
@@ -211,46 +235,74 @@ class Route {
         return $routes;
     }
 
+    public static function all()
+    {
+        return self::allRoutes();
+    }
+
     public static function setPrefix($routes, $prefix)
     {
         if ( is_string($routes) ) {
             $routes = [$routes];
         }
 
+        $ret = [];
+
         foreach (self::$routines as $method => $routine) {
             foreach ($routine as $route => $controller) {
                 if ( in_array($route, $routes) ) {
-
+                    
                     unset(self::$routines[$method][$route]);
 
+                    /**
+                     * Prepend backslash (/)
+                     */
                     if (false == preg_match('/^\//', $route)) {
                         $route = "/$route";
                     }
 
-                    if ( '/api' !== $prefix ) {
+                    if (preg_match('/%PREFIX%/', $route)) {
                         $route = str_replace('%PREFIX%', $prefix, $route);
-                    } else {
-                        $route = $prefix . $route;
+                    } else $route = $prefix . $route;
+
+                    /**
+                     * Prepend backslash (/)
+                     */
+                    if (false == preg_match('/^\//', $route)) {
+                        $route = "/$route";
                     }
+
+                    $ret[] = $route;
 
                     self::$routines[$method][$route] = $controller;
                 }
             }
         }
+
+        return $ret;
     }
 
     public static function getGateway()
     {
-        $gateway = 'web';
-
-        if (preg_match('/^\/api/', current_route())) {
-            $gateway = 'api';
-        }
-
-        return $gateway;
+        return self::isApi() ? 'api': 'web';
     }
 
-    public static function middleware($name, $callable = false) 
+    public static function getApiPrefix()
+    {
+        return with(new \App\Providers\RouteServiceProvider)->getApiPrefix();
+    }
+
+    public static function isApi()
+    {
+        $api = self::getApiPrefix();
+        
+        return preg_match(
+            "/^\/$api/", 
+            current_route()
+        );
+    }
+
+    public static function middleware($name, $callable = null) 
     {
         if ( self::isMiddleware($name) ) {
 
@@ -258,7 +310,11 @@ class Route {
             $middleware = new ServiceProvider::$providers['middleware'][$gateway][$name];
             
             self::registerMiddleware($callable ? $callable: $middleware, $name);
-        }
+
+            return $middleware;
+        } 
+
+        throw new MiddlewareException("Unknow middleware $name specified");
     }
 
     private static function isMiddleware($name)
@@ -286,7 +342,7 @@ class Route {
         // Routes to exclude in the middleware
         $routes = self::allRoutes();
 
-        if ('Closure' === get_class($middleware)) {
+        if ($middleware instanceof \Closure) {
             $middleware();
         } else {
 
@@ -302,7 +358,7 @@ class Route {
             }
         }
 
-        $method = strtolower( $_SERVER['REQUEST_METHOD'] );
+        $method  = strtolower( $_SERVER['REQUEST_METHOD'] );
         $routine = self::$routines[$method];
             
         foreach ($routine as $sroute => $controller) {
@@ -322,12 +378,12 @@ class Route {
     {
         $current_route = self::$current_route;
         
-        if ( 'api' === self::getGateway() ) {
-            if ( strpos(self::$current_route, 'api') === 1 ) {
-                $current_route = substr(self::$current_route, 4);           // Remove api prefix
-            }
-        }
-
+        // if ( self::isApi() ) {
+        //     if ( strpos(self::$current_route, self::getApiPrefix()) === 1 ) {
+        //         $current_route = substr(self::$current_route, strlen(self::getApiPrefix()) + 1);   // Remove api prefix
+        //     }
+        // }
+        
         if ( array_key_exists($current_route, self::$route_middlewares) ) {
             return self::$route_middlewares[$current_route];
         }
@@ -344,6 +400,9 @@ class Route {
         $authorize = true;
 
         if ($names = self::getCurrentRouteMiddlewares()) {
+
+            rsort($names);
+            
             foreach ($names as $name) {
                 $middleware = new ServiceProvider::$providers['middleware'][$gateway][$name];
                 $authorize = $middleware->authorize(
@@ -459,7 +518,7 @@ class Route {
                 $beta[$sroute] = $sseq;
             } else unset($beta[$sroute]);
         }
-
+        
         // Find real params (indexes and values)
         $a = array_diff($nseq, ...array_values($beta));
         
@@ -507,13 +566,10 @@ class Route {
         if ( !empty($a) ) {
             $params_keys = [];
             
-            foreach ($a as $key => $value) {
-                foreach ($beta as $sroute => $sseq) {
-                    // $pos = array_search($value, $nseq);
+            foreach ($beta as $sroute => $sseq) {
+                foreach ($a as $key => $value) {
                     $b = array_splice($sseq, $key, 1, $value);
-                    if (self::isSameRoute($sseq)) {
-                        return self::registerParameter($b[0], $value) ? $sroute: false;
-                    }
+                    if (self::isSameRoute($sseq) && self::registerParameter($b[0], $value)) return $sroute;
                 }
             }
         } else {
@@ -585,7 +641,7 @@ class Route {
      */
     private static function registerParameter($param, $value)
     {
-        if (self::isParamHasValidator($param)) {
+        if (self::hasValidator($param)) {
             
             $validator = self::getValidator($param);
             
@@ -606,7 +662,7 @@ class Route {
      * @param $param [string] parameter name
      * @return boolean true on success, or false on failure
      */
-    private static function isParamHasValidator($param)
+    private static function hasValidator($param)
     {
         return strpos($param, '@');
     }

@@ -4,18 +4,27 @@ namespace Clicalmani\Flesco\Database\Factory;
 use Clicalmani\Flesco\Database\DBQuery;
 use Clicalmani\Flesco\Database\Factory\Column;
 use Clicalmani\Flesco\Database\Factory\Indexes\Index;
+use Clicalmani\Flesco\Database\Factory\AlterOption;
 
 class Maker
 {
     private $query;
     private $columns = [];
     private $indexes = [];
+    private $changes = [];
     private $primary;
 
-    function __construct($table) 
+    const CREATE_TABLE         = DBQuery::CREATE;
+    const DROP_TABLE           = DBQuery::DROP_TABLE;
+    const DROP_TABLE_IF_EXISTS = DBQuery::DROP_TABLE_IF_EXISTS;
+    const ALTER_TABLE          = DBQuery::ALTER;
+
+    static $current_alter_option;
+
+    function __construct($table, $flag = self::CREATE_TABLE) 
     {
         $this->query = new DBQuery;
-        $this->query->set('type', DB_QUERY_CREATE);
+        $this->query->set('type', $flag);
         $this->query->set('table', $table);
     }
 
@@ -25,6 +34,16 @@ class Maker
         $this->columns[] = $column;
 
         return $column;
+    }
+
+    function alter()
+    {
+        if (static::$current_alter_option) $this->changes[] = static::$current_alter_option;
+
+        $option = new AlterOption;
+        $this->changes[] = $option;
+
+        return $option;
     }
 
     function index($name)
@@ -77,7 +96,15 @@ class Maker
             }
         }
 
-        $this->query->set('definition', $definition);
+        if ($definition) $this->query->set('definition', $definition);
+
+        $changes = [];
+
+        foreach ($this->changes as $change) {
+            $changes[] = $change->render();
+        }
+
+        if ($changes) $this->query->set('definition', $changes);
         
         return $this->query->exec()->status() === 'success';
     }

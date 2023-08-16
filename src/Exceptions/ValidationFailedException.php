@@ -1,7 +1,7 @@
 <?php
 namespace Clicalmani\Flesco\Exceptions;
 
-class ValidationFailedException extends \PDOException 
+class ValidationFailedException extends \Exception 
 {
 	private $key, $is_required, $redirect_back;
 

@@ -97,8 +97,8 @@ class Index extends IndexType
         $key .= '(';
 
         foreach ($this->keys as $index => $k) {
-            if ($index < count($this->keys) - 1) $key .= $k . ', ';
-            else $key .= $k;
+            if ($index < count($this->keys) - 1) $key .= "`$key`, ";
+            else $key .= "`$k`";
         }
 
         $key .= ') ';
@@ -109,8 +109,8 @@ class Index extends IndexType
             $key .= '(';
 
             foreach ($this->cols as $index => $col_name) {
-                if ($index < count($this->cols) - 1) $key .= $col_name . ', ';
-                else $key .= $col_name;
+                if ($index < count($this->cols) - 1) $key .= "`$col_name`, ";
+                else $key .= "`$col_name`";
             }
 
             $key .= ') ';

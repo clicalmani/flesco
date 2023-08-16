@@ -9,7 +9,7 @@ class DataType
         JSON,
         Date;
 
-    function __construct(private $data = '')
+    function __construct(protected $data = '')
     {}
 
     function nullable($bool = true)

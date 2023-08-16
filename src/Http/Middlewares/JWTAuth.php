@@ -1,5 +1,5 @@
 <?php
-namespace Clicalmani\Flesco\Http\Middleware;
+namespace Clicalmani\Flesco\Http\Middlewares;
 
 use Clicalmani\Flesco\Auth\JWT;
 

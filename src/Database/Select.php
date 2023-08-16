@@ -4,9 +4,12 @@ namespace Clicalmani\Flesco\Database;
 class Select extends DBQueryBuilder implements \IteratorAggregate 
 {
 	
-	function __construct($params = array()) 
+	function __construct(
+		protected $params = array(), 
+		protected $options = []
+	) 
 	{ 
-		parent::__construct($params);
+		parent::__construct($params, $options);
 		
 		$this->sql = 'SELECT ';
 		
@@ -65,17 +68,15 @@ class Select extends DBQueryBuilder implements \IteratorAggregate
 	
 	function query() { 
 		
-	    $result = $this->db->query($this->bindVars($this->sql));
+	    $statement = $this->db->query($this->bindVars($this->sql), $this->options, $this->params['options']);
     	
-		$this->status     = $result ? true: false;
+		$this->status     = $statement ? true: false;
 	    $this->error_code = $this->db->errno();
 	    $this->error_msg  = $this->db->error();
-		$this->num_rows   = $this->db->numRows($result);
+		$this->num_rows   = $this->db->numRows($statement);
 		
-		$count = 0;
-	    while ($row = $this->db->fetch($result, \PDO::FETCH_ASSOC)) {
-	    	$this->result[] = $row;
-			$count++;
+	    while ($row = $this->db->fetch($statement, \PDO::FETCH_ASSOC)) {
+	    	$this->result->add($row);
 		}
 	}
 	

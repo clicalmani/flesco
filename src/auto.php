@@ -20,7 +20,7 @@ function loadClass($className) {
         'App/' => 'app/',
         'Http/' => 'http/',
         'Models/' => 'models/',
-        'Middleware/' => 'middleware/',
+        'Middlewares/' => 'middlewares/',
         'Controllers/' => 'controllers/',
         'Authenticate/' => 'authenticate/'
     ];
