@@ -174,7 +174,7 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
     {
         $check_csrf = false;
 
-        if (preg_match('/^\/api/', current_route())) {
+        if ( \Clicalmani\Flesco\Routes\Route::isApi()) {
             $check_csrf = false;
         } elseif ( strtolower( $_SERVER['REQUEST_METHOD'] ) !== 'get') {
             $check_csrf = true;

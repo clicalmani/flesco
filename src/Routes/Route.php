@@ -363,8 +363,8 @@ class Route {
             
         foreach ($routine as $sroute => $controller) {
             
-            if ( in_array($sroute, $routes)) continue;               // Exclude route
-
+            if ( in_array($sroute, $routes) ) continue;               // Exclude route
+            
             if ( !isset(self::$route_middlewares[$sroute]) ) {
                 self::$route_middlewares[$sroute]   = [];
                 self::$route_middlewares[$sroute][] = $name;
@@ -378,23 +378,29 @@ class Route {
     {
         $current_route = self::$current_route;
         
-        // if ( self::isApi() ) {
-        //     if ( strpos(self::$current_route, self::getApiPrefix()) === 1 ) {
-        //         $current_route = substr(self::$current_route, strlen(self::getApiPrefix()) + 1);   // Remove api prefix
-        //     }
-        // }
-        
-        if ( array_key_exists($current_route, self::$route_middlewares) ) {
-            return self::$route_middlewares[$current_route];
+        if ( self::isApi() ) {
+            if ( strpos(self::$current_route, self::getApiPrefix()) === 1 ) {
+                $current_route = substr(self::$current_route, strlen(self::getApiPrefix()) + 1);   // Remove api prefix
+            }
         }
 
-        return null;
+        $middlewares = null;
+        
+        if ( array_key_exists($current_route, self::$route_middlewares) ) {
+            $middlewares = self::$route_middlewares[$current_route];
+        } elseif (  array_key_exists('%PREFIX%' . $current_route, self::$route_middlewares) ) {
+            $middlewares = self::$route_middlewares['%PREFIX%' . $current_route];
+        }
+
+        return $middlewares;
     }
 
     /**
      * Verfify if current route is behind a middleware
+     * 
+     * @return mixed
      */
-    static function isCurrentRouteAuthorized($request = null)
+    static function isCurrentRouteAuthorized($request = null) : mixed
     {
         $gateway = self::getGateway();
         $authorize = true;
@@ -406,7 +412,7 @@ class Route {
             foreach ($names as $name) {
                 $middleware = new ServiceProvider::$providers['middleware'][$gateway][$name];
                 $authorize = $middleware->authorize(
-                    ( $gateway === 'web' ) ? ( new Request() )->user(): $request
+                    ( $gateway === 'web' ) ? ( new \Clicalmani\Flesco\Http\Requests\Request )->user(): $request
                 );
 
                 if (false == $authorize) {

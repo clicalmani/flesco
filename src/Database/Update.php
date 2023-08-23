@@ -50,11 +50,11 @@ class Update extends DBQueryBuilder implements \IteratorAggregate {
 		$statement = $this->db->prepare($this->sql, $this->params['options']);
 
 		foreach ($this->params['values'] as $i => $value) {
-			$statement->bindValue($this->params['fields'][$i], $value);
+			$statement->bindValue($this->params['fields'][$i], $value, $this->getDataType($value));
 		}
 
 		foreach ($this->options as $param => $value) {
-			$statement->bindValue($param, $value);
+			$statement->bindValue($param, $value, $this->getDataType($value));
 		}
 
 		$statement->execute();

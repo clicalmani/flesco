@@ -62,12 +62,9 @@ abstract class RouteServiceProvider extends ServiceProvider
         if (session_status() == PHP_SESSION_NONE) {
             session_start();
         }
-    
-        $csrf = new \Clicalmani\Flesco\Security\CSRF;
-        $token = $csrf->getToken();					// Generate CSRF token for the current session
-    
+        
         if ( ! isset($_SESSION['csrf-token']) ) {
-            $_SESSION['csrf-token'] = $token;		// Stock the token in $_SESSION global variable
+            $_SESSION['csrf-token'] = with ( new \Clicalmani\Flesco\Security\CSRF )->getToken(); // Generate token and Store it in $_SESSION global variable
         }
     }
 }

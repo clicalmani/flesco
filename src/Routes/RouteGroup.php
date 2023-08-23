@@ -5,7 +5,8 @@ class RouteGroup
 {
     private $group;
 
-    public function __construct(private \Closure $callable) {
+    public function __construct(private \Closure $callable) 
+    {
         $routes = Route::all();
         Route::startGrouping($this->callable);
         $this->group = array_diff(Route::all(), $routes);
@@ -13,7 +14,7 @@ class RouteGroup
 
     public function prefix($prefix)
     {
-        $this->group = Route::setPrefix($this->group, $prefix);
+        $this->group = Route::setPrefix($this->group, $prefix); 
         return $this;
     }
 

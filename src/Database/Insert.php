@@ -30,7 +30,7 @@ class Insert extends DBQueryBuilder implements \IteratorAggregate {
 
 		foreach ($this->params['values'] as $row) {
 			foreach ($row as $i => $value) {
-				$statement->bindValue($this->params['fields'][$i], $value);
+				$statement->bindValue($this->params['fields'][$i], $value, $this->getDataType($value));
 			}
 
 			$statement->execute();

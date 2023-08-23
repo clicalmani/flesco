@@ -22,7 +22,7 @@ abstract class RequestController extends HttpRequest
 	{
 		$request = new Request;
 		$request->checkCSRFToken();
-
+		
 		die(self::getRoutine($request));
 	}
 

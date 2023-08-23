@@ -181,19 +181,28 @@ abstract class DBQueryBuilder
 			return (int) $value;
 		}
 		
-		if ($this->isNullValue($value)) {
-			return 'NULL';
-		}
+		// if ($this->isNullValue($value)) {
+		// 	return 'NULL';
+		// }
 
-		if ($this->isDefaultValue($value)) {
-			return 'DEFAULT';
-		}
+		// if ($this->isDefaultValue($value)) {
+		// 	return 'DEFAULT';
+		// }
 
-		if ($this->isExpression($value)) {
-			return preg_replace('/^exp:/i', '', $value);
-		}
+		// if ($this->isExpression($value)) {
+		// 	return preg_replace('/^exp:/i', '', $value);
+		// }
 
-		return '"' . $value . '"';
+		return $value;
+	}
+
+	public function getDataType($data)
+	{
+		if ( is_int($data) ) return \PDO::PARAM_INT;
+		if ( is_bool($data) ) return \PDO::PARAM_BOOL;
+		if ( is_null($data) ) return \PDO::PARAM_NULL;
+
+		return \PDO::PARAM_STR;
 	}
 
 	function select($raw_sql)
