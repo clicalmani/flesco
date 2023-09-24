@@ -136,7 +136,7 @@ class Factory
      * attributes to override.
      * @return static
      */
-    protected function state(?callable $callback) : static
+    public function state(?callable $callback) : static
     {
         $this->override( $callback($this->definition()) );
         return $this;
@@ -148,7 +148,7 @@ class Factory
      * @param array $states Default []
      * @return static
      */
-    protected function states(array $states = []) : static
+    public function states(array $states = []) : static
     {
         foreach ($states as $state) {
             $this->state($state);

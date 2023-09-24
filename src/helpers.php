@@ -1,8 +1,13 @@
 <?php
 
+global $root_path;
+
+$root_path = $root_path ?? $_SERVER['DOCUMENT_ROOT'];
+
 if ( ! function_exists( 'root_path' ) ) {
     function root_path( $path = '/' ) {
-        return $_SERVER['DOCUMENT_ROOT'] . $path;
+        global $root_path;
+        return $root_path . $path;
     }
 }
 
@@ -226,7 +231,7 @@ if ( ! function_exists('recursive_unlink') ) {
 }
 
 if ( ! function_exists('mail_smtp') ) {
-    function mail_smtp($to, $from, $subject, $body, $cc = false, $bc = false)
+    function mail_smtp($to, $from, $subject, $body, $cc = [], $bc = [])
     {
         $mail = new \Clicalmani\Flesco\Mail\MailSMTP;
 
@@ -245,7 +250,7 @@ if ( ! function_exists('mail_smtp') ) {
 		}
 
 		if ($bc) {
-            foreach ($cc as $data) {
+            foreach ($bc as $data) {
                 $mail->addBC($data['email'], $data['name']);
             }
 		}
@@ -259,5 +264,17 @@ if ( ! function_exists('mail_smtp') ) {
 if ( ! function_exists('with') ) {
     function with($obj) {
         return $obj;
+    }
+}
+
+if ( ! function_exists('factory') ) {
+    /**
+     * Create a new model factory
+     * 
+     * @param string $model Model class
+     * @return \Clicalmani\Flesco\Database\Factory\Factory Object
+     */
+    function factory(string $model) {
+        return \Clicalmani\Flesco\Database\Factory\Factory::fromModel( $model );
     }
 }

@@ -1,8 +1,12 @@
 <?php
 namespace Clicalmani\Flesco\Maker;
 
-use Symfony\Component\Console\Command\Command;
-
+/**
+ * Make an application
+ * 
+ * @package Clicalmani\Flesco
+ * @author clicalmani
+ */
 class Application extends \Symfony\Component\Console\Application
 {
     function __construct(private $root_path = null)
@@ -13,7 +17,7 @@ class Application extends \Symfony\Component\Console\Application
     function make()
     {
         // Console Kernel
-        $kernel = require_once dirname(__DIR__) . '/Console/Kernel.php';
+        $kernel = \Clicalmani\Console\Kernel::$kernel;
 
         foreach ($kernel as $command) {
             $this->add(new $command($this->root_path));

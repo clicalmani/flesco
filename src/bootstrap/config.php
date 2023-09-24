@@ -20,7 +20,6 @@ require_once dirname( __DIR__ ) . '/helpers.php';
  * Classes defined in the App directory, will be automatically loaded.
  */
 new Clicalmani\Container\SPL_Loader( root_path() );
-// new Clicalmani\Flesco\Loaders\Container( root_path() );
 
 /**
  * Error log

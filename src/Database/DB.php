@@ -18,16 +18,14 @@ namespace Clicalmani\Flesco\Database;
  * @since 2015
  */
 
-use Clicalmani\Flesco\Collection\Collection;
 use PDO;
 use \PDOStatement;
+
+global $db_config, $root_path;
 
 /**
  * Default database configuarion
  */
-global $db_config;
-
-// Imports default database configuration
 $db_config = require config_path( '/database.php' );
 
 abstract class DB 

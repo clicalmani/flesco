@@ -1,9 +1,0 @@
-namespace App\Http\Controllers;
-
-use Clicalmani\Flesco\Http\Controllers\RequestController as Controller;
-use Clicalmani\Flesco\Http\Response\Response;
-
-class $controller extends Controller
-{
-    // Your code
-}
