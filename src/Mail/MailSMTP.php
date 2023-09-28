@@ -3,6 +3,8 @@ namespace Clicalmani\Flesco\Mail;
 
 class MailSMTP 
 {
+    private $WordWrap;
+    
     function __construct(private $mail = null)
     {
         $this->mail             = new \PHPMailer\PHPMailer\PHPMailer;

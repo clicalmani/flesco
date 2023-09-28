@@ -1,14 +1,11 @@
 <?php
 namespace Clicalmani\Flesco\Http\Controllers;
 
+use Clicalmani\Routes\Route;
+use Clicalmani\Routes\Routines;
 use Clicalmani\Flesco\Http\Requests\Request;
 use Clicalmani\Flesco\Http\Requests\HttpRequest;
-use Clicalmani\Flesco\Routes\Route;
-use Clicalmani\Flesco\Routes\Routine;
-use Clicalmani\Flesco\Routes\Routines;
-use Clicalmani\Flesco\Exceptions\HttpRequestException;
-use Clicalmani\Flesco\Exceptions\MethodNotFoundException;
-use Clicalmani\Flesco\Exceptions\RouteNotFoundException;
+use Clicalmani\Routes\Exceptions\RouteNotFoundException;
 use Clicalmani\Flesco\Exceptions\ModelNotFoundException;
 
 require_once dirname( dirname( __DIR__ ) ) . '/bootstrap/index.php';
@@ -116,9 +113,9 @@ abstract class RequestController extends HttpRequest
 		 * Validate request
 		 */
 		if ( $first_param_type ) {
-
+			
 			$requestClass = $first_param_type->getName();
-
+			
 			// Model binding request
 			if ( self::isModelBind($requestClass) ) {
 				try {
@@ -223,9 +220,6 @@ abstract class RequestController extends HttpRequest
 		$request = new Request;
 		$obj     = new $model;
 
-		// Primary keys
-		$keys = $obj->getKey();
-
 		if ( in_array($method, ['create', 'show', 'update', 'destroy']) ) {
 
 			// Request parameters
@@ -310,6 +304,8 @@ abstract class RequestController extends HttpRequest
 
 	private static function getResource()
 	{
+		if ( inConsoleMode() ) return null;
+
 		// Resource
 		$sseq = preg_split('/\//', self::$route, -1, PREG_SPLIT_NO_EMPTY);
 		$resource = Route::isApi() ? $sseq[1]: $sseq[0];
@@ -387,5 +383,10 @@ abstract class RequestController extends HttpRequest
 		if ( $method == 'index' AND array_key_exists('order_by', $resource->properties) ) {
 			$obj->orderBy($resource->properties['order_by']);
 		}
+	}
+
+	public static function test(string $action) : \Clicalmani\Flesco\TestUnits\Controllers\TestController
+	{
+		return with( new \Clicalmani\Flesco\TestUnits\Controllers\TestController )->new($action);
 	}
 }

@@ -4,7 +4,6 @@ namespace Clicalmani\Flesco\Misc;
 class Tools
 {
     static function eval($exec, $args) {
-        
         $args     = serialize($args);
         $tmp_name = '__.php';
 

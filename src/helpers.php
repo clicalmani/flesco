@@ -61,7 +61,7 @@ if ( ! function_exists( 'view' ) ) {
 
 if ( ! function_exists( 'current_route' ) ) {
     function current_route() {
-        return Clicalmani\Flesco\Routes\Route::currentRoute();
+        return Clicalmani\Routes\Route::currentRoute();
     }
 }
 
@@ -86,7 +86,7 @@ if ( ! function_exists( 'assets' ) ) {
         $app_url = env('APP_URL', '127.0.0.1:8000');
         $protocol = '';
         if (preg_match('/^http/', $app_url) == false) {
-            $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] === 443) ? 'https://': 'http://';
+            $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || @$_SERVER['SERVER_PORT'] === 443) ? 'https://': 'http://';
         }
         return $protocol . env('APP_URL', 'http://127.0.0.1:8000') . $path;
     }
@@ -174,7 +174,7 @@ if ( ! function_exists('route') ) {
 
 if ( ! function_exists('collection') ) {
     function collection() {
-        return new \Clicalmani\Flesco\Collection\Collection;
+        return new \Clicalmani\Collection\Collection;
     }
 }
 
@@ -272,9 +272,48 @@ if ( ! function_exists('factory') ) {
      * Create a new model factory
      * 
      * @param string $model Model class
-     * @return \Clicalmani\Flesco\Database\Factory\Factory Object
+     * @return \Clicalmani\Database\Factory\Factory Object
      */
     function factory(string $model) {
-        return \Clicalmani\Flesco\Database\Factory\Factory::fromModel( $model );
+        return \Clicalmani\Database\Factory\Factory::fromModel( $model );
+    }
+}
+
+if ( ! function_exists('inConsoleMode') ) {
+    function inConsoleMode() {
+        return defined('CONSOLE_MODE_ACTIVE') && CONSOLE_MODE_ACTIVE;
+    }
+}
+
+if ( ! function_exists('tap') ) {
+    function tap($value, $callback) {
+        $callback($value);
+        return $value;
+    }
+}
+
+if ( ! function_exists('value') ) {
+    function value($value, $param = null) {
+        if ( ! is_callable($value) ) return $value;
+        if ( $param ) return $value($param);
+        return $value();
+    }
+}
+
+if ( ! function_exists('call') ) {
+    function call($fn, ...$args) {
+        return $fn( ...$args );
+    }
+}
+
+if ( ! function_exists('nocall') ) {
+    function nocall($fn) {
+        return $fn;
+    }
+}
+
+if ( ! function_exists('faker') ) {
+    function faker() {
+        return new \Clicalmani\Database\Faker\Faker;
     }
 }

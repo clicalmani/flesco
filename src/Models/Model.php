@@ -1,9 +1,9 @@
 <?php
 namespace Clicalmani\Flesco\Models;
 
-use Clicalmani\Flesco\Database\DB;
-use Clicalmani\Flesco\Database\DBQuery;
-use Clicalmani\Flesco\Database\Factory\Factory;
+use Clicalmani\Database\DB;
+use Clicalmani\Database\DBQuery;
+use Clicalmani\Database\Factory\Factory;
 use Clicalmani\Flesco\Exceptions\ModelException;
 
 class Model implements ModelInterface, \JsonSerializable
@@ -20,7 +20,7 @@ class Model implements ModelInterface, \JsonSerializable
     /**
      * DBQuery object
      * 
-     * @var \Clicalmani\Flesco\Database\DBQuery
+     * @var \Clicalmani\Database\DBQuery
      */
     private $query;
 
@@ -182,7 +182,7 @@ class Model implements ModelInterface, \JsonSerializable
     /**
      * Returns the DBQuery object attached to the model
      * 
-     * @return \Clicalmani\Flesco\Database\DBQuery
+     * @return \Clicalmani\Database\DBQuery
      */
     private function getQuery()
     {
@@ -215,7 +215,7 @@ class Model implements ModelInterface, \JsonSerializable
      * Gets the query result
      * 
      * @param string $fields SQL select statement of the column to show up in the result set.
-     * @return \Clicalmani\Flesco\Collection\Collection
+     * @return \Clicalmani\Collection\Collection
      */
     public function get($fields = '*')
     {
@@ -230,7 +230,7 @@ class Model implements ModelInterface, \JsonSerializable
             return $this->query->get($fields);
             
         } catch (\PDOException $e) {
-            throw new \Clicalmani\Flesco\Exceptions\DBQueryException($e->getMessage());
+            throw new \Clicalmani\Database\Exceptions\DBQueryException($e->getMessage());
         }
     }
 
@@ -238,7 +238,7 @@ class Model implements ModelInterface, \JsonSerializable
      * Insted of returning the raw result from the SQL database, every row in the result set will be
      * returned as a model instance.
      * 
-     * @return \Clicalmani\Flesco\Collection\Collection
+     * @return \Clicalmani\Collection\Collection
      */
     public function fetch()
     {
@@ -381,7 +381,7 @@ class Model implements ModelInterface, \JsonSerializable
             $fields = array_keys( $values );
 		    $values = array_values( $values );
 
-            $this->query->set('type', DB_QUERY_UPDATE);
+            $this->query->set('type', DBQuery::UPDATE);
             $this->query->set('fields',  $fields);
 		    $this->query->set('values', $values);
             $this->query->set('where', $criteria);
@@ -435,7 +435,7 @@ class Model implements ModelInterface, \JsonSerializable
         if (empty($fields)) return false;
 
         $this->query->unset('tables');
-        $this->query->set('type', DB_QUERY_INSERT);
+        $this->query->set('type', DBQuery::INSERT);
         $this->query->set('table', $this->getTable());
         $this->query->set('ignore', $this->insert_ignore);
 
@@ -658,7 +658,7 @@ class Model implements ModelInterface, \JsonSerializable
         // Reset back to select parameters 
         $this->changes     = [];
         $this->new_records = [];
-        $this->query->set('type', DB_QUERY_SELECT);
+        $this->query->set('type', DBQuery::SELECT);
         $this->query->set('tables', [$this->table]);
         unset($this->query->params['table']);
 
@@ -849,7 +849,7 @@ class Model implements ModelInterface, \JsonSerializable
     /**
      * Returns all row from the query statement result
      * 
-     * @return \Clicalmani\Flesco\Collection\Collection
+     * @return \Clicalmani\Collection\Collection
      */
     public static function all() 
     {
@@ -862,7 +862,7 @@ class Model implements ModelInterface, \JsonSerializable
      * @param array $exclude Parameters to exclude
      * @param array $flag A flag can be used to order the result set by specifics request parameters or limit the 
      *  number of rows to be returned the result set.
-     * @return \Clicalmani\Flesco\Collection\Collection
+     * @return \Clicalmani\Collection\Collection
      */
     public static function filter($exclude = [], $flag = [])
     {
@@ -905,7 +905,7 @@ class Model implements ModelInterface, \JsonSerializable
      */
     public function swap()
     {
-        $db          = \Clicalmani\Flesco\Database\DB::getInstance();
+        $db          = DB::getInstance();
         $table       = $db->getPrefix() . $this->getTable();
         $statement   = $db->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '" . env('DB_NAME', '') . "' AND TABLE_NAME = '$table'");
         
@@ -943,7 +943,7 @@ class Model implements ModelInterface, \JsonSerializable
     /**
      * Override: Create a seed for the model
      * 
-     * @return \Clicalmani\Flesco\Database\Factory\Factory
+     * @return \Clicalmani\Database\Factory\Factory
      */
     public static function seed() : Factory
     {

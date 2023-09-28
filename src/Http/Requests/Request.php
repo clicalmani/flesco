@@ -5,7 +5,7 @@ use Clicalmani\Flesco\Http\Controllers\RequestController;
 use Clicalmani\Flesco\Http\Requests\RequestFile;
 use Clicalmani\Flesco\Http\Requests\RequestRedirect;
 use Clicalmani\Flesco\Security\Security;
-use Clicalmani\Flesco\Routes\Route;
+use Clicalmani\Routes\Route;
 
 class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \JsonSerializable {
 
@@ -143,7 +143,8 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
 
     public function getHeaders()
     {
-        return getallheaders();
+        if ( inConsoleMode() ) return [];
+        return apache_request_headers();
     }
 
     public function getHeader($header_name)
@@ -174,7 +175,7 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
     {
         $check_csrf = false;
 
-        if ( \Clicalmani\Flesco\Routes\Route::isApi()) {
+        if ( \Clicalmani\Routes\Route::isApi()) {
             $check_csrf = false;
         } elseif ( strtolower( $_SERVER['REQUEST_METHOD'] ) !== 'get') {
             $check_csrf = true;
@@ -247,19 +248,27 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
 
     public function user() 
     {
-        $user_data = null;
-
+        /**
+         * Test case
+         */
+        $user_id = $this->test_user_id;
+        
         if ($payload = with ( new \Clicalmani\Flesco\Auth\JWT )->verifyToken($this->getToken())) {
 
-            $user_data  = json_decode($payload->jti);
+            $user_id  = json_decode($payload->jti);
         }
 
-        return with ( new \App\Authenticate\User( $this->session('user-id') ) )->user($user_data);
+        return with ( new \App\Authenticate\User( $this->session('user-id') ) )->user($user_id);
     }
 
     public function jsonSerialize() : mixed
     {
         return $_REQUEST;
+    }
+
+    public function make(array $parameters = []) : void
+    {
+        $_REQUEST = $parameters;
     }
 
     public function redirect()

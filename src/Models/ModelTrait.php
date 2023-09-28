@@ -21,7 +21,7 @@ Trait ModelTrait
             return ( count($arr) > 1 ) ? $arr[1]: $keys;
         }
         
-        return (new \Clicalmani\Flesco\Collection\Collection)
+        return (new \Clicalmani\Collection\Collection)
             ->exchange($keys)->map(function($key) {
                 $key = explode('.', trim($key));
                 return ( count($key) > 1 ) ? end($key): $key[0];
@@ -93,7 +93,7 @@ Trait ModelTrait
 
     function sanitizeAttributeName($name)
     {
-        $collection = new \Clicalmani\Flesco\Collection\Collection( explode('_', $name) );
+        $collection = new \Clicalmani\Collection\Collection( explode('_', $name) );
         return 'get' . join('', $collection->map(function($value) {
             return ucfirst($value);
         })->toArray()) . 'Attribute';

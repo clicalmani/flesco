@@ -39,7 +39,7 @@ $dotenv->safeLoad();
  * 
  * Here we define all the supported methods.
  */
-Clicalmani\Flesco\Routes\Route::$routines = [
+Clicalmani\Routes\Route::$routines = [
     'get'     => [], 
     'post'    => [],
     'options' => [],

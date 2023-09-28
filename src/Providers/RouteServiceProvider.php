@@ -1,7 +1,7 @@
 <?php
 namespace Clicalmani\Flesco\Providers; 
 
-use Clicalmani\Flesco\Routes\Route;
+use Clicalmani\Routes\Route;
 
 abstract class RouteServiceProvider extends ServiceProvider
 {
@@ -59,6 +59,8 @@ abstract class RouteServiceProvider extends ServiceProvider
 
     public function storeCSRFToken()
     {
+        if ( inConsoleMode() ) return;
+        
         if (session_status() == PHP_SESSION_NONE) {
             session_start();
         }

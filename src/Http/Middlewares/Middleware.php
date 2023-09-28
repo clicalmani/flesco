@@ -1,7 +1,7 @@
 <?php
 namespace Clicalmani\Flesco\Http\Middlewares;
 
-use Clicalmani\Flesco\Routes\Route;
+use Clicalmani\Routes\Route;
 
 abstract class Middleware 
 {
@@ -15,7 +15,7 @@ abstract class Middleware
         return true;
     }
 
-    public function group()
+    public function group() : static
     {
         $routes = Route::all();
 
@@ -29,7 +29,7 @@ abstract class Middleware
         return $this;
     }
 
-    public function prefix($prefix)
+    public function prefix(string $prefix) : void
     {
         Route::setPrefix($this->group, $prefix);
     }

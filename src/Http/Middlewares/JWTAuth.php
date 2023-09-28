@@ -2,6 +2,7 @@
 namespace Clicalmani\Flesco\Http\Middlewares;
 
 use Clicalmani\Flesco\Auth\JWT;
+use Clicalmani\Flesco\Http\Requests\Request;
 
 abstract class JWTAuth extends JWT
 {
@@ -14,7 +15,7 @@ abstract class JWTAuth extends JWT
         return routes_path( '/api.php' );
     }
 
-    function authorize($request) {
+    function authorize(Request $request) {
         return true;
     }
 }

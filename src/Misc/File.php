@@ -3,7 +3,6 @@ namespace Clicalmani\Flesco\Misc;
 
 class File 
 {
-    
 	private $file_name;
 	
     function __construct($name) {

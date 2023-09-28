@@ -25,7 +25,7 @@ class RequestRedirect {
 
     function error($message = '')
     {
-        $route($_SERVER['HTTP_REFERER'] . '?error=' . $message);
+        $this->route($_SERVER['HTTP_REFERER'] . '?error=' . $message);
     }
 
     function success($message = '')
