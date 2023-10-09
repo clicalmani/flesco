@@ -1,6 +1,8 @@
 <?php
 namespace Clicalmani\Flesco\Resources\Views;
 
+use Clicalmani\Flesco\Sandbox\Sandbox;
+
 class View 
 {
     static function render( ...$args ) 
@@ -14,31 +16,9 @@ class View
         if ( file_exists( $template_path ) AND is_readable( $template_path ) ) {
 
             $args = ( isset( $args[1] ) AND is_array( $args[1] ) ) ? $args[1]: [];
-            return @ self::eval(file_get_contents($template_path), $args);
+            return @ Sandbox::eval(file_get_contents($template_path), $args);
         }
 
         throw new \Clicalmani\Flesco\Exceptions\ResourceViewException('No resource found');
-    }
-
-    static function eval($exec, $args) {
-        
-        $args     = serialize($args);
-        $tmp_name = '__.php';
-
-        $content = <<<EVAL
-        <?php
-        \$serialized = <<<ARGS
-        $args
-        ARGS;
-        extract(unserialize(\$serialized));
-
-        return <<<DELIMITER
-            $exec
-        DELIMITER;
-        EVAL;
-        
-        file_put_contents(temp_dir() . '/' . $tmp_name, $content);
-
-        return include temp_dir() . '/' . $tmp_name;
     }
 }

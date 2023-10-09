@@ -4,52 +4,68 @@ global $root_path;
 
 $root_path = $root_path ?? $_SERVER['DOCUMENT_ROOT'];
 
+if (!preg_match('/.*\/$/', $root_path)) $root_path = $root_path . '/';
+
 if ( ! function_exists( 'root_path' ) ) {
-    function root_path( $path = '/' ) {
+    function root_path( $path = '' ) {
         global $root_path;
-        return $root_path . $path;
+        return $root_path . trim($path, '/\\');
     }
 }
 
 if ( ! function_exists( 'app_path' ) ) {
-    function app_path( $path = '/' ) {
-        return root_path( '/app' . $path );
+    function app_path( $path = '' ) {
+        if ($path) return root_path( 'app/' . trim($path, '/\\') );
+        return root_path('app');
+    }
+}
+
+if ( ! function_exists( 'public_path' ) ) {
+    function public_path( $path = '' ) {
+        if ($path) return root_path( 'public/' . trim($path, '/\\') );
+        return root_path('public');
     }
 }
 
 if ( ! function_exists( 'bootstrap_path' ) ) {
-    function bootstrap_path( $path = '/' ) {
-        return root_path( '/bootstrap' . $path );
+    function bootstrap_path( $path = '' ) {
+        if ($path) return root_path( 'bootstrap/' . trim($path, '/\\') );
+        return root_path('bootstrap');
     }
 }
 
 if ( ! function_exists( 'routes_path' ) ) {
-    function routes_path( $path = '/' ) {
-        return root_path( '/routes' . $path );
+    function routes_path( $path = '' ) {
+        if ($path) return root_path( 'routes/' . trim($path, '/\\') );
+        return root_path('routes');
     }
 }
 
 if ( ! function_exists( 'resources_path' ) ) {
-    function resources_path( $path = '/' ) {
-        return root_path( '/resources' . $path );
+    function resources_path( $path = '' ) {
+        if ($path) return root_path( 'resources/' . trim($path, '/\\') );
+        return root_path('resources');
     }
 }
 
 if ( ! function_exists( 'storage_path' ) ) {
-    function storage_path( $path = '/' ) {
-        return root_path( '/storage' . $path );
+    function storage_path( $path = '' ) {
+        if ($path) return root_path( 'storage/' . trim($path, '/\\') );
+        return root_path('storage');
     }
 }
 
 if ( ! function_exists( 'config_path' ) ) {
-    function config_path( $path = '/' ) {
-        return root_path( '/config' . $path );
+    function config_path( $path = '' ) {
+        if ($path) return root_path( 'config/' . trim($path, '/\\') );
+        return root_path('config');
     }
 }
 
 if ( ! function_exists( 'database_path' ) ) {
-    function database_path( $path = '/' ) {
-        return root_path( '/database' . $path );
+    function database_path( $path = '' ) {
+        if ($path) return root_path( 'database/' . trim($path, '/\\') );
+        return root_path('database');
     }
 }
 
@@ -210,7 +226,7 @@ if ( ! function_exists('recursive_unlink') ) {
 			    
 				if (in_array($file->getBaseName(), array('.', '..')) !== true) {
 				    
-					if ($file->isDir() === true) {
+					if ($file->isDir() === true) { 
 					    
 						@ rmdir($file->getPathName());
 					} elseif (($file->isFile() === true) || ($file->isLink() === true)) {
@@ -315,5 +331,11 @@ if ( ! function_exists('nocall') ) {
 if ( ! function_exists('faker') ) {
     function faker() {
         return new \Clicalmani\Database\Faker\Faker;
+    }
+}
+
+if ( ! function_exists('xdt') ) {
+    function xdt() {
+        return new \Clicalmani\XPower\XDT;
     }
 }

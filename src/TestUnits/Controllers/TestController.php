@@ -17,7 +17,9 @@ abstract class TestController extends TestCase
     private $action, 
             $override = [], 
             $user, 
-            $counter = 1;
+            $counter = 1,
+            $hash,
+            $headers;
 
     /**
      * Merges parameters
@@ -46,8 +48,28 @@ abstract class TestController extends TestCase
         }
 
         return $parameters;
-        return with( new \Clicalmani\Flesco\Http\Controllers\RequestController )
-                ->invokeControllerMethod($this->controller, $this->action);
+    }
+
+    /**
+     * Set request hash
+     * 
+     * @return void
+     */
+    private function setHash() : void
+    {
+        if ($this->hash instanceof Sequence) {
+            $this->override( ['hash' => with( new Request )->createParametersHash( call($this->hash) )]);
+        } else $this->override( ['hash' => $this->hash] );
+    }
+
+    /**
+     * Set request headers
+     * 
+     * @return void
+     */
+    private function setHeaders() : void
+    {
+        if ($this->headers instanceof Sequence) $this->override( call($this->headers) );
     }
 
     /**
@@ -108,7 +130,19 @@ abstract class TestController extends TestCase
     public function make($attributes = []) : void
     {
         foreach (range(1, $this->counter) as $num) {
+
             $request = new Request;
+
+            /**
+             * Request hash
+             */
+            if ($this->hash) $this->setHash();
+
+            /**
+             * Headers
+             */
+            if ($this->headers) $this->setHeaders();
+
             $parameters = $this->override($attributes);
 
             /**
@@ -129,9 +163,48 @@ abstract class TestController extends TestCase
                 } else $request->test_user_id = $this->user;
             }
 
-            echo with( new $this->controller )
-                    ->invokeControllerMethod($this->controller, $this->action);
+            print_r( with( new $this->controller )
+                    ->invokeControllerMethod($this->controller, $this->action) );
             if ($num < $this->counter) echo "\n";
         }
+    }
+
+    /**
+     * Create hash parameter
+     * 
+     * @param callable $callback
+     * @return static
+     */
+    public function hash(Sequence|array $parameters) : static
+    {
+        if ( is_array($parameters) ) $this->hash = with( new Request )->createParametersHash($parameters);
+        elseif ( $parameters instanceof Sequence ) $this->hash = $parameters;
+        return $this;
+    }
+
+    /**
+     * Set header
+     * 
+     * @param string $name
+     * @param string $value
+     * @return static
+     */
+    public function header(string $name, string $value) : static
+    {
+        $this->override( [$name => $value] );
+        return $this;
+    }
+
+    /**
+     * Set request headers
+     * 
+     * @param Sequence|array $headers
+     * @return static
+     */
+    public function headers(Sequence|array $headers) : static
+    {
+        if ( is_array($headers) ) $this->override( $headers );
+        elseif ( $headers instanceof Sequence ) $this->headers = $headers;
+        return $this;
     }
 }

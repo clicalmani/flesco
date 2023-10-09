@@ -1,7 +1,7 @@
 <?php
-namespace Clicalmani\Flesco\Misc;
+namespace Clicalmani\Flesco\Sandbox;
 
-class Tools
+class Sandbox
 {
     static function eval($exec, $args) {
         $args     = serialize($args);

@@ -1,6 +1,7 @@
 <?php
 namespace Clicalmani\Flesco\Models;
 
+use Clicalmani\Collection\Collection;
 use Clicalmani\Database\DB;
 use Clicalmani\Database\DBQuery;
 use Clicalmani\Database\Factory\Factory;
@@ -96,7 +97,7 @@ class Model implements ModelInterface, \JsonSerializable
             $before_delete = null,
             $after_delete = null;
 
-    public function __construct($id = null)
+    public function __construct(array|string|null $id = null)
     {
         $this->id    = $id;
         $this->query = new DBQuery;
@@ -115,7 +116,7 @@ class Model implements ModelInterface, \JsonSerializable
      * @param bool $required_alias Wether to include table alias or not
      * @return string Table name
      */
-    public function getTable($required_alias = false)
+    public function getTable(bool $required_alias = false) : string
     {
         if ($required_alias) return $this->table;
        
@@ -129,7 +130,7 @@ class Model implements ModelInterface, \JsonSerializable
      * @param bool $required_alias When true table alias will be prepended to the key. Default to false
      * @return string|array
      */
-    public function getKey($required_alias = false)
+    public function getKey(bool $required_alias = false) : string|array
     {
         if (false == $required_alias) return $this->cleanKey( $this->primaryKey );
 
@@ -141,7 +142,7 @@ class Model implements ModelInterface, \JsonSerializable
      * 
      * @return array Attributes list
      */
-    protected function getAttributes()
+    protected function getAttributes() : array
     {
         return $this->attributes;
     }
@@ -151,7 +152,7 @@ class Model implements ModelInterface, \JsonSerializable
      * 
      * @return array Custom attributes
      */
-    protected function getCustomAttributes()
+    protected function getCustomAttributes() : array
     {
         return $this->appendAttributes;
     }
@@ -161,7 +162,7 @@ class Model implements ModelInterface, \JsonSerializable
      * 
      * @return bool True if defined, false otherwise
      */
-    private function isAliasRequired()
+    private function isAliasRequired() : bool
     {
         /**
          * Insert query
@@ -184,7 +185,7 @@ class Model implements ModelInterface, \JsonSerializable
      * 
      * @return \Clicalmani\Database\DBQuery
      */
-    private function getQuery()
+    private function getQuery() : DBQuery
     {
         return $this->query;
     }
@@ -195,7 +196,7 @@ class Model implements ModelInterface, \JsonSerializable
      * @see get_called_class() function
      * @return string Class name
      */
-    private static function getClassName()
+    private static function getClassName() : string
     {
         return get_called_class();
     }
@@ -204,8 +205,9 @@ class Model implements ModelInterface, \JsonSerializable
      * Return the model instance. Usefull for static methods call.
      * 
      * @param string|array $id [optional] Primary key value
+     * @return static|null
      */
-    private static function getInstance($id = null)
+    private static function getInstance(string|array $id = null) : static|null
     {
         $class = static::getClassName();
         return with ( new $class($id) );
@@ -217,7 +219,7 @@ class Model implements ModelInterface, \JsonSerializable
      * @param string $fields SQL select statement of the column to show up in the result set.
      * @return \Clicalmani\Collection\Collection
      */
-    public function get($fields = '*')
+    public function get(string $fields = '*') : Collection
     {
         try {
             if ( !$this->query->getParam('where') AND $this->id) {
@@ -240,7 +242,7 @@ class Model implements ModelInterface, \JsonSerializable
      * 
      * @return \Clicalmani\Collection\Collection
      */
-    public function fetch()
+    public function fetch() : Collection
     {
         return $this->get()->map(function($row) {
             $instance = static::getInstance();
@@ -252,9 +254,9 @@ class Model implements ModelInterface, \JsonSerializable
      * Allows to define the where condition of the SQL statement
      * 
      * @param string $criteria [optional] 
-     * @return \Clicalmani\Flesco\Models\Model Instance for chaining purpose.
+     * @return static
      */
-    public static function where($criteria = '1')
+    public static function where(string $criteria = '1') : static
     {
         $instance = static::getInstance();
         $instance->getQuery()->where($criteria);
@@ -266,9 +268,9 @@ class Model implements ModelInterface, \JsonSerializable
      * Alias of where. Useful when using where multiple times with AND as the conditional operator.
      * 
      * @param string $criteria [optional] 
-     * @return \Clicalmani\Flesco\Models\Model Instance for chaining purpose.
+     * @return static
      */
-    public function whereAnd($criteria = '1')
+    public function whereAnd(string $criteria = '1') : static
     {
         $this->query->where($criteria);
         return $this;
@@ -278,9 +280,9 @@ class Model implements ModelInterface, \JsonSerializable
      * Same as whereAnd with the difference of operator which is in this case OR.
      * 
      * @param string $criteria [optional] 
-     * @return \Clicalmani\Flesco\Models\Model Instance for chaining purpose.
+     * @return static
      */
-    public function whereOr($criteria = '1')
+    public function whereOr(string $criteria = '1') : static
     {
         $this->query->where($criteria, 'OR');
         return $this;
@@ -290,9 +292,9 @@ class Model implements ModelInterface, \JsonSerializable
      * Define the SQL order by statement.
      * 
      * @param string $order SQL order by statement
-     * @return \Clicalmani\Flesco\Models\Model Instance for chaining purpose.
+     * @return static
      */
-    public function orderBy($order)
+    public function orderBy(string $order) : static
     {
         $this->query->params['order_by'] = $order;
         return $this;
@@ -303,7 +305,7 @@ class Model implements ModelInterface, \JsonSerializable
      * 
      * @return bool true if success, false otherwise
      */
-    public function delete()
+    public function delete() : bool
     {
         if (isset($this->id) AND isset($this->primaryKey)) {
 
@@ -329,10 +331,10 @@ class Model implements ModelInterface, \JsonSerializable
     /**
      * Execute a registered model event observer
      * 
-     * @param \Closure $observer Observer
+     * @param string $observer Observer
      * @return void
      */
-    private function callBootObserver($observer)
+    private function callBootObserver(string $observer) : void
     {
         if (self::$triggerEvents && $this->{$observer}) {
             $closure = $this->{$observer};
@@ -345,7 +347,7 @@ class Model implements ModelInterface, \JsonSerializable
      * 
      * @return bool True on success, false on failure
      */
-    public function forceDelete()
+    public function forceDelete() : bool
     {
         // A delete operation must be set on a condition
         if (!empty($this->query->params['where'])) {
@@ -356,12 +358,25 @@ class Model implements ModelInterface, \JsonSerializable
     }
 
     /**
+     * Make a delete possible but never delete
+     * 
+     * @return false
+     */
+    public function softDelete() : bool
+    {
+        return DB::getInstance()->beginTransaction(function() {
+            $this->delete();
+            return false;
+        });
+    }
+
+    /**
      * Update model
      * 
      * @param array $value [Optional] Attribuets values
      * @return bool True on success, false on failure
      */
-    public function update($values = [])
+    public function update(array $values = []) : bool
     {
         if (empty($values)) return false;
         
@@ -417,6 +432,9 @@ class Model implements ModelInterface, \JsonSerializable
                 // After update boot
                 $this->callBootObserver('after_update');
             }
+
+            // Restore state
+            $this->query->set('type', DBQuery::SELECT);
             
             return $success;
         } 
@@ -430,7 +448,7 @@ class Model implements ModelInterface, \JsonSerializable
      * @param array $fields Row attributes values
      * @return bool True on success, false on failure
      */
-    public function insert($fields = [])
+    public function insert(array $fields = []) : bool
     {
         if (empty($fields)) return false;
 
@@ -475,6 +493,10 @@ class Model implements ModelInterface, \JsonSerializable
         // After create boot
         $this->callBootObserver('after_create');
 
+        $this->query->unset('table');
+        $this->query->set('type', DBQuery::SELECT);
+        $this->query->set('tables', [$this->getTable()]);
+
         return $success;
     }
 
@@ -484,7 +506,7 @@ class Model implements ModelInterface, \JsonSerializable
      * @param array $fields Attributes values
      * @return bool True if success, false otherwise
      */
-    public function create($fields = [])
+    public function create(array $fields = []) : bool
     {
         return $this->insert($fields);
     }
@@ -497,7 +519,7 @@ class Model implements ModelInterface, \JsonSerializable
      * @param array $fields Attributes values
      * @return bool True if success, false otherwise
      */
-    public function createOrFail($fields = [])
+    public function createOrFail(array $fields = []) : bool
     {
         try {
             return $this->create($fields);
@@ -510,9 +532,9 @@ class Model implements ModelInterface, \JsonSerializable
      * Define the from statement when deleting from joined models.
      * 
      * @param string $fields SQL FROM statement
-     * @return \Clicalmani\Flesco\Models\Model Instance for chaining purpose.
+     * @return static
      */
-    public function from($fields)
+    public function from(string $fields)
     {
         $this->query->from($fields);
         return $this;
@@ -523,9 +545,9 @@ class Model implements ModelInterface, \JsonSerializable
      * the model to a sub query (as this is possible with SQL). So this method allows such an operation.
      * 
      * @param string $query The sub query to joined to
-     * @return \Clicalmani\Flesco\Models\Model Instance for chaining purpose.
+     * @return static
      */
-    public function subQuery($query)
+    public function subQuery(string $query) : static
     {
         $this->query->set('sub_query', $query);
         return $this;
@@ -535,9 +557,9 @@ class Model implements ModelInterface, \JsonSerializable
      * Returns distinct rows in the selection result.
      * 
      * @param bool $distinct True to enable or false to disable
-     * @return \Clicalmani\Flesco\Models\Model Instance for chaining purpose.
+     * @return static
      */
-    public function distinct($distinct = true)
+    public function distinct(bool $distinct = true) : static
     {
         $this->select_distinct = $distinct;
         return $this;
@@ -550,9 +572,9 @@ class Model implements ModelInterface, \JsonSerializable
      * @param string $class Parent model
      * @param string $foreign_key [Optional] Table foreign key
      * @param string $parent_key [Optional] original key
-     * @return \Clicalmani\Flesco\Models\Model Instance for chaining purpose.
+     * @return mixed
      */
-    protected function belongsTo($class, $foreign_key = null, $original_key = null)
+    protected function belongsTo(string $class, string|null $foreign_key = null, string|null $original_key = null) : mixed
     { 
         if (!$this->id) {
             return null;
@@ -583,9 +605,9 @@ class Model implements ModelInterface, \JsonSerializable
      * @param string $class Parent model
      * @param string $foreign_key [Optional] Table foreign key
      * @param string $parent_key [Optional] original key
-     * @return \Clicalmani\Flesco\Models\Model Instance for chaining purpose.
+     * @return mixed
      */
-    protected function hasOne($class, $foreign_key = null, $original_key = null)
+    protected function hasOne(string $class, string|null $foreign_key = null, string|null $original_key = null) : mixed
     {
         // Make sure the model exists
         if (!$this->id) {
@@ -616,9 +638,9 @@ class Model implements ModelInterface, \JsonSerializable
      * @param string $class Child model
      * @param string $foreign_key [Optional] Table foreign key
      * @param string $original_key [Optional] Original key
-     * @return \Clicalmani\Flesco\Models\Model Instance for chaining purpose.
+     * @return \Clicalmani\Collection\Collection
      */
-    protected function hasMany($class, $foreign_key = null, $original_key = null)
+    protected function hasMany($class, $foreign_key = null, $original_key = null) : Collection
     {
         // Make sure the model exists
         if (!$this->id) {
@@ -643,7 +665,7 @@ class Model implements ModelInterface, \JsonSerializable
      * 
      * @return bool True on success, false on failure
      */
-    public function save()
+    public function save() : bool
     {
         $success = true;
 
@@ -671,7 +693,7 @@ class Model implements ModelInterface, \JsonSerializable
      * @param array $records A record to guess the ID from (Internal use)
      * @return string|array
      */
-    public function lastInsertId($record = null)
+    public function lastInsertId(array $record = []) : string|array
     {
         $last_insert_id = DB::getPdo()->lastInsertId();
 
@@ -685,9 +707,9 @@ class Model implements ModelInterface, \JsonSerializable
     /**
      * Returns the first value in the selected result
      * 
-     * @return \Clicalmani\Flesco\Models\Model|null
+     * @return static|null
      */
-    public function first()
+    public function first() : static|null
     {
         $collection = $this->get();
         
@@ -709,9 +731,9 @@ class Model implements ModelInterface, \JsonSerializable
      * @param string $foreign_key [Optional] Foreign key
      * @param string $original_key [Optional] Original key
      * @param string $type [Optional] Join type default LEFT
-     * @return \Clicalmani\Flesco\Models\Model Current model for chaining purpose.
+     * @return static
      */
-    public function join($model, $foreign_key = null, $original_key = null, $type = 'LEFT')
+    public function join(Model|string $model, string|null $foreign_key = null, string|null $original_key = null, string $type = 'LEFT') : static
     {
         $original_key = $original_key ?? $foreign_key;                              // The original key is the parent
                                                                                     // primary key
@@ -750,9 +772,9 @@ class Model implements ModelInterface, \JsonSerializable
      * Defines SQL having statement
      * 
      * @param string $criteria Having statement
-     * @return \Clicalmani\Flesco\Models\Model Instance for chaining purpose.
+     * @return static
      */
-    public function having($criteria)
+    public function having(string $criteria) : static
     {
         $this->query->having($criteria);
 
@@ -763,9 +785,9 @@ class Model implements ModelInterface, \JsonSerializable
      * Defines SQL group by statement
      * 
      * @param string $criteria SQL group by statement
-     * @return \Clicalmani\Flesco\Models\Model Instance for chaining purpose.
+     * @return static
      */
-    public function groupBy($criteria)
+    public function groupBy(string $criteria) : static
     {
         $this->query->groupBy($criteria);
 
@@ -776,9 +798,9 @@ class Model implements ModelInterface, \JsonSerializable
      * Ignores duplicates keys
      * 
      * @param bool $ignore
-     * @return \Clicalmani\Flesco\Models\Model Instance for chaining purpose.
+     * @return static
      */
-    public function ignore(bool $ignore = true)
+    public function ignore(bool $ignore = true) : static
     {
         $this->insert_ignore = $ignore;
         return $this;
@@ -788,9 +810,9 @@ class Model implements ModelInterface, \JsonSerializable
      * Enable or disable SQL CALC_FOUND_ROWS
      * 
      * @param bool $calc
-     * @return \Clicalmani\Flesco\Models\Model Instance for chaining purpose.
+     * @return static
      */
-    public function calcFoundRows(bool $calc = true)
+    public function calcFoundRows(bool $calc = true) : static
     {
         $this->calc_found_rows = $calc;
         return $this;
@@ -800,9 +822,9 @@ class Model implements ModelInterface, \JsonSerializable
      * Limit the number of rows to be returned in the query result.
      * 
      * @param int $limit Number of rows
-     * @return \Clicalmani\Flesco\Models\Model Instance for chaining purpose.
+     * @return static
      */
-    public function limit(int $limit = 0)
+    public function limit(int $limit = 0) : static
     {
         $this->query->set('limit', $limit);
         return $this;
@@ -812,9 +834,9 @@ class Model implements ModelInterface, \JsonSerializable
      * Sets the offset to start from when limit is set
      * 
      * @param int $offset
-     * @return \Clicalmani\Flesco\Models\Model Instance for chaining purpose.
+     * @return static
      */
-    public function offset(int $offset = 0)
+    public function offset(int $offset = 0) : static
     {
         $this->query->set('offset', $offset);
         return $this;
@@ -824,9 +846,9 @@ class Model implements ModelInterface, \JsonSerializable
      * Returns a specified row defined by a specified primary key.
      * 
      * @param string|array $id Primary key value
-     * @return \Clicalmani\Flesco\Models\Model|null
+     * @return static|null
      */
-    public static function find( $id ) 
+    public static function find( $id ) : static|null
     {
         $instance = static::getInstance($id);
         return $instance->get()->count() ? $instance: null;
@@ -835,9 +857,9 @@ class Model implements ModelInterface, \JsonSerializable
     /**
      * @deprecated
      * @see all method
-     * @return \Clicalmani\Flesco\Models\Model|null
+     * @return \Clicalmani\Collection\Collection
      */
-    public static function findAll() 
+    public static function findAll() : Collection
     {
         $instance = static::getInstance();
         
@@ -851,7 +873,7 @@ class Model implements ModelInterface, \JsonSerializable
      * 
      * @return \Clicalmani\Collection\Collection
      */
-    public static function all() 
+    public static function all() : Collection
     {
         return static::findAll();
     }
@@ -864,7 +886,7 @@ class Model implements ModelInterface, \JsonSerializable
      *  number of rows to be returned the result set.
      * @return \Clicalmani\Collection\Collection
      */
-    public static function filter($exclude = [], $flag = [])
+    public static function filter(array $exclude = [], array $flag = []) : Collection
     {
         $flag = (object) $flag;
 
@@ -901,9 +923,9 @@ class Model implements ModelInterface, \JsonSerializable
     /**
      * Insert new row or update row from request parameters
      * 
-     * @return \Clicalmani\Flesco\Models\Model Instance for chaining purpose.
+     * @return static
      */
-    public function swap()
+    public function swap() : static
     {
         $db          = DB::getInstance();
         $table       = $db->getPrefix() . $this->getTable();
@@ -929,12 +951,13 @@ class Model implements ModelInterface, \JsonSerializable
 
     /**
      * @deprecated
+     * @return bool
      */
-    public function swapOut()
+    public function swapOut() : bool
     {
         try {
             $this->swap();
-            $this->save();
+            return $this->save();
         } catch (\PDOException $e) {
             throw new ModelException($e->getMessage());
         }
@@ -953,10 +976,11 @@ class Model implements ModelInterface, \JsonSerializable
     /**
      * Before create trigger
      * 
-     * @param \Closure $closure Trigger function
+     * @param callable $closure Trigger function
      * @return void
      */
-    protected function beforeCreate($closure) {
+    protected function beforeCreate(?callable $closure) : void
+    {
         if ($closure AND is_callable($closure, true, $before)) {
             $this->before_create = $closure;
         }
@@ -965,10 +989,11 @@ class Model implements ModelInterface, \JsonSerializable
     /**
      * After create trigger
      * 
-     * @param \Closure $closure Trigger function
-     * @return \Clicalmani\Flesco\Models\Model Instance for chaining purpose.
+     * @param callable $closure Trigger function
+     * @return static
      */
-    protected function afterCreate($closure) {
+    protected function afterCreate(?callable $closure) : void
+    {
         if ($closure AND is_callable($closure, true, $after)) {
             $this->after_create = $closure;
         }
@@ -977,10 +1002,11 @@ class Model implements ModelInterface, \JsonSerializable
     /**
      * Before update trigger
      * 
-     * @param \Closure $closure Trigger function
-     * @return \Clicalmani\Flesco\Models\Model Instance for chaining purpose.
+     * @param callable $closure Trigger function
+     * @return void
      */
-    protected function beforeUpdate($closure) {
+    protected function beforeUpdate(?callable $closure) : void
+    {
         if ($closure AND is_callable($closure, true, $before)) {
             $this->before_update = $closure;
         }
@@ -989,10 +1015,11 @@ class Model implements ModelInterface, \JsonSerializable
     /**
      * After update trigger
      * 
-     * @param \Closure $closure Trigger function
-     * @return \Clicalmani\Flesco\Models\Model Instance for chaining purpose.
+     * @param callable $closure Trigger function
+     * @return void
      */
-    protected function afterUpdate($closure) {
+    protected function afterUpdate(?callable $closure) : void
+    {
         if ($closure AND is_callable($closure, true, $after)) {
             $this->after_update = $closure;
         }
@@ -1001,10 +1028,11 @@ class Model implements ModelInterface, \JsonSerializable
     /**
      * Before delete trigger
      * 
-     * @param \Closure $closure Trigger function
-     * @return \Clicalmani\Flesco\Models\Model Instance for chaining purpose.
+     * @param callable $closure Trigger function
+     * @return void
      */
-    protected function beforeDelete($closure) {
+    protected function beforeDelete(?callable $closure) : void
+    {
         if ($closure AND is_callable($closure, true, $before)) {
             $this->before_delete = $closure;
         }
@@ -1013,16 +1041,21 @@ class Model implements ModelInterface, \JsonSerializable
     /**
      * After delete trigger
      * 
-     * @param \Closure $closure Trigger function
-     * @return \Clicalmani\Flesco\Models\Model Instance for chaining purpose.
+     * @param callable $closure Trigger function
+     * @return void
      */
-    protected function afterDelete($closure) {
+    protected function afterDelete(?callable $closure) : void
+    {
         if ($closure AND is_callable($closure, true, $after)) {
             $this->after_delete = $closure;
         }
     }
 
-    public function __get($attribute)
+    /**
+     * @param string $attribute 
+     * @return mixed
+     */
+    public function __get(string $attribute) : mixed
     {
         if (empty($attribute)) {
             return null;
@@ -1058,7 +1091,12 @@ class Model implements ModelInterface, \JsonSerializable
         throw new \Exception("Access to undeclared property $attribute on object");
     }
 
-    function __set($attribute, $value)
+    /**
+     * @param string $attribute
+     * @param mixed $value
+     * @return void
+     */
+    public function __set(string $attribute, mixed $value) : void
     {
         $db = DB::getInstance();
         $table = $db->getPrefix() . $this->getTable();
@@ -1085,12 +1123,12 @@ class Model implements ModelInterface, \JsonSerializable
         throw new \Exception("Can not update or insert new record on unknow");
     }
 
-    function __toString()
+    public function __toString() : string
     {
         return json_encode( $this );
     }
 
-    function jsonSerialize() : mixed
+    public function jsonSerialize() : mixed
     {
         if (!$this->id) {
             return null;
@@ -1137,7 +1175,7 @@ class Model implements ModelInterface, \JsonSerializable
      * 
      * @return void
      */
-    public function boot()
+    public function boot() : void
     {
         /**
          * TODO

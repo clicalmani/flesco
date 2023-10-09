@@ -8,31 +8,30 @@
  * 
  * 
  */
-require_once dirname( __DIR__ ) . '/helpers.php';
+
+\Clicalmani\Flesco\Support\Helper::include();
 
 /**
  * |----------------------------------------------------------------
- * |              ***** Class Auto Loader *****
+ * |            ***** Container AutoLoader *****
  * |----------------------------------------------------------------
  * 
- * Simple SPL Autoloader
- * 
- * Classes defined in the App directory, will be automatically loaded.
+ * Classes defined in the app directory will be automatically injected.
  */
 new Clicalmani\Container\SPL_Loader( root_path() );
 
 /**
  * Error log
  */
-ini_set('log_errors', 1);
-ini_set('error_log', storage_path( '/errors/errors.log' ) );
+\Clicalmani\Flesco\Support\Log::init();
 
 /**
- * Load environment variable to $_ENV
+ * Load environment variables
  */
-global $dotenv;
-$dotenv = Dotenv\Dotenv::createImmutable( root_path() );
-$dotenv->safeLoad();
+\Dotenv\Dotenv::create(
+    \Clicalmani\Flesco\Support\Env::getRepository(), 
+    root_path()
+)->safeLoad();
 
 /**
  * Route methods definition

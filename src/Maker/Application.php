@@ -9,12 +9,12 @@ namespace Clicalmani\Flesco\Maker;
  */
 class Application extends \Symfony\Component\Console\Application
 {
-    function __construct(private $root_path = null)
+    public function __construct(private $root_path = null)
     {
         parent::__construct();
     }
 
-    function make()
+    public function make()
     {
         // Console Kernel
         $kernel = \Clicalmani\Console\Kernel::$kernel;

@@ -47,7 +47,7 @@ abstract class RequestController extends HttpRequest
 			return self::$controller;
 		}
 		
-		throw new RouteNotFoundException;
+		throw new RouteNotFoundException( current_route() );
     }
 
 	public static function getRoutine($request)
@@ -186,7 +186,9 @@ abstract class RequestController extends HttpRequest
 
 	private static function getParameters($request)
     {
-        preg_match_all('/:[^\/]+/', self::$route, $mathes);
+		if ( inConsoleMode() ) return with( new Request )->all();
+		
+        preg_match_all('/:[^\/]+/', (string) self::$route, $mathes);
 
         $parameters = [];
         

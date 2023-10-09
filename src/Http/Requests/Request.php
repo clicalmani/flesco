@@ -143,7 +143,7 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
 
     public function getHeaders()
     {
-        if ( inConsoleMode() ) return [];
+        if ( inConsoleMode() ) return $this->all();
         return apache_request_headers();
     }
 

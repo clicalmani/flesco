@@ -364,7 +364,7 @@ class ParseInputStream
 				// Log::warning( "ParseInputStream.parse_parameter() Parameter name regex failed: '" . $parameter . "'" );
 			}
 		} else {
-            if (array_key_exists($parameter, $params)) $params[$parameter] = array_merge($params[$parameter], $value);
+            if (array_key_exists($parameter, $params) && is_array($params[$parameter])) $params[$parameter] = array_merge($params[$parameter], $value);
 			else $params[$parameter] = $value;
 		}
 	}
