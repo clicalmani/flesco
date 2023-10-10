@@ -400,6 +400,7 @@ class Model implements ModelInterface, \JsonSerializable
             $this->query->set('fields',  $fields);
 		    $this->query->set('values', $values);
             $this->query->set('where', $criteria);
+            $this->query->set('ignore', $this->insert_ignore);
             
             $success = $this->query->exec()->status() === 'success';
 
@@ -691,9 +692,9 @@ class Model implements ModelInterface, \JsonSerializable
      * Returns the last inserted ID for auto incremented keys
      * 
      * @param array $records A record to guess the ID from (Internal use)
-     * @return string|array
+     * @return mixed
      */
-    public function lastInsertId(array $record = []) : string|array
+    public function lastInsertId(array $record = []) : mixed
     {
         $last_insert_id = DB::getPdo()->lastInsertId();
 

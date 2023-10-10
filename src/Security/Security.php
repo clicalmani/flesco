@@ -219,7 +219,7 @@ class Security {
 		$encrypt_method = "AES-256-CBC";
 		
 		// hash
-		$key = hash('sha256', self::SECRET_KEY);
+		$key = hash('sha256', $_ENV['APP_KEY']);
 		
 		// iv - encrypt method AES-256-CBC expects 16 bytes - else you will get a warning
 		$iv = self::iv();
