@@ -237,21 +237,25 @@ class Model implements ModelInterface, \JsonSerializable
     }
 
     /**
-     * Insted of returning the raw result from the SQL database, every row in the result set will be
-     * returned as a model instance.
+     * Instead of returning a raw SQL statement result, every row in the result set will be
+     * matched to a table model.
      * 
+     * @param string $class [Optional] Model class to be returned. If not specified the outer left table model of the joint will be used.
      * @return \Clicalmani\Collection\Collection
      */
-    public function fetch() : Collection
+    public function fetch(string $class = null) : Collection
     {
-        return $this->get()->map(function($row) {
-            $instance = static::getInstance();
+        return $this->get()->map(function($row) use($class) {
+
+            if ($class) $instance = new $class;
+            else $instance = static::getInstance();
+
             return static::getInstance( $instance->guessKeyValue($row) );
         });
     }
 
     /**
-     * Allows to define the where condition of the SQL statement
+     * Define the where condition of the SQL statement
      * 
      * @param string $criteria [optional] 
      * @return static
@@ -726,7 +730,7 @@ class Model implements ModelInterface, \JsonSerializable
     }
 
     /**
-     * Joins two models
+     * Join models
      * 
      * @param string|\Clicalmani\Flesco\Models\Model $model Specified model
      * @param string $foreign_key [Optional] Foreign key
@@ -752,6 +756,11 @@ class Model implements ModelInterface, \JsonSerializable
             $model = new $model;
         }
 
+        /**
+         * Duplicate joints
+         * 
+         * If table is already joint, the first joint will be maintained
+         */
         $joints = $this->query->getParam('join');
 
         if ( $joints ) {
@@ -880,35 +889,36 @@ class Model implements ModelInterface, \JsonSerializable
     }
 
     /**
-     * Filter the selected rows in a SQL result by using query parameters.
+     * Filter the current SQL statement result by using a provided request query parameters.
+     * The query parameters will be automatically fetched. A filter can be used to exclude some
+     * specific parameters. 
      * 
      * @param array $exclude Parameters to exclude
-     * @param array $flag A flag can be used to order the result set by specifics request parameters or limit the 
-     *  number of rows to be returned the result set.
+     * @param array $options Options can be used to order the result set by specifics request parameters or limit the 
+     *  number of rows to be returned in the result set.
      * @return \Clicalmani\Collection\Collection
      */
-    public static function filter(array $exclude = [], array $flag = []) : Collection
+    public static function filter(array $exclude = [], array $options = []) : Collection
     {
-        $flag = (object) $flag;
+        $options = (object) $options;
 
-        $filters     = (new \Clicalmani\Flesco\Http\Requests\Request)->where($exclude);
+        $filters     = with (new \Clicalmani\Flesco\Http\Requests\Request)->where($exclude);
         $child_class = static::getClassName();
-        $child       = new $child_class;
 
         if ( $filters ) {
             try {
                 $obj = $child_class::where(join(' AND ', $filters));
 
-                if (@ $flag->order_by) {
-                    $obj->orderBy($flag->order_by);
+                if (@ $options->order_by) {
+                    $obj->orderBy($options->order_by);
                 }
 
-                if (@ $flag->offset) {
-                    $obj->offset($flag->offset);
+                if (@ $options->offset) {
+                    $obj->offset($options->offset);
                 }
 
-                if (@ $flag->limit) {
-                    $obj->limit($flag->limit);
+                if (@ $options->limit) {
+                    $obj->limit($options->limit);
                 }
 
                 return $obj->fetch();
@@ -943,12 +953,6 @@ class Model implements ModelInterface, \JsonSerializable
         
         return $this;
     }
-
-    /**
-     * @deprecated
-     */
-    public static function swapIn()
-    {}
 
     /**
      * @deprecated
