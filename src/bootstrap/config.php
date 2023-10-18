@@ -34,15 +34,6 @@ new Clicalmani\Container\SPL_Loader( root_path() );
 )->safeLoad();
 
 /**
- * Route methods definition
- * 
- * Here we define all the supported methods.
+ * Init routing
  */
-Clicalmani\Routes\Route::$routines = [
-    'get'     => [], 
-    'post'    => [],
-    'options' => [],
-    'delete'  => [],
-    'put'     => [],
-    'patch'   => []
-];
+Clicalmani\Routes\Route::init();

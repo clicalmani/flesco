@@ -243,14 +243,11 @@ class Model implements ModelInterface, \JsonSerializable
      * @param string $class [Optional] Model class to be returned. If not specified the outer left table model of the joint will be used.
      * @return \Clicalmani\Collection\Collection
      */
-    public function fetch(string $class = null) : Collection
+    public function fetch(?string $class = null) : Collection
     {
         return $this->get()->map(function($row) use($class) {
-
-            if ($class) $instance = new $class;
-            else $instance = static::getInstance();
-
-            return static::getInstance( $instance->guessKeyValue($row) );
+            if ($class) return $class::getInstance( with( new $class )->guessKeyValue($row) );
+            return static::getInstance( with( static::getInstance() )->guessKeyValue($row) );
         });
     }
 

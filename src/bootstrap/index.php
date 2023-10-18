@@ -1,16 +1,24 @@
 <?php
 /**
  * |---------------------------------------------------------
- * |              ***** Bootstrap *****
+ * |                     App Bootstrap
  * |---------------------------------------------------------
  * 
- * Bootstraping 
- * 
- * Here we setup all the necessary configurations and providers.
+ * Set up app config
  */
 
 require_once 'config.php'; 
-require_once bootstrap_path( '/providers.php' ); 
+
+/**
+ * |------------------------------------------------------------------
+ * |                    Init Service Providers
+ * |------------------------------------------------------------------
+ * 
+ */
+
+\Clicalmani\Flesco\Providers\ServiceProvider::init(
+    $kernel = require_once bootstrap_path( '/kernel.php' )
+);
 
 /**
  * |------------------------------------------------------------------
@@ -24,16 +32,7 @@ require_once bootstrap_path( '/providers.php' );
  * So that they can access any other class.
  */
 
-$custom_helpers = \Clicalmani\Flesco\Providers\ServiceProvider::$providers['helpers'];
-
-if ( !empty($custom_helpers) ) {
-    foreach ($custom_helpers as $helper) {
-        $helper = realpath( root_path( '/' . $helper ) );
-        if (file_exists($helper) AND is_readable($helper)) {
-            include_once $helper;
-        }
-    }
-}
+\Clicalmani\Flesco\Providers\ServiceProvider::helpers();
 
 /**
  * Provide route service

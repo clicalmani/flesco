@@ -339,3 +339,18 @@ if ( ! function_exists('xdt') ) {
         return new \Clicalmani\XPower\XDT;
     }
 }
+
+if ( ! function_exists('token') ) {
+    function token(mixed $data, int $seconds) {
+        $jwt = new \Clicalmani\Flesco\Auth\JWT;
+        $jwt->setJti( json_encode($data) );
+        $jwt->setExpiry($seconds/(60*60*24)); // expiry in days
+        return $jwt->generateToken();
+    }
+}
+
+if ( ! function_exists('get_payload') ) {
+    function get_payload(string $token) {
+        return with ( new \Clicalmani\Flesco\Auth\JWT )->verifyToken($token);
+    }
+}

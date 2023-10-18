@@ -49,7 +49,7 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
     public function __construct( $signatures = [] ) {
         $this->signatures = $signatures;
 
-        if ('api' === Route::getGateway() AND in_array(static::getMethod(), ['patch', 'put'])) {
+        if ('api' === Route::gateway() AND in_array(static::getMethod(), ['patch', 'put'])) {
             $params = [];
             $parser = new \Clicalmani\Flesco\Http\Requests\ParseInputStream($params);
             

@@ -2,7 +2,8 @@
 namespace Clicalmani\Flesco\Http\Controllers;
 
 use Clicalmani\Routes\Route;
-use Clicalmani\Routes\Routines;
+use Clicalmani\Routes\Routing;
+use Clicalmani\Routes\ResourceRoutines;
 use Clicalmani\Flesco\Http\Requests\Request;
 use Clicalmani\Flesco\Http\Requests\HttpRequest;
 use Clicalmani\Routes\Exceptions\RouteNotFoundException;
@@ -12,8 +13,8 @@ require_once dirname( dirname( __DIR__ ) ) . '/bootstrap/index.php';
 
 abstract class RequestController extends HttpRequest 
 {
-	static $controller;
-	static $route;
+	private static $controller;
+	private static $route;
 
 	public static function render()
 	{
@@ -32,7 +33,7 @@ abstract class RequestController extends HttpRequest
 		$request = new Request([]);
 		$method = $request->getMethod();
 		
-		if ($route = Route::exists($method)) { 
+		if ($route = Routing::route()) { 
 			
 			$middlewares = Route::getCurrentRouteMiddlewares();
 			
@@ -124,7 +125,7 @@ abstract class RequestController extends HttpRequest
 
 					$resource = self::getResource();
 
-					if ( array_key_exists('missing', $resource->methods) ) {
+					if (array_key_exists('missing', (array) $resource?->methods) ) {
 						return $resource->methods['missing']['caller']();
 					}
 
@@ -311,12 +312,8 @@ abstract class RequestController extends HttpRequest
 		// Resource
 		$sseq = preg_split('/\//', self::$route, -1, PREG_SPLIT_NO_EMPTY);
 		$resource = Route::isApi() ? $sseq[1]: $sseq[0];
-		
-		if ( array_key_exists($resource, Routines::$resources) ) {
-			return (object) Routines::$resources[$resource];
-		}
 
-		return null;
+		return ResourceRoutines::getRoutines($resource);
 	}
 
 	private static function getResourceDistinct($resource, $method, $obj)
