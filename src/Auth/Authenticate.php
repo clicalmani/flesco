@@ -3,25 +3,33 @@ namespace Clicalmani\Flesco\Auth;
 
 use App\Models\User;
 
-abstract class Authenticate implements \ArrayAccess {
-	
-	protected $user_id;
+abstract class Authenticate implements \ArrayAccess 
+{
+	/**
+	 * Authenticated user
+	 * 
+	 * @var \App\Models\User
+	 */
 	private $user;
 	 
 	/**
 	 * Constructor
 	 *
-	 * @param [integer] $user_id 
+	 * @param mixed $user_id 
 	 */
-	function __construct( $user_id )
+	public function __construct( protected $user_id )
 	{ 
-		$this->user_id = $user_id;
 		$this->user = new User( $user_id );
 	}
 	
-	function __get($attribute)
+	/**
+	 * @override
+	 * 
+	 * @param string $attribute
+	 * @return mixed
+	 */
+	public function __get(string $attribute)
 	{
 		return $this->user->{$attribute};
 	}
 }
-?>

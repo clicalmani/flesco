@@ -4,6 +4,7 @@ namespace Clicalmani\Flesco\Http\Requests;
 use Clicalmani\Flesco\Http\Controllers\RequestController;
 use Clicalmani\Flesco\Http\Requests\RequestFile;
 use Clicalmani\Flesco\Http\Requests\RequestRedirect;
+use Clicalmani\Flesco\Providers\AuthServiceProvider;
 use Clicalmani\Flesco\Security\Security;
 use Clicalmani\Routes\Route;
 
@@ -246,7 +247,12 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
         }
     }
 
-    public function user() 
+    /**
+     * Get authenticated user
+     * 
+     * @return mixed
+     */
+    public function user() : mixed
     {
         /**
          * Test case
@@ -258,7 +264,11 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
             $user_id  = json_decode($payload->jti);
         }
 
-        return with ( new \App\Authenticate\User( $this->session('user-id') ) )->user($user_id);
+        if ($authenticator = AuthServiceProvider::userAuthenticator()) {
+            return with ( new $authenticator( $this->session('user-id') ) )->user($user_id);
+        }
+
+        return null;
     }
 
     public function jsonSerialize() : mixed

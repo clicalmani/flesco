@@ -1,6 +1,7 @@
 <?php
-namespace Clicalmani\Flesco\Providers; 
+namespace Clicalmani\Flesco\Providers;
 
+use Clicalmani\Flesco\Http\Requests\Request;
 use Clicalmani\Routes\Route;
 
 /**
@@ -31,6 +32,13 @@ abstract class RouteServiceProvider extends ServiceProvider
      * @var string
      */
     protected $web_handler = 'routes/web.php';
+
+    /**
+     * Request response
+     * 
+     * @var mixed
+     */
+    private static $response_data;
     
     /**
      * Initialize route service
@@ -109,6 +117,51 @@ abstract class RouteServiceProvider extends ServiceProvider
         // Generate CSRF token and Store it in $_SESSION global variable
         if ( ! isset($_SESSION['csrf-token']) ) {
             $_SESSION['csrf-token'] = with ( new \Clicalmani\Flesco\Security\CSRF )->getToken(); 
+        }
+    }
+
+    /**
+     * Request response handler
+     * 
+     * @param callable $callback
+     * @return void
+     */
+    public static function responseHandler(callable $callback) : void
+    {
+        static::$response_data = $callback( (new Request)->user() );
+    }
+
+    /**
+     * Get response data
+     * 
+     * @return mixed
+     */
+    public static function getResponseData() : mixed
+    {
+        return static::$response_data;
+    }
+
+    /**
+     * Get provided third party route services
+     * 
+     * @param string $service_type
+     * @return array
+     */
+    public static function getProvidedTPS(int $service_level = 0) : array 
+    {
+        return static::$kernel['tps'][$service_level];
+    }
+
+    /**
+     * Fire third party services
+     * 
+     * @param mixed $response Request response
+     * @return void
+     */
+    public static function fireTPS(mixed &$response, int $service_level = 0) : void
+    {
+        foreach (self::getProvidedTPS($service_level) as $tps) {
+            new $tps($response, static::$response_data);
         }
     }
 }

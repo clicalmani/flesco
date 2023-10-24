@@ -153,6 +153,12 @@ if ( ! function_exists('request') ) {
     }
 }
 
+if ( ! function_exists('redirect') ) {
+    function redirect() {
+        return with ( new \Clicalmani\Flesco\Http\Requests\Request )->redirect();
+    }
+}
+
 if ( ! function_exists('response') ) {
     function response() {
         return new \Clicalmani\Flesco\Http\Response\HttpResponseHelper;

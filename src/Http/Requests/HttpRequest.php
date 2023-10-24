@@ -1,20 +1,16 @@
 <?php
 namespace Clicalmani\Flesco\Http\Requests;
 
-abstract class HttpRequest {
+/**
+ * HttpRequest class
+ * 
+ * @package clicalmani/flesco 
+ * @author @clicalmani
+ */
+abstract class HttpRequest 
+{
+    /**
+     * @override
+     */
     abstract public static function render();
-
-    /**
-     * @deprecated
-     */
-    public function validation($options = []) {
-        //
-    }
-
-    /**
-     * @deprecated
-     */
-    public function validate() {
-        //
-    }
 }

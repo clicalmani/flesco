@@ -1,12 +1,8 @@
 <?php
 namespace Clicalmani\Flesco\Http\Requests;
 
-class RequestRedirect {
-    function __construct()
-    {
-
-    }
-
+class RequestRedirect 
+{
     function route( $route )
     {
         header('Location: ' . $route);

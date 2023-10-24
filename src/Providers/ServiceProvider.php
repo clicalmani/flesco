@@ -46,11 +46,13 @@ abstract class ServiceProvider
     {
         foreach (self::customHelpers() as $helper) {
 
-            $helper = realpath( root_path( '/' . $helper ) );
+            with( new $helper )->handler();
 
-            if (file_exists($helper) AND is_readable($helper)) {
-                include_once $helper;
-            }
+            // $helper = realpath( root_path( '/' . $helper ) );
+
+            // if (file_exists($helper) AND is_readable($helper)) {
+            //     include_once $helper;
+            // }
         }
     }
 
@@ -61,7 +63,7 @@ abstract class ServiceProvider
      */
     public static function customHelpers() : array 
     {
-        if ( $custom_helpers = static::$kernel['helper'] ) return $custom_helpers;
+        if ( $custom_helpers = static::$kernel['helpers'] ) return $custom_helpers;
 
         return [];
     }
@@ -75,6 +77,6 @@ abstract class ServiceProvider
      */
     public static function getProvidedMiddleware(string $gateway, $name) : mixed
     {
-        return @ static::$kernel['middleware'][$gateway][$name];
+        return @ static::$kernel['middlewares'][$gateway][$name];
     }
 }

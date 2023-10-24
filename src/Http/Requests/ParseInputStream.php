@@ -1,8 +1,7 @@
 <?php
 namespace Clicalmani\Flesco\Http\Requests;
 
-// use Illuminate\Support\Facades\Log;
-// use Symfony\Component\HttpFoundation\File\UploadedFile;
+use Clicalmani\Flesco\Support\Log;
 
 /**
  * stream - Handle raw input stream
@@ -181,8 +180,8 @@ class ParseInputStream
 
 		$idx = strpos( $data, "\r\n\r\n" );
 		if ( $idx === FALSE ) {
-			// Log::warning( "ParseInputStream.file_stream(): Could not locate header separator in data:" );
-			// Log::warning( $data );
+			Log::warning( "ParseInputStream.file_stream(): Could not locate header separator in data:" );
+			Log::warning( $data );
 		} else {
 			$headers = substr( $data, 0, $idx );
 			$content = substr( $data, $idx + 4, -2 ); // Skip the leading \r\n and strip the final \r\n
@@ -205,7 +204,7 @@ class ParseInputStream
 					// Content-Type: image/jpg
 					$filetype = trim( substr($header, strlen("Content-Type: ")) );
 				} else {
-					// Log::debug( "PARSEINPUTSTREAM: Skipping Header: " . $header );
+					Log::notice( "PARSEINPUTSTREAM: Skipping Header: " . $header );
 				}
 
 			    $header = strtok("\r\n");
@@ -361,7 +360,7 @@ class ParseInputStream
 					}
 				}
 			} else {
-				// Log::warning( "ParseInputStream.parse_parameter() Parameter name regex failed: '" . $parameter . "'" );
+				Log::warning( "ParseInputStream.parse_parameter() Parameter name regex failed: '" . $parameter . "'" );
 			}
 		} else {
             if (array_key_exists($parameter, $params) && is_array($params[$parameter])) $params[$parameter] = array_merge($params[$parameter], $value);

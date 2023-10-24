@@ -1,5 +1,5 @@
 <?php
-namespace Clicalmani\Flesco\Http\Controllers;
+namespace Clicalmani\Flesco\Http\Requests;
 
 use Clicalmani\Routes\Route;
 use Clicalmani\Routes\Routing;
@@ -8,23 +8,61 @@ use Clicalmani\Flesco\Http\Requests\Request;
 use Clicalmani\Flesco\Http\Requests\HttpRequest;
 use Clicalmani\Routes\Exceptions\RouteNotFoundException;
 use Clicalmani\Flesco\Exceptions\ModelNotFoundException;
+use Clicalmani\Flesco\Models\Model;
+use Clicalmani\Flesco\Providers\RouteServiceProvider;
+use Clicalmani\Routes\RouteHooks;
 
 require_once dirname( dirname( __DIR__ ) ) . '/bootstrap/index.php';
 
+/**
+ * RequestController class
+ * 
+ * @package clicalmani/flesco 
+ * @author @clicalmani
+ */
 abstract class RequestController extends HttpRequest 
 {
+	/**
+	 * Current request controller
+	 * 
+	 * @var mixed
+	 */
 	private static $controller;
+
+	/**
+	 * Current route
+	 * 
+	 * @var string
+	 */
 	private static $route;
 
-	public static function render()
+	/**
+	 * Render request response
+	 * 
+	 * @return void
+	 */
+	public static function render() : void
 	{
 		$request = new Request;
 		$request->checkCSRFToken();
+
+		$response = self::getResponse($request);
 		
-		die(self::getRoutine($request));
+		// Run after navigation hook
+		if ($hook = RouteHooks::getafterHook(static::$route)) $response = $hook($response);
+
+		// Fire TPS
+		RouteServiceProvider::fireTPS($response, 1);
+		
+		die($response);
 	}
 
-    public static function getController() 
+	/**
+	 * Resolve request controller
+	 * 
+	 * @return mixed
+	 */
+    private static function getController() : mixed
 	{
 		if ( isset( self::$controller ) ) {
 			return self::$controller;
@@ -51,7 +89,13 @@ abstract class RequestController extends HttpRequest
 		throw new RouteNotFoundException( current_route() );
     }
 
-	public static function getRoutine($request)
+	/**
+	 * Get request response
+	 * 
+	 * @param \Clicalmani\Flesco\Http\Requests\Request
+	 * @return mixed
+	 */
+	private static function getResponse(Request $request) : mixed
 	{
 		$controller = self::getController();
 		
@@ -84,11 +128,18 @@ abstract class RequestController extends HttpRequest
 			return $controller($request);
 		}
 		
-		response()->status(403, 'FORBIDEN_REQUEST_ERROR', 'Request Forbiden');		// Forbiden
+		response()->status(403, 'FORBIDEN_REQUEST_ERROR', 'Access Denied');		// Forbiden
 		exit;
 	}
 
-	public static function invokeControllerMethod($controllerClass, $method = 'invoke')
+	/**
+	 * Run route action
+	 * 
+	 * @param mixed $controllerClass
+	 * @param mixed $method
+	 * @return mixed
+	 */
+	public static function invokeControllerMethod($controllerClass, $method = 'invoke') : mixed
 	{
 		/**
 		 * Call controller method
@@ -118,9 +169,9 @@ abstract class RequestController extends HttpRequest
 			$requestClass = $first_param_type->getName();
 			
 			// Model binding request
-			if ( self::isModelBind($requestClass) ) {
+			if ( self::isResourceBind($requestClass) ) {
 				try {
-					return self::bindModel($requestClass, $controllerClass, $method);
+					return self::bindResource($requestClass, $controllerClass, $method);
 				} catch(ModelNotFoundException $e) {
 
 					$resource = self::getResource();
@@ -185,9 +236,15 @@ abstract class RequestController extends HttpRequest
 		return $obj->{$method}($request);
 	}
 
-	private static function getParameters($request)
+	/**
+	 * Gather request parameters
+	 * 
+	 * @param \Clicalmani\Flesco\Http\Requests\Request
+	 * @return array
+	 */
+	private static function getParameters(Request $request) : array
     {
-		if ( inConsoleMode() ) return with( new Request )->all();
+		if ( inConsoleMode() ) return $request->all();
 		
         preg_match_all('/:[^\/]+/', (string) self::$route, $mathes);
 
@@ -213,55 +270,74 @@ abstract class RequestController extends HttpRequest
         return $parameters;
     }
 
-	private static function isModelBind($model)
+	/**
+	 * Is resource bind
+	 * 
+	 * @param mixed $resource
+	 * @return bool
+	 */
+	private static function isResourceBind(mixed $resource) : bool
 	{
-		return is_subclass_of($model, \Clicalmani\Flesco\Models\Model::class);
+		return is_subclass_of($resource, \Clicalmani\Flesco\Models\Model::class);
 	}
 
-	private static function bindModel($model, $controller, $method)
+	/**
+	 * Bind a model resource
+	 * 
+	 * @param mixed $resource
+	 * @param mixed $controller
+	 * @param mixed $method
+	 * @return mixed
+	 */
+	private static function bindResource(mixed $resource, mixed $controller, mixed $method) : mixed
 	{
 		$request = new Request;
-		$obj     = new $model;
+		$obj     = new $resource;
 
 		if ( in_array($method, ['create', 'show', 'update', 'destroy']) ) {
 
 			// Request parameters
-			$parameters = explode(',', $request->id);
+			$parameters = explode(',', (string) $request->id);
 			
 			if ( count($parameters) ) {
 				if ( count($parameters) === 1 ) $parameters = $parameters[0];	// Single primary key
 				
-				$obj = new $model($parameters);
+				$obj = new $resource($parameters);
 				
 				/**
 				 * Bind resources
 				 */
-				self::bindResources($method, $obj);
+				self::bindRoutines($method, $obj);
 				
 				$collection = $obj->get();
 
-				if ( $collection->isEmpty() ) throw new ModelNotFoundException($model);
+				if ( $collection->isEmpty() ) throw new ModelNotFoundException($resource);
 				
 				return (new $controller)->{$method}($obj, new Request);
 
-			} else throw new ModelNotFoundException($model);
+			} else throw new ModelNotFoundException($resource);
 		}
 
-		$obj = new $model;
+		$obj = new $resource;
 
 		/**
 		 * Bind resources
 		 */
-		self::bindResources($method, $obj);
+		self::bindRoutines($method, $obj);
 		
 		return (new $controller)->{$method}($obj, new Request);
 	}
 
-	private static function bindResources($method, $obj)
+	/**
+	 * Bind resource routines
+	 * 
+	 * @param mixed $method
+	 * @param \Clicalmani\Flesco\Models\Model $obj
+	 * @return void
+	 */
+	private static function bindRoutines(mixed $method, Model $obj) : void
 	{
-		$resource = self::getResource();
-		
-		if ( $resource ) {
+		if ($resource = self::getResource()) {
 
 			/**
 			 * Select distinct
@@ -305,32 +381,62 @@ abstract class RequestController extends HttpRequest
 		}
 	}
 
+	/**
+	 * Get a model resource name
+	 * 
+	 * @return mixed
+	 */
 	private static function getResource()
 	{
 		if ( inConsoleMode() ) return null;
 
 		// Resource
 		$sseq = preg_split('/\//', self::$route, -1, PREG_SPLIT_NO_EMPTY);
-		$resource = Route::isApi() ? $sseq[1]: $sseq[0];
-
-		return ResourceRoutines::getRoutines($resource);
+		
+		return ResourceRoutines::getRoutines(
+			Route::isApi() ? $sseq[1]: $sseq[0]
+		);
 	}
 
-	private static function getResourceDistinct($resource, $method, $obj)
+	/**
+	 * Distinct rows
+	 * 
+	 * @param mixed $resource
+	 * @param mixed $method
+	 * @param \Clicalmani\Flesco\Models\Model $obj
+	 * @return void
+	 */
+	private static function getResourceDistinct(mixed $resource, mixed $method, Model $obj) : void
 	{
-		if ( $method == 'index' AND array_key_exists('distinct', $resource->properties) ) {
-			$obj->distinct($resource->properties['distinct']);
+		if ( $method == 'index' AND array_key_exists('distinct', $resource?->properties) ) {
+			$obj->distinct($resource?->properties['distinct']);
 		}
 	}
 
-	private static function createResourceIgnore($resource, $method, $obj)
+	/**
+	 * Ignore duplicates
+	 * 
+	 * @param mixed $resource
+	 * @param mixed $method
+	 * @param \Clicalmani\Flesco\Models\Model $obj
+	 * @return void
+	 */
+	private static function createResourceIgnore(mixed $resource, mixed $method, $obj) : void
 	{
 		if ( $method == 'create' AND array_key_exists('ignore', $resource->properties) ) {
 			$obj->ignore($resource->properties['ignore']);
 		}
 	}
 
-	private static function resourceJoin($resource, $method, $obj)
+	/**
+	 * Join
+	 * 
+	 * @param mixed $resource
+	 * @param mixed $method
+	 * @param \Clicalmani\Flesco\Models\Model $obj
+	 * @return void
+	 */
+	private static function resourceJoin(mixed $resource, mixed $method, Model $obj) : void
 	{
 		$methods = ['index', 'create', 'show', 'edit', 'update', 'destroy'];
 
@@ -349,35 +455,75 @@ abstract class RequestController extends HttpRequest
 		}
 	}
 
-	private static function resourceDeleteFrom($resource, $method, $obj)
+	/**
+	 * Delete from
+	 * 
+	 * @param mixed $resource
+	 * @param mixed $method
+	 * @param \Clicalmani\Flesco\Models\Model $obj
+	 * @return void
+	 */
+	private static function resourceDeleteFrom(mixed $resource, mixed $method, Model $obj) : void
 	{
 		if ( $method == 'destroy' AND array_key_exists('from', $resource->properties) ) {
 			$obj->from($resource->properties['from']);
 		}
 	}
 
-	private static function resourceCalcRows($resource, $method, $obj)
+	/**
+	 * Calc rows
+	 * 
+	 * @param mixed $resource
+	 * @param mixed $method
+	 * @param \Clicalmani\Flesco\Models\Model $obj
+	 * @return void
+	 */
+	private static function resourceCalcRows(mixed $resource, mixed $method, Model $obj) : void
 	{
 		if ( $method == 'index' AND array_key_exists('calc', $resource->properties) ) {
-			$obj->calcRoundRows($resource->properties['calc']);
+			$obj->calcFoundRows($resource->properties['calc']);
 		}
 	}
 
-	private static function resourceLimit($resource, $method, $obj)
+	/**
+	 * Limit rows
+	 * 
+	 * @param mixed $resource
+	 * @param mixed $method
+	 * @param \Clicalmani\Flesco\Models\Model $obj
+	 * @return void
+	 */
+	private static function resourceLimit(mixed $resource, mixed $method, Model $obj) : void
 	{
 		if ( $method == 'index' AND array_key_exists('limit', $resource->properties) ) {
 			$obj->limit($resource->properties['limit']);
 		}
 	}
 
-	private static function resourceOffset($resource, $method, $obj)
+	/**
+	 * Offset rows
+	 * 
+	 * @param mixed $resource
+	 * @param mixed $method
+	 * @param \Clicalmani\Flesco\Models\Model $obj
+	 * @return void
+	 */
+	private static function resourceOffset(mixed $resource, mixed $method, Model $obj) : void
 	{
 		if ( $method == 'index' AND array_key_exists('offset', $resource->properties) ) {
 			$obj->offset($resource->properties['offset']);
 		}
 	}
 
-	private static function resourceOrderBy($resource, $method, $obj)
+	/**
+	 * Order by
+	 * 
+	 * @param mixed $resource
+	 * @param mixed $method
+	 * @param \Clicalmani\Flesco\Models\Model $obj
+	 * @return void
+	 */
+	private static function resourceOrderBy(mixed $resource, mixed $method, Model $obj) : void
 	{
 		if ( $method == 'index' AND array_key_exists('order_by', $resource->properties) ) {
 			$obj->orderBy($resource->properties['order_by']);

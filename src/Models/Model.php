@@ -216,10 +216,10 @@ class Model implements ModelInterface, \JsonSerializable
     /**
      * Gets the query result
      * 
-     * @param string $fields SQL select statement of the column to show up in the result set.
+     * @param ?string $fields SQL select statement.
      * @return \Clicalmani\Collection\Collection
      */
-    public function get(string $fields = '*') : Collection
+    public function get(?string $fields = '*') : Collection
     {
         try {
             if ( !$this->query->getParam('where') AND $this->id) {
@@ -240,7 +240,7 @@ class Model implements ModelInterface, \JsonSerializable
      * Instead of returning a raw SQL statement result, every row in the result set will be
      * matched to a table model.
      * 
-     * @param string $class [Optional] Model class to be returned. If not specified the outer left table model of the joint will be used.
+     * @param ?string $class Model class to be returned. If not specified the outer left table model of the joint will be used.
      * @return \Clicalmani\Collection\Collection
      */
     public function fetch(?string $class = null) : Collection
@@ -254,38 +254,41 @@ class Model implements ModelInterface, \JsonSerializable
     /**
      * Define the where condition of the SQL statement
      * 
-     * @param string $criteria [optional] 
+     * @param ?string $criteria Condition criteria
+     * @param ?array $options Parameters options
      * @return static
      */
-    public static function where(string $criteria = '1') : static
+    public static function where(?string $criteria = '1', ?array $options = []) : static
     {
         $instance = static::getInstance();
-        $instance->getQuery()->where($criteria);
+        $instance->getQuery()->where($criteria, 'AND', $options);
 
-        return $instance;
+        return $instance; 
     }
 
     /**
      * Alias of where. Useful when using where multiple times with AND as the conditional operator.
      * 
-     * @param string $criteria [optional] 
+     * @param ?string $criteria
+     * @param ?array $options
      * @return static
      */
-    public function whereAnd(string $criteria = '1') : static
+    public function whereAnd(?string $criteria = '1', ?array $options = []) : static
     {
-        $this->query->where($criteria);
+        $this->query->where($criteria, 'AND', $options);
         return $this;
     }
 
     /**
      * Same as whereAnd with the difference of operator which is in this case OR.
      * 
-     * @param string $criteria [optional] 
+     * @param ?string $criteria 
+     * @param ?array $options
      * @return static
      */
-    public function whereOr(string $criteria = '1') : static
+    public function whereOr(string $criteria = '1', ?array $options = []) : static
     {
-        $this->query->where($criteria, 'OR');
+        $this->query->where($criteria, 'OR', $options);
         return $this;
     }
 
@@ -374,10 +377,10 @@ class Model implements ModelInterface, \JsonSerializable
     /**
      * Update model
      * 
-     * @param array $value [Optional] Attribuets values
+     * @param ?array $value Attributs values key pairs
      * @return bool True on success, false on failure
      */
-    public function update(array $values = []) : bool
+    public function update(?array $values = []) : bool
     {
         if (empty($values)) return false;
         
@@ -515,8 +518,7 @@ class Model implements ModelInterface, \JsonSerializable
 
     /**
      * Same as create with the difference of catching PDOException in case 
-     * the query statement execution failed. Useful when one want to be informed wether
-     * the new rows are inserted or not.
+     * the query statement execution failed. Useful when catching the status result.
      * 
      * @param array $fields Attributes values
      * @return bool True if success, false otherwise
@@ -543,7 +545,7 @@ class Model implements ModelInterface, \JsonSerializable
     }
 
     /**
-     * In pratice a model can joined to another model. But in particular situation, one may be aiming to join
+     * In pratice a model can be joined to another model. But in particular situation, one may be aiming to join
      * the model to a sub query (as this is possible with SQL). So this method allows such an operation.
      * 
      * @param string $query The sub query to joined to

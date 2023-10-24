@@ -1,0 +1,23 @@
+<?php 
+namespace Clicalmani\Flesco\Support;
+
+/**
+ * Mock class
+ * 
+ * Mock allows us to call a non-static method as static one and take advantage of the class object. 
+ * Method name start with an underscore (_) to differentiate it from the calling method name.
+ * 
+ * @package clicalmani/flesco 
+ * @author @clicalmani
+ */
+class Mock 
+{
+    public static function __callStatic($method, $args)
+    {
+        $class = get_called_class();
+
+        if ( method_exists($class, "_$method") ) {
+            return with( new $class )->{"_$method"}( ...$args );
+        } else throw new \Exception("Method $method does not exists on " . $class);
+    }
+}
