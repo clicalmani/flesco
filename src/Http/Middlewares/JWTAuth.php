@@ -3,19 +3,16 @@ namespace Clicalmani\Flesco\Http\Middlewares;
 
 use Clicalmani\Flesco\Auth\JWT;
 use Clicalmani\Flesco\Http\Requests\Request;
+use Clicalmani\Flesco\Http\Response\Response;
 
 abstract class JWTAuth extends JWT
 {
-    function __construct()
+    public function __construct()
     {
         parent::__construct();
     }
 
-    function handler() {
-        return routes_path( '/api.php' );
-    }
+    protected abstract function handle(Request $request, Response $response, callable $next) : int|false;
 
-    function authorize(Request $request) {
-        return true;
-    }
+    protected abstract function boot() : void;
 }

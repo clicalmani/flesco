@@ -1,25 +1,34 @@
 <?php
 namespace Clicalmani\Flesco\Http\Response;
 
+use Clicalmani\Routes\Route;
+
 class Response extends HttpResponse
 {
-    function sendStatus($code)
+    public function notFound()
     {
-        return http_response_code($code);
+        $response = $this->sendStatus(404);
+
+        if (Route::isApi()) return $response;
+
+        exit;
     }
 
-    function notFound()
+    public function unauthorized()
     {
-        return http_response_code(404);
+        $response = $this->sendStatus(401);
+
+        if (Route::isApi()) return $response;
+
+        exit;
     }
 
-    function unauthorized()
+    public function forbiden()
     {
-        return http_response_code(401);
-    }
+        $response = $this->sendStatus(403);
 
-    function forbiden()
-    {
-        return http_response_code(403);
+        if (Route::isApi()) return $response;
+
+        exit;
     }
 }

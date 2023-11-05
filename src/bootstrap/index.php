@@ -17,7 +17,8 @@ require_once 'config.php';
  */
 
 \Clicalmani\Flesco\Providers\ServiceProvider::init(
-    $kernel = require_once bootstrap_path( '/kernel.php' )
+    $kernel = require_once bootstrap_path( '/kernel.php' ),
+    $http_kernel = require_once app_path('/http/kernel.php')
 );
 
 /**

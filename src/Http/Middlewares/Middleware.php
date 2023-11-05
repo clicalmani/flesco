@@ -1,36 +1,35 @@
 <?php
 namespace Clicalmani\Flesco\Http\Middlewares;
 
+use Clicalmani\Container\Manager;
+use Clicalmani\Flesco\Http\Requests\Request;
+use Clicalmani\Flesco\Http\Response\Response;
 use Clicalmani\Routes\Route;
+use Clicalmani\Routes\RouteGroup;
 
 abstract class Middleware 
 {
-    private $group;
+    protected abstract function handle(Request $request, Response $response, callable $next) : int|false;
 
-    public function handler() {
-        return routes_path( '/web.php' );
-    }
+    protected abstract function boot() : void;
 
-    public function authorize($user) {
-        return true;
-    }
-
-    public function group() : static
+    public function group() : RouteGroup
     {
-        $routes = Route::all();
+        return (new RouteGroup)->group(fn() => $this->boot());
+        // $routes = Route::all();
 
-        Route::startGrouping(function() {
-            // Add grouped routes
-            require_once $this->handler();
-        });
+        // Route::startGrouping(function() {
+        //     // Add grouped routes
+        //     require_once $this->handler();
+        // });
 
-        $this->group = array_diff(Route::all(), $routes);
+        // $this->group = array_diff(Route::all(), $routes);
 
-        return $this;
+        // return $this;
     }
 
-    public function prefix(string $prefix) : void
+    protected function include(string $routes_file)
     {
-        Route::setPrefix($this->group, $prefix);
+        (new Manager)->inject(fn() => routes_path("$routes_file.php"));
     }
 }

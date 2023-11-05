@@ -247,6 +247,11 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
         }
     }
 
+    public function bearerToken()
+    {
+        return $this->getToken();
+    }
+
     /**
      * Get authenticated user
      * 

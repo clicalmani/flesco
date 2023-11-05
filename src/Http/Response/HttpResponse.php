@@ -18,6 +18,11 @@ class HttpResponse
         );
     }
 
+    public function sendStatus(int $code)
+    {
+        return http_response_code($code);
+    }
+
     static function success($message = '')
     {
         return self::json($message, true);

@@ -10,6 +10,7 @@ use Clicalmani\Routes\Exceptions\RouteNotFoundException;
 use Clicalmani\Flesco\Exceptions\ModelNotFoundException;
 use Clicalmani\Flesco\Models\Model;
 use Clicalmani\Flesco\Providers\RouteServiceProvider;
+use Clicalmani\Flesco\Support\Log;
 use Clicalmani\Routes\RouteHooks;
 
 require_once dirname( dirname( __DIR__ ) ) . '/bootstrap/index.php';
@@ -73,13 +74,22 @@ abstract class RequestController extends HttpRequest
 		
 		if ($route = Routing::route()) { 
 			
-			$middlewares = Route::getCurrentRouteMiddlewares();
+			$middlewares = Route::getRouteMiddlewares($route);
 			
 			self::$route      = $route;
 			self::$controller = Route::getController($method, $route);
 			
-			if ( isset($middlewares) AND Route::isCurrentRouteAuthorized($request) == false ) {
-				response()->status(401, 'UNAUTHORISED_REQUEST_ERROR', 'Request Unauthorized');		// Unauthorized
+			Route::currentRouteSignature($route);
+			
+			if ( isset($middlewares) AND $response_code = Route::isRouteAuthorized($route, $request) AND 200 !== $response_code) {
+				
+				switch($response_code) {
+					case 401: response()->status($response_code, 'UNAUTHORISED_REQUEST_ERROR', 'Request Unauthorized'); break;
+					case 403: response()->status($response_code, 'FORBIDEN', 'Request Forbiden'); break;
+					case 404: response()->status($response_code, 'NOT FOUND', 'Not Found'); break;
+					default: response()->status($response_code); break;
+				}
+				
 				exit;
 			}
 			
@@ -88,7 +98,7 @@ abstract class RequestController extends HttpRequest
 		
 		throw new RouteNotFoundException( current_route() );
     }
-
+	
 	/**
 	 * Get request response
 	 * 
@@ -125,11 +135,10 @@ abstract class RequestController extends HttpRequest
 
 		} elseif ($controller instanceof \Closure) {                      // Otherwise fallback to closure function
 			                                                              // whith a default Request object
-			return $controller($request);
+			return $controller(...(self::getParameters($request)));
 		}
-		
-		response()->status(403, 'FORBIDEN_REQUEST_ERROR', 'Access Denied');		// Forbiden
-		exit;
+
+		throw new RouteNotFoundException(current_route());
 	}
 
 	/**
@@ -141,32 +150,15 @@ abstract class RequestController extends HttpRequest
 	 */
 	public static function invokeControllerMethod($controllerClass, $method = 'invoke') : mixed
 	{
-		/**
-		 * Call controller method
-		 */
-		$reflect = new \ReflectionMethod($controllerClass, $method);
-
-		$method_parameters = $reflect->getParameters();   // Controller method parameters
 		$request = new Request;							  // Fallback to default request
 		Request::$current_request = $request;
-
-		// Check first parameter (Request object)
-		// Method accepts request object
-		$first_param = @ $method_parameters[0];
-		$first_param_type = null;
-
-		if ( $first_param ) {
-			$first_param_type = $first_param->getType();  // Get method first parameter
-														  // Which correspond to request object
-														  // null if no parameter
-		}
+		
+		$reflect = new RequestReflection($controllerClass, $method);
 
 		/**
 		 * Validate request
 		 */
-		if ( $first_param_type ) {
-			
-			$requestClass = $first_param_type->getName();
+		if ( $requestClass = $reflect->getParamTypeAt(0) ) {
 			
 			// Model binding request
 			if ( self::isResourceBind($requestClass) ) {
@@ -183,10 +175,10 @@ abstract class RequestController extends HttpRequest
 					return response()->status(404, 'NOT_FOUND', $e->getMessage());		// Not Found
 				}
 			}
-
+			
 			$request = new $requestClass([]);                       // Request objet or an instance
 																	// of class extending Request
-
+			
 			if (method_exists($request, 'authorize')) {
 				if (false == $request->authorize()) {
 					return response()->status(403, 'FORBIDEN', 'Unauthorized Request');		// Forbiden
@@ -201,39 +193,24 @@ abstract class RequestController extends HttpRequest
 				$request->signatures();                             // Call validate method
 			}
 		}
-
-		/**
-		 * Appends route parameters to route method
-		 */
-		$method_parameters_names = [];
-		unset($method_parameters[0]); 							   // Remove first parameter
-																   // Request object
 		
-		$obj = new $controllerClass;
+		$params_types = $reflect->getParamsTypes();
+		$params_values = self::getParameters($request);
 
-		if ( count($method_parameters) ) {
+		array_unshift($params_types);
 
-			foreach ($method_parameters as $param) {
-				$method_parameters_names[] = $param->getName();
-			}
+		self::setTypes($params_types, $params_values);
 
-			$parameters = self::getParameters($request);
+		return (new $controllerClass)->{$method}($request, ...$params_values);
+	}
 
-			if ( $parameters ) {
-				// Call controller whith a Request object
-				if (count($method_parameters) === count($parameters) ) {
-					
-					return $obj->{$method}($request, ...$parameters);
-				}
-				
-				throw new \ArgumentCountError("Too few arguments");
-			}
+	private static function setTypes(array $types, array &$values)
+	{
+		foreach ($types as $index => $type) {
+			if (in_array($type, ['boolean', 'bool', 'integer', 'int', 'float', 'double', 'string', 'array', 'object']))
+				settype($values[$index], $type);
+			elseif ($type) $values[$index] = new $type;
 		}
-
-		/**
-		 * Method does not support request parameters
-		 */
-		return $obj->{$method}($request);
 	}
 
 	/**
@@ -293,6 +270,14 @@ abstract class RequestController extends HttpRequest
 	{
 		$request = new Request;
 		$obj     = new $resource;
+		$reflect = new RequestReflection($controller, $method);
+
+		$params_types = $reflect->getParamsTypes();
+		$params_values = self::getParameters($request);
+
+		array_shift($params_types);
+
+		self::setTypes($params_types, $params_values);
 
 		if ( in_array($method, ['create', 'show', 'update', 'destroy']) ) {
 
@@ -313,7 +298,7 @@ abstract class RequestController extends HttpRequest
 
 				if ( $collection->isEmpty() ) throw new ModelNotFoundException($resource);
 				
-				return (new $controller)->{$method}($obj, new Request);
+				return (new $controller)->{$method}($obj, ...$params_values);
 
 			} else throw new ModelNotFoundException($resource);
 		}
@@ -325,7 +310,7 @@ abstract class RequestController extends HttpRequest
 		 */
 		self::bindRoutines($method, $obj);
 		
-		return (new $controller)->{$method}($obj, new Request);
+		return (new $controller)->{$method}($obj, ...$params_values);
 	}
 
 	/**

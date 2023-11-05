@@ -1,6 +1,8 @@
 <?php
 namespace Clicalmani\Flesco\Providers;
 
+use Clicalmani\Container\Manager;
+
 /**
  * ServiceProvider class
  * 
@@ -10,6 +12,18 @@ namespace Clicalmani\Flesco\Providers;
 abstract class ServiceProvider
 {
     /**
+     * Service container
+     * 
+     * @var \Clicalmani\Container\Manager
+     */
+    protected $container;
+    
+    public function __construct()
+    {
+        $this->container = new Manager;
+    }
+
+    /**
      * Service kernel
      * 
      * @var array
@@ -17,14 +31,24 @@ abstract class ServiceProvider
     protected static $kernel;
 
     /**
-     * @override
+     * Http middlewares
+     * 
+     * @var array
      */
-    abstract function boot() : void;
+    protected static $http_kernel;
 
     /**
      * @override
      */
-    abstract function handler() : void;
+    protected abstract function boot() : void;
+
+    /**
+     * @override
+     */
+    public function register() : void
+    {
+        // Register nothing
+    }
 
     /**
      * Bootstrap providers
@@ -32,9 +56,10 @@ abstract class ServiceProvider
      * @param array $kernel
      * @return void
      */
-    public static function init(array $kernel)
+    public static function init(array $kernel, array $http_kernel)
     {
-        static::$kernel = $kernel;
+        static::$kernel     = $kernel;
+        static::$http_kernel = $http_kernel;
     }
 
     /**
@@ -45,14 +70,7 @@ abstract class ServiceProvider
     public static function helpers() : void
     {
         foreach (self::customHelpers() as $helper) {
-
-            with( new $helper )->handler();
-
-            // $helper = realpath( root_path( '/' . $helper ) );
-
-            // if (file_exists($helper) AND is_readable($helper)) {
-            //     include_once $helper;
-            // }
+            with( new $helper )->boot();
         }
     }
 
@@ -77,6 +95,6 @@ abstract class ServiceProvider
      */
     public static function getProvidedMiddleware(string $gateway, $name) : mixed
     {
-        return @ static::$kernel['middlewares'][$gateway][$name];
+        return @ static::$http_kernel[$gateway][$name];
     }
 }
