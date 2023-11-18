@@ -24,8 +24,8 @@ class Log extends Mock
     public function _init() : void
     {
         $errors_path = storage_path('/errors');
-
-        if ( !file_exists($errors_path) ) {
+        
+        if ( $errors_path && !file_exists($errors_path) ) {
             mkdir($errors_path);
         }
 
@@ -100,6 +100,19 @@ class Log extends Mock
     public function _notice(string $notice_message, ?string $file = 'Unknow', ?int $line = null)
     {
         $this->_error($notice_message, E_NOTICE, $file, $line);
+    }
+
+    /**
+     * Log debug message
+     * 
+     * @param string $notice_message
+     * @param ?string $file Error file name
+     * @param ?int $line Error line
+     * @return void
+     */
+    public function _debug(string $debug_message, ?string $file = 'Unknow', ?int $line = null)
+    {
+        $this->_notice($debug_message, $file, $line);
     }
     
     /**

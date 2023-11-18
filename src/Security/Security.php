@@ -190,7 +190,7 @@ class Security {
     static function verifyParameters() 
 	{
     	$data = '';
-
+		
     	$request_hash = isset($_REQUEST['hash'])? $_REQUEST['hash']: '';
 		
     	unset($_REQUEST['hash']);

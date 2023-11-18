@@ -3,29 +3,57 @@ namespace Clicalmani\Flesco\Http\Requests;
 
 class RequestRedirect 
 {
-    function route( $route )
+    /**
+     * Redirect URI
+     * 
+     * @param string $uri
+     * @return never
+     */
+    public function route(string $uri) : never
     {
-        header('Location: ' . $route);
+        header('Location: ' . $uri);
         exit;
     }
 
-    function back()
+    /**
+     * Redirect back
+     * 
+     * @return never
+     */
+    public function back() : never
     {
         $this->route($_SERVER['HTTP_REFERER']);
     }
 
-    function home()
+    /**
+     * Redirect home
+     * 
+     * @return never
+     */
+    public function home() : never
     {
         $this->route('/');
     }
 
-    function error($message = '')
+    /**
+     * Redirect error
+     * 
+     * @param ?string $error_message
+     * @return never
+     */
+    public function error(?string $error_message = '') : never
     {
-        $this->route($_SERVER['HTTP_REFERER'] . '?error=' . $message);
+        $this->route($_SERVER['HTTP_REFERER'] . '?error=' . $error_message);
     }
 
-    function success($message = '')
+    /**
+     * Redirect success
+     * 
+     * @param ?string $success_message
+     * @return never
+     */
+    public function success(?string $success_message = '') : never
     {
-        $this->route($_SERVER['HTTP_REFERER'] . '?success=' . $message);
+        $this->route($_SERVER['HTTP_REFERER'] . '?success=' . $success_message);
     }
 }

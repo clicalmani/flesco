@@ -7,7 +7,7 @@ use Clicalmani\Database\DBQuery;
 use Clicalmani\Database\Factory\Factory;
 use Clicalmani\Flesco\Exceptions\ModelException;
 
-class Model implements ModelInterface, \JsonSerializable
+class Model implements \JsonSerializable
 {
     use ModelTrait;
 
@@ -904,30 +904,32 @@ class Model implements ModelInterface, \JsonSerializable
         $filters     = with (new \Clicalmani\Flesco\Http\Requests\Request)->where($exclude);
         $child_class = static::getClassName();
 
+        $criteria = '1';
+        
         if ( $filters ) {
-            try {
-                $obj = $child_class::where(join(' AND ', $filters));
-
-                if (@ $options->order_by) {
-                    $obj->orderBy($options->order_by);
-                }
-
-                if (@ $options->offset) {
-                    $obj->offset($options->offset);
-                }
-
-                if (@ $options->limit) {
-                    $obj->limit($options->limit);
-                }
-
-                return $obj->fetch();
-
-            } catch (\PDOException $e) {
-                return collection();
-            }
+            $criteria = join(' AND ', $filters);
         }
 
-        return $child_class::all();
+        try {
+            $obj = $child_class::where($criteria);
+
+            if (@ $options?->order_by) {
+                $obj->orderBy($options->order_by);
+            }
+
+            if (@ $options?->offset) {
+                $obj->offset($options->offset);
+            }
+
+            if (@ $options?->limit) {
+                $obj->limit($options->limit);
+            }
+            
+            return $obj->fetch();
+
+        } catch (\PDOException $e) {
+            return collection();
+        }
     }
 
     /**
@@ -1179,7 +1181,7 @@ class Model implements ModelInterface, \JsonSerializable
      * 
      * @return void
      */
-    public function boot() : void
+    protected function boot() : void
     {
         /**
          * TODO

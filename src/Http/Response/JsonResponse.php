@@ -3,12 +3,24 @@ namespace Clicalmani\Flesco\Http\Response;
 
 Trait JsonResponse
 {
-    function sendStatus($status_code)
+    /**
+     * Send status code
+     * 
+     * @param int $status_code
+     * @return int|bool
+     */
+    public function sendStatus(int $status_code) : int|bool
     {
         return http_response_code($status_code);
     }
 
-    function json($data = null, $status = null)
+    /**
+     * Send json
+     * 
+     * @param mixed $data
+     * @return string|false
+     */
+    public function json(mixed $data = null) : string|false
     {
         return json_encode(
             $data,
@@ -19,17 +31,37 @@ Trait JsonResponse
         );
     }
 
-    function success($data = null)
+    /**
+     * Send success status
+     * 
+     * @param mixed $data
+     * @return string|false
+     */
+    public function success(mixed $data = null) : string|false
     {
         return $this->json(['success' => true, 'data' => $data]);
     }
 
-    function error($data = null)
+    /**
+     * Send error status
+     * 
+     * @param mixed $data
+     * @return string|false
+     */
+    public function error(mixed $data = null)
     {
         return $this->json(['success' => false, 'data' => $data]);
     }
 
-    function status($status_code, $code = null, $message = '')
+    /**
+     * Send an error status message
+     * 
+     * @param string $status_code
+     * @param ?string $code
+     * @param ?string $message
+     * @return void
+     */
+    public function status(string $status_code, ?string $code = null, ?string $message = null) : void
     {
         $this->sendStatus($status_code);
         echo $this->json(['success' => false, 'error_code' => $code, 'error_message' => $message], $status_code);

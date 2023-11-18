@@ -1,56 +1,91 @@
 <?php
 namespace Clicalmani\Flesco\Http\Requests;
 
-use Clicalmani\Flesco\Http\Controllers\RequestController;
-use Clicalmani\Flesco\Http\Requests\RequestFile;
+use Clicalmani\Flesco\Http\Requests\UploadedFile;
 use Clicalmani\Flesco\Http\Requests\RequestRedirect;
 use Clicalmani\Flesco\Providers\AuthServiceProvider;
 use Clicalmani\Flesco\Security\Security;
 use Clicalmani\Routes\Route;
 
-class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \JsonSerializable {
-
-    private $signatures = [];
-
-    static $current_request = null;
+class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \JsonSerializable 
+{
+    /**
+     * Current request object
+     * 
+     * @var static
+     */
+    protected static $current_request;
 
     /**
-     * @see RequestController::render for implementation
+     * (non-PHPDoc)
+     * @override 
+     * @see \Clicalmani\Flesco\Http\Requests\HttpRequest::render()
      */
-    public static function render() {}
+    public static function render() { /** TODO: override */ }
 
-    private function getVars()
+    /**
+     * Get or set the current request
+     * 
+     * @param ?self $request
+     * @return static
+     */
+    public static function currentRequest(?self $request = null) : static
     {
-        if ( in_array($this->getMethod(), ['put', 'patch']) ) {
-            return [...$_GET, ...$_POST];
-        }
+        if ($request) return static::$current_request = $request;
+        return static::$current_request;
     }
 
-    public function signatures() {
-        // TODO: override
-    }
+    /**
+     * Prepare for validation
+     * 
+     * (non-PHPDoc)
+     * @override
+     * @see \Clicalmani\Flesco\Http\Requests\HttpRequest::signatures()
+     */
+    public function signatures() { /** TODO: override */ }
 
+    /**
+     * Prepare for validation
+     * 
+     * (non-PHPDoc)
+     * @override
+     * @see \Clicalmani\Flesco\Http\Requests\HttpRequest::prepareForValidation()
+     */
     public function prepareForValidation() {
         // TODO: override
     }
 
     /**
-     * @deprecated
+     * (non-PHPDoc)
+     * @override
+     * @see \Clicalmani\Flesco\Http\Requests\RequestInterface::authorize()
      */
-    public function validation($options = [])
+    public function authorize()
     {
-        $this->merge($options);
+        return true;
     }
 
-    public function validate($options = [])
+    /**
+     * Set request signatures
+     * 
+     * @param ?array $signatures
+     * @return void
+     */
+    public function validate(?array $signatures = []) : void
     {
-        $this->merge($options);
+        $this->merge($signatures);
     }
 
-    public function __construct( $signatures = [] ) {
-        $this->signatures = $signatures;
-
-        if ('api' === Route::gateway() AND in_array(static::getMethod(), ['patch', 'put'])) {
+    /**
+     * Constructor
+     * 
+     * @param ?array $signatures Request signatures
+     */
+    public function __construct(private ?array $signatures = []) 
+    {
+        if (Route::isApi() AND in_array(self::getMethod(), ['patch', 'put'])) {
+            
+            // Parse input stream
             $params = [];
             $parser = new \Clicalmani\Flesco\Http\Requests\ParseInputStream($params);
             
@@ -63,6 +98,11 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
         }
     }
 
+    /**
+     * (non-PHPDoc)
+     * @override magic __set
+     * @see PHP magic function __set
+     */
     public function __get($property)
     {
         try {
@@ -94,150 +134,242 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
         }
     }
 
+    /**
+     * (non-PHPDoc)
+     * @override magic __set
+     * @see PHP magic function __set
+     */
     public function __set($property, $value)
     {
         $_REQUEST[$property] = $value;
     }
 
-    public function hasFile($name) {
-        return isset($_FILES[$name]);
+    /**
+     * Verify if file has been provided
+     * 
+     * @param string $name File name
+     * @return bool
+     */
+    public function hasFile(string $name) : bool
+    {
+        return !!@ $_FILES[$name];
     }
 
-    public function file($name) {
+    /**
+     * Request file
+     * 
+     * @param string $name File name
+     * @return \Clicalmani\Flesco\Http\Requests\UploadedFile|null
+     */
+    public function file(string $name) : UploadedFile|null
+    {
         if ( $this->hasFile($name) ) {
-            return new RequestFile($name);
+            return new UploadedFile($name);
         }
 
         return null;
     }
 
-    public function offsetExists( mixed $property ) : bool {
+    /**
+	 * (non-PHPdoc)
+	 * @see ArrayAccess::offsetExists()
+	 */
+    public function offsetExists(mixed $property) : bool {
         return ! is_null($this->$property);
     }
 
-    public function offsetGet( mixed $property ) : mixed {
+    /**
+	 * (non-PHPdoc)
+	 * @see ArrayAccess::offsetGet()
+	 */
+    public function offsetGet(mixed $property) : mixed {
         return $this->$property;
     }
 
-    public function offsetSet( mixed $property, mixed $value ) : void {
+    /**
+     * (non-PHPDoc)
+     * @see ArrayAccess::offsetSet
+     */
+    public function offsetSet(mixed $property, mixed $value) : void {
         $this->$property = $value;
     }
 
-    public function offsetUnset( mixed $property ) : void {
+    /**
+	 * (non-PHPdoc)
+	 * @see ArrayAccess::offsetUnset()
+	 */
+    public function offsetUnset(mixed $property) : void {
         if ($this->$property) {
             unset($_REQUEST[$property]);
         }
     }
 
-    public function download($filename, $filepath) 
+    /**
+     * Provide a download attachment response header
+     * 
+     * @param string $filename Download file name
+     * @param string $filepath Download file path
+     * @return int|false
+     */
+    public function download($filename, $filepath)  : int|false
     {
         header('Content-Type: ' . mime_content_type($filepath));
         header("Content-Disposition: attachment; filename=$filename");
         return readfile($filepath);
     }
 
-    public function merge($new_signatures = [])
+    /**
+     * Merge request signatures
+     * 
+     * @param ?array $new_signatures New signatures to merge into
+     * @return void
+     */
+    public function merge(?array $new_signatures = []) : void
     {
-        $this->signatures = $this->signatures ? $this->signatures: [];
-        $this->signatures = array_merge($this->signatures, $new_signatures);
+        $this->signatures = array_merge((array) $this->signatures, $new_signatures);
     }
 
-    public function getHeaders()
+    /**
+     * Gather headers
+     * 
+     * @return array|false
+     */
+    public function getHeaders() : array|false
     {
         if ( inConsoleMode() ) return $this->all();
         return apache_request_headers();
     }
 
-    public function getHeader($header_name)
+    /**
+     * Get header value
+     * 
+     * @param string $header
+     * @return mixed
+     */
+    public function getHeader(string $header) : mixed
     {
-        foreach ($this->getHeaders() as $name => $header) {
-            if (strtolower($name) == strtolower($header_name)) return $header;
+        foreach ($this->getHeaders() as $name => $value) {
+            if (strtolower($name) == strtolower($header)) return $value;
         }
 
         return null;
     }
 
-    public function setHeader($name, $value)
+    /**
+     * Set response header
+     * 
+     * @param string $header
+     * @param string $value
+     * @return void
+     */
+    public function setHeader($header, $value) : void
     {
-        header("$name: $value");
+        header("$header: $value");
     }
 
-    public function getMethod()
+    /**
+     * Current request method
+     * 
+     * @return string
+     */
+    public function getMethod() : string
     { 
         return strtolower( $_SERVER['REQUEST_METHOD'] );
     }
 
-    public static function all()
+    /**
+     * Gather request parameters
+     * 
+     * @return array
+     */
+    public static function all() : array
     {
         return $_REQUEST;
     }
 
-    public function checkCSRFToken()
+    /**
+     * Check CSRF validity by testing the csrf-token parameter's value.
+     * 
+     * @return bool
+     */
+    public function checkCSRFToken() : bool
     {
-        $check_csrf = false;
-
-        if ( \Clicalmani\Routes\Route::isApi()) {
-            $check_csrf = false;
-        } elseif ( strtolower( $_SERVER['REQUEST_METHOD'] ) !== 'get') {
-            $check_csrf = true;
-        }
-        
-        if ( $check_csrf ) {
-            if ( @ $this->{'csrf-token'} != csrf()) {
-                http_response_code(403);
-                die('403 Forbiden');
-
-                /**
-                 * Set errorDocument 403
-                 */
-            }
-        }
-    }
-
-    public function createParametersHash($params)
-    {
-        $hash = Security::createParametersHash($params);
-        $_REQUEST['hash'] = $hash;
-        return $hash;
+        return @ $this->{'csrf-token'} === csrf();
     }
 
     /**
-     * The URL hash parameter should be named hsh
+     * Create request parameters hash
+     * 
+     * @param array $params
+     * @return string
      */
-    public function verifyParameters() 
+    public function createParametersHash($params) : string
+    {
+        return tap(
+            Security::createParametersHash($params), 
+            fn(string $hash) => $_REQUEST['hash'] = $hash
+        );
+    }
+
+    /**
+     * Verify request parameters validity.
+     * 
+     * @return bool
+     */
+    public function verifyParameters() : bool
     {
         return Security::verifyParameters();
     }
 
-    public static function getCurrentRequest()
+    /**
+     * Return current request signature
+     * 
+     * @return mixed
+     */
+    public static function getCurrentRequest() : mixed
     {
-        if (static::$current_request) {
-            return static::$current_request;
-        }
-
-        return null;
+        return static::$current_request;
     }
 
-    public function session($key, $value = null)
+    /**
+     * Get or set session
+     * 
+     * @param string $entry Session entry
+     * @param ?string $value Entry value
+     * @return mixed
+     */
+    public function session(string $entry, ?string $value = null) : mixed
     {
         if ( isset($value) ) {
-            $_SESSION[$key] = $value;
-            return;
+            return $_SESSION[$entry] = $value;
         }
 
-        return isset( $_SESSION[$key] ) ? $_SESSION[$key]: null;
+        return isset( $_SESSION[$entry] ) ? $_SESSION[$entry]: null;
     }
 
-    public function cookie($name, $value = null, $expiry = 604800, $path = '/')
+    /**
+     * Get or set cookie
+     * 
+     * @param string $name Cookie name
+     * @param ?string $value Cookie value
+     * @param ?int $expiry Default one year
+     * @param ?string $path Default root path
+     * @return mixed
+     */
+    public function cookie(string $name, ?string $value = null, ?int $expiry = 604800, ?string $path = '/') : mixed
     {
         if ( ! is_null($value) ) {
-            setcookie($name, $value, time() + $expiry, $path);
-            return;
+            return setcookie($name, $value, time() + $expiry, $path);
         }
 
         return $_COOKIE[$name];
     }
 
+    /**
+     * Return authorization bearer header value
+     * 
+     * @return mixed
+     */
     public function getToken()
     {
         $authorization = $this->getHeader('Authorization');
@@ -247,7 +379,12 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
         }
     }
 
-    public function bearerToken()
+    /**
+     * Alias of getToken() method
+     * 
+     * @return mixed
+     */
+    public function bearerToken() : mixed
     {
         return $this->getToken();
     }
@@ -264,39 +401,65 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
          */
         $user_id = $this->test_user_id;
         
-        if ($payload = with ( new \Clicalmani\Flesco\Auth\JWT )->verifyToken($this->getToken())) {
-
+        if ($payload = with( new \Clicalmani\Flesco\Auth\JWT )->verifyToken($this->getToken())) 
             $user_id  = json_decode($payload->jti);
-        }
+        else $user_id = $this->session('auth:user-id');
 
         if ($authenticator = AuthServiceProvider::userAuthenticator()) {
-            return with ( new $authenticator( $this->session('user-id') ) )->user($user_id);
+            return new $authenticator($user_id);
         }
 
         return null;
     }
 
+    /**
+     * @override
+     * @see jsonSerialize()
+     */
     public function jsonSerialize() : mixed
     {
         return $_REQUEST;
     }
 
-    public function make(array $parameters = []) : void
+    /**
+     * Make request parameters
+     * 
+     * @param array $params Parameters
+     * @return void
+     */
+    public function make(array $params = []) : void
     {
-        $_REQUEST = $parameters;
+        $_REQUEST = $params;
     }
 
-    public function redirect()
+    /**
+     * Redirect route
+     * 
+     * @return \Clicalmani\Flesco\Http\Requests\RequestRedirect
+     */
+    public function redirect() : RequestRedirect
     {
         return new RequestRedirect;
     }
 
-    public function request($param = null)
+    /**
+     * Request parameter value
+     * 
+     * @param ?string $param Parameter to request the value. If omitted all the parameters will be returned.
+     * @return mixed
+     */
+    public function request(?string $param = null) : mixed
     {
         return isset($param) ? request($param): request();
     }
 
-    public function where($exclude = [])
+    /**
+     * Associate each request parameter to its value with an egal sign. Useful for filtering.
+     * 
+     * @param array $exclude List of parameters to exclude
+     * @return array
+     */
+    public function where(?array $exclude = []) : array
     {
         $filters = [];
 
@@ -310,5 +473,15 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
         }
 
         return $filters;
+    }
+
+    /**
+     * Route request
+     * 
+     * @return \Clicalmani\Flesco\Http\Requests\RequestRoute
+     */
+    public function route() : RequestRoute
+    {
+        return new RequestRoute; 
     }
 }

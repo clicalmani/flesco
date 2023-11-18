@@ -38,25 +38,25 @@ abstract class ServiceProvider
     protected static $http_kernel;
 
     /**
+     * (non-PHPDoc)
      * @override
      */
     protected abstract function boot() : void;
 
     /**
+     * (non-PHPDoc)
      * @override
      */
-    public function register() : void
-    {
-        // Register nothing
-    }
+    public function register() : void { /** TODO: Override */}
 
     /**
      * Bootstrap providers
      * 
      * @param array $kernel
+     * @param array $http_kernel
      * @return void
      */
-    public static function init(array $kernel, array $http_kernel)
+    public static function init(array $kernel, array $http_kernel) : void
     {
         static::$kernel     = $kernel;
         static::$http_kernel = $http_kernel;

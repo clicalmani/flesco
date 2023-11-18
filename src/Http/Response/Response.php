@@ -5,7 +5,12 @@ use Clicalmani\Routes\Route;
 
 class Response extends HttpResponse
 {
-    public function notFound()
+    /**
+     * 404 Not found redirect
+     * 
+     * @return mixed
+     */
+    public function notFound() : mixed
     {
         $response = $this->sendStatus(404);
 
@@ -14,7 +19,12 @@ class Response extends HttpResponse
         exit;
     }
 
-    public function unauthorized()
+    /**
+     * 401 Unauthorized redirect
+     * 
+     * @return mixed
+     */
+    public function unauthorized() : mixed
     {
         $response = $this->sendStatus(401);
 
@@ -23,7 +33,12 @@ class Response extends HttpResponse
         exit;
     }
 
-    public function forbiden()
+    /**
+     * 403 Forbiden redirect
+     * 
+     * @return mixed
+     */
+    public function forbiden() : mixed
     {
         $response = $this->sendStatus(403);
 

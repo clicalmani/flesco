@@ -3,7 +3,12 @@ namespace Clicalmani\Flesco\Providers;
 
 abstract class AuthServiceProvider extends ServiceProvider
 {
-    public static function userAuthenticator()
+	/**
+	 * Get user authentication class
+	 * 
+	 * @return mixed
+	 */
+    public static function userAuthenticator() : mixed
 	{
 		return @ static::$kernel['auth']['user'];
 	}

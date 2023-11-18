@@ -5,7 +5,13 @@ class HttpResponseHelper
 {
     use JsonResponse;
     
-    function statusCode($status_code)
+    /**
+     * Send a status code
+     * 
+     * @param int $status_code
+     * @return int|bool
+     */
+    public function statusCode(int $status_code) : int|bool
     {
         return http_response_code($status_code);
     }

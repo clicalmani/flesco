@@ -45,7 +45,21 @@ abstract class RequestController extends HttpRequest
 	public static function render() : void
 	{
 		$request = new Request;
-		$request->checkCSRFToken();
+
+		/**
+		 * Check CSRF protection
+		 * 
+		 * |----------------------------------------------------------
+		 * | Note !!!
+		 * |----------------------------------------------------------
+		 * CSRF protection is only based csrf-token request parameter. No CSRF header will be expected
+		 * because we asume ajax requests will be made through REST API.
+		 */
+		if ($_SERVER['REQUEST_METHOD'] !== 'GET' AND FALSE == $request->checkCSRFToken()) {
+			response()->status(403, 'FORBIDEN', '403 Forbiden');
+
+			EXIT;
+		}
 
 		$response = self::getResponse($request);
 		
@@ -151,10 +165,10 @@ abstract class RequestController extends HttpRequest
 	public static function invokeControllerMethod($controllerClass, $method = 'invoke') : mixed
 	{
 		$request = new Request;							  // Fallback to default request
-		Request::$current_request = $request;
+		Request::currentRequest($request);
 		
 		$reflect = new RequestReflection($controllerClass, $method);
-
+		
 		/**
 		 * Validate request
 		 */
@@ -176,40 +190,64 @@ abstract class RequestController extends HttpRequest
 				}
 			}
 			
-			$request = new $requestClass([]);                       // Request objet or an instance
-																	// of class extending Request
-			
-			if (method_exists($request, 'authorize')) {
-				if (false == $request->authorize()) {
-					return response()->status(403, 'FORBIDEN', 'Unauthorized Request');		// Forbiden
-				}
-			}
-
-			if (method_exists($request, 'prepareForValidation')) {
-				$request->prepareForValidation();                    // Call prepareForValidation method
-			}
-			
-			if (method_exists($request, 'signatures')) {
-				$request->signatures();                             // Call validate method
-			}
+			$request = new $requestClass;
+			self::validateRequest(new $request);
 		}
 		
 		$params_types = $reflect->getParamsTypes();
 		$params_values = self::getParameters($request);
 
-		array_unshift($params_types);
+		array_shift($params_types);
 
 		self::setTypes($params_types, $params_values);
 
 		return (new $controllerClass)->{$method}($request, ...$params_values);
 	}
 
-	private static function setTypes(array $types, array &$values)
+	/**
+	 * Validate request
+	 * 
+	 * @param \Clicalmani\Flesco\Http\Requests\Request
+	 * @return mixed
+	 */
+	private static function validateRequest(Request $request) : mixed
+	{
+		if (method_exists($request, 'authorize')) {
+			if (false == $request->authorize()) {
+				return response()->status(403, 'FORBIDEN', 'Unauthorized Request');		// Forbiden
+			}
+		}
+
+		if (method_exists($request, 'prepareForValidation')) {
+			$request->prepareForValidation();                    // Call prepareForValidation method
+		}
+		
+		if (method_exists($request, 'signatures')) {
+			$request->signatures();                             // Call validate method
+		}
+
+		return null;
+	}
+
+	/**
+	 * Set parameters types
+	 * 
+	 * @param string[] $types
+	 * @param string[] $values
+	 * @return void
+	 */
+	private static function setTypes(array $types, array &$values) : void
 	{
 		foreach ($types as $index => $type) {
 			if (in_array($type, ['boolean', 'bool', 'integer', 'int', 'float', 'double', 'string', 'array', 'object']))
 				settype($values[$index], $type);
-			elseif ($type) $values[$index] = new $type;
+			elseif ($type) {
+				$obj = new $type;
+
+				if (is_subclass_of($obj, \Clicalmani\Flesco\Http\Requests\Request::class)) self::validateRequest($obj);
+
+				$values[$index] = $obj;
+			}
 		}
 	}
 
@@ -271,14 +309,14 @@ abstract class RequestController extends HttpRequest
 		$request = new Request;
 		$obj     = new $resource;
 		$reflect = new RequestReflection($controller, $method);
-
+		
 		$params_types = $reflect->getParamsTypes();
 		$params_values = self::getParameters($request);
-
+		
 		array_shift($params_types);
 
 		self::setTypes($params_types, $params_values);
-
+		
 		if ( in_array($method, ['create', 'show', 'update', 'destroy']) ) {
 
 			// Request parameters
@@ -323,7 +361,7 @@ abstract class RequestController extends HttpRequest
 	private static function bindRoutines(mixed $method, Model $obj) : void
 	{
 		if ($resource = self::getResource()) {
-
+			
 			/**
 			 * Select distinct
 			 */
@@ -515,6 +553,12 @@ abstract class RequestController extends HttpRequest
 		}
 	}
 
+	/**
+	 * Controller test
+	 * 
+	 * @param string $action Test action
+	 * @return \Clicalmani\Flesco\TestUnits\Controllers\TestController
+	 */
 	public static function test(string $action) : \Clicalmani\Flesco\TestUnits\Controllers\TestController
 	{
 		return with( new \Clicalmani\Flesco\TestUnits\Controllers\TestController )->new($action);

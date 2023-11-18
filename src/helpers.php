@@ -1,14 +1,10 @@
 <?php
 
-global $root_path;
-
-$root_path = $root_path ?? $_SERVER['DOCUMENT_ROOT'];
-
-if (!preg_match('/.*\/$/', $root_path)) $root_path = $root_path . '/';
-
 if ( ! function_exists( 'root_path' ) ) {
     function root_path( $path = '' ) {
         global $root_path;
+        if (!$root_path) $root_path = $_SERVER['DOCUMENT_ROOT'];
+        if (!preg_match('/.*\/$/', $root_path)) $root_path = $root_path . '/';
         return $root_path . trim($path, '/\\');
     }
 }
@@ -22,7 +18,7 @@ if ( ! function_exists( 'app_path' ) ) {
 
 if ( ! function_exists( 'public_path' ) ) {
     function public_path( $path = '' ) {
-        if ($path) return root_path( 'public/' . trim($path, '/\\') );
+        if ($path !== '') return root_path( 'public/' . trim($path, '/\\') );
         return root_path('public');
     }
 }
@@ -143,7 +139,7 @@ if ( ! function_exists('request') ) {
             return \Clicalmani\Flesco\Http\Requests\Request::all(); 
         }
         
-        $request = \Clicalmani\Flesco\Http\Requests\Request::$current_request;
+        $request = \Clicalmani\Flesco\Http\Requests\Request::currentRequest();
 
         if ( $request ) {
             return $request->{$param};
@@ -166,31 +162,8 @@ if ( ! function_exists('response') ) {
 }
 
 if ( ! function_exists('route') ) {
-    function route($route = '/', $params = []) {
-        if ( empty($params) ) {
-            return $route;
-        }
-
-        $mathes = [];
-        preg_match_all('/:[^\/]+/', $route, $mathes);
-        
-        if ( count($mathes) ) {
-            $mathes = $mathes[0];
-            $parameters = [];
-
-            foreach ($mathes as $param) {
-                $name = substr($param, 1);    				    // Remove starting two dots (:)
-                $name = substr($param, 0, strpos($param, '@')); // Remove validation part
-                
-                if (array_key_exists($name, $params)) {
-                    $route = str_replace($param, $params[$name], $route);
-                }
-            }
-
-            return $route;
-        }
-
-        return null;
+    function route(mixed ...$args) {
+        return \Clicalmani\Routes\Route::resolve(...$args);
     }
 }
 
@@ -289,6 +262,22 @@ if ( ! function_exists('with') ) {
     }
 }
 
+if ( ! function_exists('instance') ) {
+    /**
+     * Class instance creator
+     * 
+     * @param string $class
+     * @param ?callable $callback A callback function that receive an instance of the class as it's first argument.
+     * @return mixed $class Object
+     */
+    function instance(string $class, ?callable $callback = null)
+    {
+        $instance = new $class;
+        $callback($instance);
+        return $instance;
+    }
+}
+
 if ( ! function_exists('factory') ) {
     /**
      * Create a new model factory
@@ -358,5 +347,17 @@ if ( ! function_exists('token') ) {
 if ( ! function_exists('get_payload') ) {
     function get_payload(string $token) {
         return with ( new \Clicalmani\Flesco\Auth\JWT )->verifyToken($token);
+    }
+}
+
+if ( ! function_exists('tree') ) {
+    function tree(iterable $iterable, callable $callback) {
+        $ret = [];
+        foreach ($iterable as $item) {
+            $ret[] = $item;
+            $ret = array_merge($ret, [...tree($callback($item), $callback)]);
+        }
+
+        return $ret;
     }
 }

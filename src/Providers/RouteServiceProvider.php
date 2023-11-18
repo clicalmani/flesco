@@ -104,19 +104,19 @@ abstract class RouteServiceProvider extends ServiceProvider
      * 
      * @return void
      */
-    public function storeCSRFToken()
+    public function storeCSRFToken() : void
     {
         // Escape console mode
-        if ( inConsoleMode() ) return;
-        
-        // Start a session
-        if (session_status() == PHP_SESSION_NONE) {
-            session_start();
-        }
-        
-        // Generate CSRF token and Store it in $_SESSION global variable
-        if ( ! isset($_SESSION['csrf-token']) ) {
-            $_SESSION['csrf-token'] = with ( new \Clicalmani\Flesco\Security\CSRF )->getToken(); 
+        if ( FALSE == inConsoleMode() ) {
+            // Start a session
+            if (session_status() == PHP_SESSION_NONE) {
+                session_start();
+            }
+            
+            // Generate CSRF token and Store it in $_SESSION global variable
+            if ( ! isset($_SESSION['csrf-token']) ) {
+                $_SESSION['csrf-token'] = with ( new \Clicalmani\Flesco\Security\CSRF )->getToken(); 
+            }
         }
     }
 

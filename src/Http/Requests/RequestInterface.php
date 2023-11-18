@@ -1,20 +1,38 @@
 <?php
 namespace Clicalmani\Flesco\Http\Requests;
 
-interface RequestInterface {
+interface RequestInterface 
+{
     
     /**
-     * Render request result
+     * (non-PHPDoc)
+     * @override
+     * 
+     * Request signatures
      */
-    public static function render();
+    public function signatures();
 
     /**
-     * Validate request parameters
+     * (non-PHPDoc)
+     * @override
+     * 
+     * Validate
      */
     public function validate();
 
     /**
-     * Prepare request for validation
+     * (non-PHPDoc)
+     * @override
+     * 
+     * Prepare for validation
      */
     public function prepareForValidation();
+
+    /**
+     * (non-PHPDoc)
+     * @override
+     * 
+     * Authorize
+     */
+    public function authorize();
 }

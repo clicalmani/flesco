@@ -10,6 +10,7 @@ namespace Clicalmani\Flesco\Http\Requests;
 abstract class HttpRequest 
 {
     /**
+     * (non-PHPDoc)
      * @override
      */
     abstract public static function render();
