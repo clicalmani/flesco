@@ -27,9 +27,9 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
      * Get or set the current request
      * 
      * @param ?self $request
-     * @return static
+     * @return mixed
      */
-    public static function currentRequest(?self $request = null) : static
+    public static function currentRequest(?self $request = null) : mixed
     {
         if ($request) return static::$current_request = $request;
         return static::$current_request;

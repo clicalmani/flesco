@@ -165,9 +165,8 @@ abstract class RequestController extends HttpRequest
 	public static function invokeControllerMethod($controllerClass, $method = 'invoke') : mixed
 	{
 		$request = new Request;							  // Fallback to default request
-		Request::currentRequest($request);
-		
 		$reflect = new RequestReflection($controllerClass, $method);
+		Request::currentRequest($request); // Current request
 		
 		/**
 		 * Validate request
@@ -198,9 +197,9 @@ abstract class RequestController extends HttpRequest
 		$params_values = self::getParameters($request);
 
 		array_shift($params_types);
-
+		
 		self::setTypes($params_types, $params_values);
-
+		
 		return (new $controllerClass)->{$method}($request, ...$params_values);
 	}
 
@@ -238,17 +237,21 @@ abstract class RequestController extends HttpRequest
 	 */
 	private static function setTypes(array $types, array &$values) : void
 	{
-		foreach ($types as $index => $type) {
-			if (in_array($type, ['boolean', 'bool', 'integer', 'int', 'float', 'double', 'string', 'array', 'object']))
-				settype($values[$index], $type);
-			elseif ($type) {
+		$tmp = [];
+		foreach ($types as $name => $type) {
+			if (in_array($type, ['boolean', 'bool', 'integer', 'int', 'float', 'double', 'string', 'array', 'object'])) {
+				$tmp[$name] = @ $values[$name];
+				settype($tmp[$name], $type);
+			} elseif ($type) {
 				$obj = new $type;
 
 				if (is_subclass_of($obj, \Clicalmani\Flesco\Http\Requests\Request::class)) self::validateRequest($obj);
 
-				$values[$index] = $obj;
-			}
+				$tmp[$name] = $obj;
+			} else $tmp[$name] = @ $values[$name];
 		}
+
+		$values = $tmp;
 	}
 
 	/**
@@ -277,7 +280,7 @@ abstract class RequestController extends HttpRequest
                 }
                 
                 if ($request->{$name}) {
-                    $parameters[] = $request->{$name};
+                    $parameters[$name] = $request->{$name};
                 }
             }
         }

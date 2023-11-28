@@ -22,13 +22,14 @@ class RequestReflection
         $ret = [];
 
         foreach ($this->reflect->getParameters() as $param) 
-            $ret[] = $param->getType()?->getName();
+            $ret[$param->getName()] = $param->getType()?->getName();
         return $ret;
     }
 
     public function getParamTypeAt(int $position)
     {
-        return $this->reflect->getNumberOfParameters() ? @ $this->getParamsTypes()[0] : null;
+        $types = $this->getParamsTypes();
+        return array_shift( $types );
     }
 
     public function getParamsNames()
