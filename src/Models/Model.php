@@ -850,7 +850,7 @@ class Model implements \JsonSerializable
         $this->query->set('offset', $offset);
         return $this;
     }
-
+    
     /**
      * Returns a specified row defined by a specified primary key.
      * 
@@ -901,7 +901,7 @@ class Model implements \JsonSerializable
     {
         $options = (object) $options;
 
-        $filters     = with (new \Clicalmani\Flesco\Http\Requests\Request)->where($exclude);
+        $filters     = with (new \Clicalmani\Flesco\Http\Requests\Request)->where(array_merge($exclude, ['test_user_id']));
         $child_class = static::getClassName();
 
         $criteria = '1';

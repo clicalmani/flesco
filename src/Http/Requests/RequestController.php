@@ -10,7 +10,6 @@ use Clicalmani\Routes\Exceptions\RouteNotFoundException;
 use Clicalmani\Flesco\Exceptions\ModelNotFoundException;
 use Clicalmani\Flesco\Models\Model;
 use Clicalmani\Flesco\Providers\RouteServiceProvider;
-use Clicalmani\Flesco\Support\Log;
 use Clicalmani\Routes\RouteHooks;
 
 require_once dirname( dirname( __DIR__ ) ) . '/bootstrap/index.php';

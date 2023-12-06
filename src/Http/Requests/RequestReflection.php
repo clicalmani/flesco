@@ -1,8 +1,6 @@
 <?php
 namespace Clicalmani\Flesco\Http\Requests;
 
-use Clicalmani\Flesco\Support\Log;
-
 class RequestReflection 
 {
     private $reflect;
@@ -26,7 +24,7 @@ class RequestReflection
         return $ret;
     }
 
-    public function getParamTypeAt(int $position)
+    public function getParamTypeAt()
     {
         $types = $this->getParamsTypes();
         return array_shift( $types );

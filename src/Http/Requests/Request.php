@@ -274,7 +274,8 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
      */
     public function getMethod() : string
     { 
-        return strtolower( $_SERVER['REQUEST_METHOD'] );
+        if ( inConsoleMode() ) return '@console';
+        return strtolower( (string) @ $_SERVER['REQUEST_METHOD'] );
     }
 
     /**
@@ -399,12 +400,13 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
         /**
          * Test case
          */
-        $user_id = $this->test_user_id;
+        if ( inConsoleMode() ) $user_id = $this->test_user_id;
+        else {
+            if ($payload = with( new \Clicalmani\Flesco\Auth\JWT )->verifyToken($this->getToken())) 
+                $user_id  = json_decode($payload->jti);
+            else $user_id = $this->session('auth:user-id');
+        }
         
-        if ($payload = with( new \Clicalmani\Flesco\Auth\JWT )->verifyToken($this->getToken())) 
-            $user_id  = json_decode($payload->jti);
-        else $user_id = $this->session('auth:user-id');
-
         if ($authenticator = AuthServiceProvider::userAuthenticator()) {
             return new $authenticator($user_id);
         }
@@ -471,7 +473,7 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
                                 return is_string(request($param)) ? sanitize_attribute($param) . '="' . request($param) . '"': request($param);
                             })->toArray();
         }
-
+        
         return $filters;
     }
 
