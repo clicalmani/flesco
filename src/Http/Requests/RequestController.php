@@ -136,7 +136,7 @@ abstract class RequestController extends HttpRequest
 					response()->status(500, 'INTERNAL_SERVER_ERROR', 'Method ' . $controller[1] . ' does not exist on class ' . $controller[0]);		// Forbiden
 					exit;
 				}
-
+				
 				return self::invokeControllerMethod($class, $controller[1]);
 			}
 

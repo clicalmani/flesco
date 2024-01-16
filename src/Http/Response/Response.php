@@ -16,6 +16,13 @@ class Response extends HttpResponse
 
         if (Route::isApi()) return $response;
 
+        /**
+         * |------------------------------------------------------------
+         * |                     Default 404
+         * |------------------------------------------------------------
+         */
+
+         echo view('404');
         exit;
     }
 
@@ -29,7 +36,14 @@ class Response extends HttpResponse
         $response = $this->sendStatus(401);
 
         if (Route::isApi()) return $response;
+        
+        /**
+         * |------------------------------------------------------------
+         * |                     Default 401
+         * |------------------------------------------------------------
+         */
 
+        echo view('401');
         exit;
     }
 
@@ -44,6 +58,34 @@ class Response extends HttpResponse
 
         if (Route::isApi()) return $response;
 
+        /**
+         * |------------------------------------------------------------
+         * |                     Default 403
+         * |------------------------------------------------------------
+         */
+
+         echo view('403');
+        exit;
+    }
+
+    /**
+     * 403 Forbiden redirect
+     * 
+     * @return mixed
+     */
+    public function internalServerError() : mixed
+    {
+        $response = $this->sendStatus(500);
+
+        if (Route::isApi()) return $response;
+
+        /**
+         * |------------------------------------------------------------
+         * |                     Default 500
+         * |------------------------------------------------------------
+         */
+
+         echo view('500');
         exit;
     }
 }

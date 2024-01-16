@@ -85,7 +85,7 @@ abstract class RouteServiceProvider extends ServiceProvider
          * API Request is composed of preflight request and request
          * Prefilght request is meant to check wether the CORS protocol is understood
          */
-        if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
+        if (@ $_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
     
             if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_METHOD']))
                 header("Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS");         

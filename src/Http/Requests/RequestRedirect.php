@@ -1,6 +1,8 @@
 <?php
 namespace Clicalmani\Flesco\Http\Requests;
 
+use Clicalmani\Routes\Route;
+
 class RequestRedirect 
 {
     /**
@@ -11,7 +13,7 @@ class RequestRedirect
      */
     public function route(string $uri) : never
     {
-        header('Location: ' . $uri);
+        header('Location: ' . Route::resolve($uri));
         exit;
     }
 
