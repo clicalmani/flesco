@@ -5,18 +5,19 @@ use Clicalmani\Flesco\Sandbox\Sandbox;
 
 class View 
 {
-    static function render( ...$args ) 
+    /**
+     * Render a view
+     * 
+     * @param string $template
+     * @param ?array $vars Variables
+     * @return mixed
+     */
+    public static function render(string $template, ?array $vars = []) : mixed
     {
-        if ( ! isset( $args[0] ) ) {
-            return '';
-        }
-        
-        $template_path = resources_path( '/views/' . $args[0] . '.template.php' );
+        $template_path = resources_path( '/views/' . $template . '.template.php' );
 
         if ( file_exists( $template_path ) AND is_readable( $template_path ) ) {
-
-            $args = ( isset( $args[1] ) AND is_array( $args[1] ) ) ? $args[1]: [];
-            return @ Sandbox::eval(file_get_contents($template_path), $args);
+            return @ Sandbox::eval(file_get_contents($template_path), $vars);
         }
 
         throw new \Clicalmani\Flesco\Exceptions\ResourceViewException('No resource found');

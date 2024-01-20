@@ -1,6 +1,12 @@
 <?php
 namespace Clicalmani\Flesco\Http\Response;
 
+/**
+ * Class HttpResponse
+ * 
+ * @package Clicalmani\Flesco
+ * @author @clicalmani
+ */
 class HttpResponse 
 {
     /**

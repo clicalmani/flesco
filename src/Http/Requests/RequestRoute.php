@@ -3,6 +3,12 @@ namespace Clicalmani\Flesco\Http\Requests;
 
 use Clicalmani\Routes\Route;
 
+/**
+ * Class RequestRoute
+ * 
+ * @package Clicalmani\Flesco
+ * @author @clicalmani
+ */
 class RequestRoute 
 {
     /**

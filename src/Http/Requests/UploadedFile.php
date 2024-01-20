@@ -1,6 +1,12 @@
 <?php
 namespace Clicalmani\Flesco\Http\Requests;
 
+/**
+ * Class UploadedFile
+ * 
+ * @package Clicalmani\Flesco
+ * @author @clicalmani
+ */
 class UploadedFile 
 {
     /**
@@ -63,11 +69,11 @@ class UploadedFile
     /**
      * Move uploaded file from the temp directory
      * 
-     * @param ?string $directory Directory to move the file to. If omitted storage/uploads will be used.
+     * @param ?string $dir Directory to move the file to. If omitted storage/uploads will be used.
      * @param ?string $name New file name. If omitted the uploaded file name will be used.
      * @return bool
      */
-    public function move($dir = null, $name = null)  : bool
+    public function move(?string $dir = null, ?string $name = null)  : bool
     {
         if (!$dir) {
             if (FALSE === file_exists(storage_path('/uploads'))) 

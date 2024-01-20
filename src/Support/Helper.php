@@ -2,10 +2,10 @@
 namespace Clicalmani\Flesco\Support;
 
 /**
- * Helper class
+ * Class Helper
  * 
  * @package Clicalmani\Flesco
- * @author clicalmani
+ * @author @clicalmani
  */
 class Helper 
 {

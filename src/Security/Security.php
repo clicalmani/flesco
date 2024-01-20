@@ -3,9 +3,9 @@ namespace Clicalmani\Flesco\Security;
 
 use Clicalmani\Flesco\Exceptions\ValidationFailedException;
 
-class Security {
-	
-	static function cleanStr($str) {
+class Security 
+{
+	public static function cleanStr($str) {
 		
 		$chars = sprintf ('%c..%c', 0, ord(0) - 1);
 		$chars .= sprintf ('%c..%c', ord(9) + 1, ord('A') - 1);
@@ -20,15 +20,15 @@ class Security {
 	/**
 	 * Sanitize user inputs.
 	 *
-	 * @param Array $vars <br><br>
+	 * @param array $vars <br><br>
 	 *     Array of inputs, usually global Arrays such as $_GET, $_POST, or $_REQUEST.
-	 * @param Array $signatures <br><br>
-	 * @param String $redirect [Optionnal] <br><br>
+	 * @param array $signatures <br><br>
+	 * @param string $redirect [Optionnal] <br><br>
 	 *     A redirect url if error.
 	 *
-	 * @return Array <br> Sanitized array.
+	 * @return array <br> Sanitized array.
 	 */
-	static function sanitizeVars($vars, $signatures, $redirect = NULL) 
+	public static function sanitizeVars(array $vars, array $signatures, ?string $redirect = NULL) 
 	{
 		$tmp = [];
 		
@@ -132,12 +132,25 @@ class Security {
 		return $tmp;
 	}
 
-	static function validateEmail($email)
+	/**
+	 * Validate email input
+	 * 
+	 * @param string $email
+	 * @return mixed
+	 */
+	public static function validateEmail(string $email) : mixed
 	{
 		return filter_var($email, FILTER_VALIDATE_EMAIL);
 	}
 
-	static function validateDate($date, $format)
+	/**
+	 * Validate date input
+	 * 
+	 * @param string $date
+	 * @param string $format
+	 * @return int|false
+	 */
+	public static function validateDate(string $date, string $format) : int|false
 	{
 		$bindings = [
 			'Y' => '[0-9]{4}',
@@ -154,13 +167,18 @@ class Security {
 		
 		return @ preg_match('/^' . trim($format) . '$/i', $date);
 	}
-    	
-    static function hash($data, $method = '') 
+    
+	/**
+	 * Generate a data hash
+	 * 
+	 * @param mixed $data
+	 * @param ?string $method
+	 * @return mixed
+	 */
+    public static function hash(mixed $data, ?string $method = '') : mixed
 	{
-    	if ( empty($method) ) {
-			$__func = function($str) {
-				return password_hash($str, PASSWORD_DEFAULT);
-			};
+    	if ( '' === $method ) {
+			$__func = fn($str) => password_hash($str, PASSWORD_DEFAULT);
 		} else {
 			$__func = $method;
 		}
@@ -176,7 +194,13 @@ class Security {
     	return $__digest;
     }
     
-    static function createParametersHash($params) 
+	/**
+	 * Create parameters hash
+	 * 
+	 * @param array $params
+	 * @return string
+	 */
+    public static function createParametersHash(array $params) : string
 	{
     	$data = '';
 
@@ -187,7 +211,12 @@ class Security {
     	return strtoupper( substr( self::hash($data, 'sha1'), strlen( self::iv() ), 10 ) );
     }
 
-    static function verifyParameters() 
+	/**
+	 * Verify parameters
+	 * 
+	 * @return bool
+	 */
+    public static function verifyParameters() : bool
 	{
     	$data = '';
 		
@@ -208,12 +237,25 @@ class Security {
 		return false;
     }
 
-	static function iv()
+	/**
+	 * Create iv
+	 * 
+	 * @return string
+	 */
+	public static function iv() : string
 	{
 		return substr( hash('sha256', env('PASSWORD_CRYPT')), 0, 16);
 	}
 	
-    static function opensslED($action, $string) {
+	/**
+	 * Openssl Encrypt or decrypt a string
+	 * 
+	 * @param string $action
+	 * @param string $string
+	 * @return mixed
+	 */
+    public static function opensslED(string $action, string $string) : mixed
+	{
 	
 		$output = false;
 		$encrypt_method = "AES-256-CBC";
@@ -233,7 +275,19 @@ class Security {
 		return $output;
 	}
     
-    static function encrypt($value) { return self::opensslED('encrypt', $value); }
+	/**
+	 * Encrypt a value
+	 * 
+	 * @param string $value
+	 * @return mixed
+	 */
+    public static function encrypt(string $value) { return self::opensslED('encrypt', $value); }
 
-    static function decrypt($encrypted) { return self::opensslED('decrypt', $encrypted); }
+	/**
+	 * Decrypt an encrypted value
+	 * 
+	 * @param string $value
+	 * @return mixed
+	 */
+    public static function decrypt(string $value) : mixed { return self::opensslED('decrypt', $value); }
 }

@@ -17,9 +17,9 @@ abstract class Authenticate implements \ArrayAccess
 	 *
 	 * @param mixed $user_id 
 	 */
-	public function __construct( protected $user_id )
+	public function __construct(protected mixed $user_id)
 	{
-		$this->user = new User( $user_id );
+		$this->user = new User($user_id);
 	}
 	
 	/**

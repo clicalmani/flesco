@@ -7,6 +7,12 @@ use Dotenv\Repository\RepositoryBuilder;
 
 global $dotenv;
 
+/**
+ * Class Env
+ * 
+ * @package Clicalmani\Flesco
+ * @author @clicalmani
+ */
 class Env 
 {
     /**

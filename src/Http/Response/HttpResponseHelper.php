@@ -1,6 +1,12 @@
 <?php
 namespace Clicalmani\Flesco\Http\Response;
 
+/**
+ * Class HttpResponseHelper
+ * 
+ * @package Clicalmani\Flesco
+ * @author @clicalmani
+ */
 class HttpResponseHelper 
 {
     use JsonResponse;

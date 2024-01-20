@@ -1,84 +1,166 @@
 <?php
 
 if ( ! function_exists( 'root_path' ) ) {
-    function root_path( $path = '' ) {
+
+    /**
+     * Get root path
+     * 
+     * @param ?string $subdirectory
+     * @return string
+     */
+    function root_path(?string $subdirectory = '') : string {
         global $root_path;
         if (!$root_path) $root_path = $_SERVER['DOCUMENT_ROOT'];
         if (!preg_match('/.*\/$/', $root_path)) $root_path = $root_path . '/';
-        return $root_path . trim($path, '/\\');
+        return $root_path . trim($subdirectory, '/\\');
     }
 }
 
 if ( ! function_exists( 'app_path' ) ) {
-    function app_path( $path = '' ) {
-        if ($path) return root_path( 'app/' . trim($path, '/\\') );
+
+    /**
+     * Get App path
+     * 
+     * @param ?string $subdirectory
+     * @return string
+     */
+    function app_path(?string $subdirectory = '') : string {
+        if ($subdirectory) return root_path( 'app/' . trim($subdirectory, '/\\') );
         return root_path('app');
     }
 }
 
 if ( ! function_exists( 'public_path' ) ) {
-    function public_path( $path = '' ) {
-        if ($path !== '') return root_path( 'public/' . trim($path, '/\\') );
+
+    /**
+     * Get publi path
+     * 
+     * @param ?string $subdirectory
+     * @return string
+     */
+    function public_path(?string $subdirectory = '') : string {
+        if ($subdirectory !== '') return root_path( 'public/' . trim($subdirectory, '/\\') );
         return root_path('public');
     }
 }
 
 if ( ! function_exists( 'bootstrap_path' ) ) {
-    function bootstrap_path( $path = '' ) {
-        if ($path) return root_path( 'bootstrap/' . trim($path, '/\\') );
+
+    /**
+     * Get bootstrap directory
+     * 
+     * @param ?string $subdirectory
+     * @return string
+     */
+    function bootstrap_path(?string $subdirectory = '') : string {
+        if ($subdirectory) return root_path( 'bootstrap/' . trim($subdirectory, '/\\') );
         return root_path('bootstrap');
     }
 }
 
 if ( ! function_exists( 'routes_path' ) ) {
-    function routes_path( $path = '' ) {
-        if ($path) return root_path( 'routes/' . trim($path, '/\\') );
+
+    /**
+     * Get routes path
+     * 
+     * @param ?string $subdirectory
+     */
+    function routes_path(?string $subdirectory = '') : string {
+        if ($subdirectory) return root_path( 'routes/' . trim($subdirectory, '/\\') );
         return root_path('routes');
     }
 }
 
 if ( ! function_exists( 'resources_path' ) ) {
-    function resources_path( $path = '' ) {
-        if ($path) return root_path( 'resources/' . trim($path, '/\\') );
+
+    /**
+     * Get resources path
+     * 
+     * @param ?string $subdirectory
+     * @return string
+     */
+    function resources_path(?string $subdirectory = '') : string {
+        if ($subdirectory) return root_path( 'resources/' . trim($subdirectory, '/\\') );
         return root_path('resources');
     }
 }
 
 if ( ! function_exists( 'storage_path' ) ) {
-    function storage_path( $path = '' ) {
-        if ($path) return root_path( 'storage/' . trim($path, '/\\') );
+
+    /**
+     * Get storage path
+     * 
+     * @param ?string $subdirectory
+     * @return string
+     */
+    function storage_path(?string $subdirectory = '') : string {
+        if ($subdirectory) return root_path( 'storage/' . trim($subdirectory, '/\\') );
         return root_path('storage');
     }
 }
 
 if ( ! function_exists( 'config_path' ) ) {
-    function config_path( $path = '' ) {
-        if ($path) return root_path( 'config/' . trim($path, '/\\') );
+
+    /**
+     * Get config path
+     * 
+     * @param ?string $subdirectory
+     * @return string
+     */
+    function config_path(?string $subdirectory = '') : string {
+        if ($subdirectory) return root_path( 'config/' . trim($subdirectory, '/\\') );
         return root_path('config');
     }
 }
 
 if ( ! function_exists( 'database_path' ) ) {
-    function database_path( $path = '' ) {
-        if ($path) return root_path( 'database/' . trim($path, '/\\') );
+
+    /**
+     * Get database path
+     * 
+     * @param ?string $subdirectory
+     * @return string
+     */
+    function database_path(?string $subdirectory = '') : string {
+        if ($subdirectory) return root_path( 'database/' . trim($subdirectory, '/\\') );
         return root_path('database');
     }
 }
 
 if ( ! function_exists( 'view' ) ) {
-    function view( ...$args ) {
-        return Clicalmani\Flesco\Resources\Views\View::render( ...$args );
+
+    /**
+     * Render a template view
+     * 
+     * @param string $template Template name
+     * @param ?array $vars Variables
+     * @return mixed
+     */
+    function view(string $template, ?array $vars = []) : mixed {
+        return Clicalmani\Flesco\Resources\Views\View::render($template, $vars);
     }
 }
 
 if ( ! function_exists( 'current_route' ) ) {
-    function current_route() {
+
+    /**
+     * Returns the current route
+     * 
+     * @return string
+     */
+    function current_route() : string {
         return Clicalmani\Routes\Route::currentRoute();
     }
 }
 
 if ( ! function_exists( 'csrf' ) ) {
-    function csrf() {
+
+    /**
+     * Get CSRF token
+     * 
+     * @return mixed
+     */
+    function csrf() : mixed {
         if ( isset($_SESSION['csrf-token']) ) {
             return $_SESSION['csrf-token'];
         }
@@ -88,13 +170,28 @@ if ( ! function_exists( 'csrf' ) ) {
 }
 
 if ( ! function_exists( 'env' ) ) {
-    function env($key, $default = '') {
+
+    /**
+     * Get env value
+     * 
+     * @param string $key Env key
+     * @param ?string $default Default value if key does not exists.
+     * @return string
+     */
+    function env(string $key, ?string $default = '') : string {
         return isset($_ENV[$key]) ? $_ENV[$key]: $default;
     }
 }
 
 if ( ! function_exists( 'assets' ) ) {
-    function assets($path = '/') {
+
+    /**
+     * Get asset
+     * 
+     * @param ?string $path Asset path
+     * @return string
+     */
+    function assets(?string $path = '/') : string {
         $app_url = env('APP_URL', '127.0.0.1:8000');
         $protocol = '';
         if (preg_match('/^http/', $app_url) == false) {
@@ -105,13 +202,27 @@ if ( ! function_exists( 'assets' ) ) {
 }
 
 if ( ! function_exists( 'password' ) ) {
-    function password($password) {
+
+    /**
+     * Create a password hash
+     * 
+     * @param string $password Password to hash
+     * @return string
+     */
+    function password(string $password) : string {
         return password_hash($password, PASSWORD_BCRYPT);
     }
 }
 
 if ( ! function_exists( 'temp_dir' ) ) {
-    function temp_dir($path = '/') {
+
+    /**
+     * Get temp dir
+     * 
+     * @param ?string $path
+     * @return string
+     */
+    function temp_dir(?string $path = '/') : string {
 
         if ( function_exists( 'sys_get_temp_dir' ) ) {
 
@@ -133,7 +244,14 @@ if ( ! function_exists( 'temp_dir' ) ) {
 }
 
 if ( ! function_exists('request') ) {
-    function request($param = '') {
+
+    /**
+     * Get request param
+     * 
+     * @param ?string $param
+     * @return mixed
+     */
+    function request(?string $param = '') : mixed {
 
         if (empty($param)) {
             return \Clicalmani\Flesco\Http\Requests\Request::all(); 
@@ -150,49 +268,102 @@ if ( ! function_exists('request') ) {
 }
 
 if ( ! function_exists('redirect') ) {
-    function redirect() {
-        return with ( new \Clicalmani\Flesco\Http\Requests\Request )->redirect();
+
+    /**
+     * Do a redirect
+     * 
+     * @return never
+     */
+    function redirect() : never {
+        with ( new \Clicalmani\Flesco\Http\Requests\Request )->redirect();
     }
 }
 
 if ( ! function_exists('response') ) {
+
+    /**
+     * Return an Http response
+     * 
+     * @return \Clicalmani\Flesco\Http\Response\HttpResponseHelper
+     */
     function response() {
         return new \Clicalmani\Flesco\Http\Response\HttpResponseHelper;
     }
 }
 
 if ( ! function_exists('route') ) {
-    function route(mixed ...$args) {
+
+    /**
+     * Do route
+     * 
+     * @param mixed ...$args
+     * @return mixed
+     */
+    function route(mixed ...$args) : mixed {
         return \Clicalmani\Routes\Route::resolve(...$args);
     }
 }
 
 if ( ! function_exists('collection') ) {
+
+    /**
+     * Create a collection
+     * 
+     * @return \Clicalmani\Collection\Collection
+     */
     function collection() {
         return new \Clicalmani\Collection\Collection;
     }
 }
 
 if ( ! function_exists('sanitize_attribute') ) {
-    function sanitize_attribute($attr) {
+
+    /**
+     * Sanitize attribute
+     * 
+     * @param string $attr
+     * @return mixed
+     */
+    function sanitize_attribute($attr) : mixed {
         return preg_replace('/[^0-9a-z-_]+/', '', \Clicalmani\Flesco\Support\Str::slug($attr));
     }
 }
 
 if ( ! function_exists('now') ) {
-    function now() {
-        return \Carbon\Carbon::now('Africa/Porto-Novo');
+
+    /**
+     * Get current date
+     * 
+     * @param ?string $time_zone
+     * @return \Carbon\Carbon
+     */
+    function now(?string $time_zone = 'Africa/Porto-Novo') {
+        return \Carbon\Carbon::now($time_zone);
     }
 }
 
 if ( ! function_exists('slug') ) {
-    function slug($str) {
+
+    /**
+     * Slugify a string
+     * 
+     * @param string $str
+     * @return string
+     */
+    function slug(string $str) : string {
         return \Clicalmani\Flesco\Support\Str::slug($str);
     }
 }
 
 if ( ! function_exists('recursive_unlink') ) {
-    function recursive_unlink($path) {
+
+    /**
+     * Unlink path
+     * 
+     * @param string $path
+     * @return bool True on success, false on failure.
+     */
+    function recursive_unlink(string $path) : bool {
 	
 	    if (is_dir($path) === true) {
 		
@@ -226,7 +397,19 @@ if ( ! function_exists('recursive_unlink') ) {
 }
 
 if ( ! function_exists('mail_smtp') ) {
-    function mail_smtp($to, $from, $subject, $body, $cc = [], $bc = [])
+
+    /**
+     * Send mail through SMTP protocol
+     * 
+     * @param array $to
+     * @param array $from
+     * @param string $subject
+     * @param string $body
+     * @param array $cc Carbon copy
+     * @param array $bc Back copy
+     * @return mixed
+     */
+    function mail_smtp(array $to, array $from, string $subject, string $body, ?array $cc = [], ?array $bc = [])
     {
         $mail = new \Clicalmani\Flesco\Mail\MailSMTP;
 
@@ -257,8 +440,16 @@ if ( ! function_exists('mail_smtp') ) {
 }
 
 if ( ! function_exists('with') ) {
-    function with($obj) {
-        return $obj;
+
+    /**
+     * Return the given value or pass it to a callback.
+     * 
+     * @param mixed $value
+     * @param ?callbable $callback
+     * @return mixed
+     */
+    function with(mixed $value, ?callable $callback = null) : mixed {
+        return is_null($callback) ? $value: $callback($value);
     }
 }
 
@@ -291,20 +482,42 @@ if ( ! function_exists('factory') ) {
 }
 
 if ( ! function_exists('inConsoleMode') ) {
-    function inConsoleMode() {
+
+    /**
+     * Verify if console mode is active
+     * 
+     * @return bool
+     */
+    function inConsoleMode() : bool {
         return defined('CONSOLE_MODE_ACTIVE') && CONSOLE_MODE_ACTIVE;
     }
 }
 
 if ( ! function_exists('tap') ) {
-    function tap($value, $callback) {
+
+    /**
+     * Call the given closure with the given value and then return the value.
+     * 
+     * @param mixed $value
+     * @param callable $callback
+     * @return mixed
+     */
+    function tap(mixed $value, callable $callback) : mixed {
         $callback($value);
         return $value;
     }
 }
 
 if ( ! function_exists('value') ) {
-    function value($value, $param = null) {
+
+    /**
+     * Call a value with given parameter or return the value.
+     * 
+     * @param mixed $value
+     * @param mixed $param
+     * @return mixed
+     */
+    function value(mixed $value, mixed $param = null) {
         if ( ! is_callable($value) ) return $value;
         if ( $param ) return $value($param);
         return $value();
@@ -312,13 +525,28 @@ if ( ! function_exists('value') ) {
 }
 
 if ( ! function_exists('call') ) {
-    function call($fn, ...$args) {
-        return $fn( ...$args );
+
+    /**
+     * Call a value with specified arguments.
+     * 
+     * @param callable $value
+     * @param mixed ...$args
+     * @return mixed
+     */
+    function call(mixed $value, mixed ...$args) : mixed {
+        return $value( ...$args );
     }
 }
 
 if ( ! function_exists('nocall') ) {
-    function nocall($fn) {
+
+    /**
+     * Return a value without calling it.
+     * 
+     * @param mixed $value
+     * @return mixed
+     */
+    function nocall(mixed $fn) : mixed {
         return $fn;
     }
 }
@@ -330,28 +558,57 @@ if ( ! function_exists('faker') ) {
 }
 
 if ( ! function_exists('xdt') ) {
+
+    /**
+     * Create a new XDT object.
+     * 
+     * @return \Clicalmani\XPower\XDT
+     */
     function xdt() {
         return new \Clicalmani\XPower\XDT;
     }
 }
 
 if ( ! function_exists('token') ) {
-    function token(mixed $data, int $seconds) {
+
+    /**
+     * Generate a token
+     * 
+     * @param mixed $jti
+     * @param int $expiry Expiry in seconds
+     * @return string
+     */
+    function token(mixed $jti, int $expiry) : string {
         $jwt = new \Clicalmani\Flesco\Auth\JWT;
-        $jwt->setJti( json_encode($data) );
-        $jwt->setExpiry($seconds/(60*60*24)); // expiry in days
+        $jwt->setJti( json_encode($jti) );
+        $jwt->setExpiry($expiry/(60*60*24)); // expiry in days
         return $jwt->generateToken();
     }
 }
 
 if ( ! function_exists('get_payload') ) {
-    function get_payload(string $token) {
+
+    /**
+     * Get payload
+     * 
+     * @param string $token
+     * @return mixed
+     */
+    function get_payload(string $token) : mixed {
         return with ( new \Clicalmani\Flesco\Auth\JWT )->verifyToken($token);
     }
 }
 
 if ( ! function_exists('tree') ) {
-    function tree(iterable $iterable, callable $callback) {
+
+    /**
+     * Flaten a tree
+     * 
+     * @param iterable $iterable
+     * @param callable $callback
+     * @return mixed
+     */
+    function tree(iterable $iterable, callable $callback) : mixed {
         $ret = [];
         foreach ($iterable as $item) {
             $ret[] = $item;
@@ -359,5 +616,45 @@ if ( ! function_exists('tree') ) {
         }
 
         return $ret;
+    }
+}
+
+if ( ! function_exists('jwt') ) {
+
+    /**
+     * Create a JWT object. 
+     * 
+     * @param ?string $jti
+     * @param mixed $expiry
+     * @return \Clicalmani\Flesco\Auth\JWT
+     */
+    function jwt(?string $jti = null, mixed $expiry = 1) {
+        return new \Clicalmani\Flesco\Auth\JWT($jti, $expiry);
+    }
+}
+
+if ( ! function_exists('encrypt') ) {
+
+    /**
+     * Encrypt a value
+     * 
+     * @param string $value
+     * @return mixed
+     */
+    function encrypt(string $value) : mixed {
+        return \Clicalmani\Flesco\Security\Security::encrypt($value);
+    }
+}
+
+if ( ! function_exists('decrypt') ) {
+
+    /**
+     * Decrypt a value
+     * 
+     * @param string $value
+     * @return mixed
+     */
+    function decrypt(string $value) : mixed {
+        return \Clicalmani\Flesco\Security\Security::decrypt($value);
     }
 }

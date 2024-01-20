@@ -1,6 +1,12 @@
 <?php
 namespace Clicalmani\Flesco\Http\Requests;
 
+/**
+ * Class RequestReflection
+ * 
+ * @package Clicalmani\Flesco
+ * @author @clicalmani
+ */
 class RequestReflection 
 {
     private $reflect;

@@ -3,6 +3,12 @@ namespace Clicalmani\Flesco\Http\Response;
 
 use Clicalmani\Routes\Route;
 
+/**
+ * Class Response
+ * 
+ * @package Clicalmani\Flesco
+ * @author @clicalmani
+ */
 class Response extends HttpResponse
 {
     /**

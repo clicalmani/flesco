@@ -369,23 +369,25 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
     /**
      * Return authorization bearer header value
      * 
-     * @return mixed
+     * @return string
      */
-    public function getToken()
+    public function getToken() : string
     {
         $authorization = $this->getHeader('Authorization');
         
         if ($authorization) {
             return preg_replace('/^(Bearer )/i', '', $authorization);
         }
+
+        return '';
     }
 
     /**
      * Alias of getToken() method
      * 
-     * @return mixed
+     * @return string
      */
-    public function bearerToken() : mixed
+    public function bearerToken() : string
     {
         return $this->getToken();
     }
@@ -402,8 +404,20 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
          */
         if ( inConsoleMode() ) $user_id = $this->test_user_id;
         else {
+
+            /**
+             * |-----------------------------------------------------
+             * |                    REST API
+             * |-----------------------------------------------------
+             */
             if ($payload = with( new \Clicalmani\Flesco\Auth\JWT )->verifyToken($this->getToken())) 
                 $user_id  = json_decode($payload->jti);
+
+            /**
+             * |-----------------------------------------------------
+             * |                    WEB AUTH
+             * |-----------------------------------------------------
+             */
             else $user_id = $this->session('auth:user-id');
         }
         

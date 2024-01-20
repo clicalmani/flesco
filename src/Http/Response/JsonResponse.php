@@ -1,6 +1,12 @@
 <?php
 namespace Clicalmani\Flesco\Http\Response;
 
+/**
+ * Trait JsonResponse
+ * 
+ * @package Clicalmani\Flesco
+ * @author @clicalmani
+ */
 Trait JsonResponse
 {
     /**

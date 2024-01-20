@@ -12,7 +12,14 @@ namespace Clicalmani\Flesco\Support;
  */
 class Mock 
 {
-    public static function __callStatic($method, $args)
+    /**
+     * PHP magic __callStatic
+     * 
+     * @param string $method
+     * @param array $args
+     * @return mixed
+     */
+    public static function __callStatic($method, $args) : mixed
     {
         $class = get_called_class();
 

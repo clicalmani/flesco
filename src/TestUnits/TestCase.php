@@ -19,5 +19,10 @@ abstract class TestCase
      */
     abstract public function state(?callable $callback) : static;
 
+    /**
+     * Run a test case
+     * 
+     * @return void
+     */
     abstract public static function test() : void;
 }

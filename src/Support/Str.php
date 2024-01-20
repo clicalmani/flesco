@@ -3,15 +3,39 @@ namespace Clicalmani\Flesco\Support;
 
 use Clicalmani\Flesco\Facade\Facade;
 
+/**
+ * Class Str
+ * 
+ * @package Clicalmani\Flesco
+ * @author @clicalmani
+ */
 class Str extends Facade
 {
+    /**
+     * Mbstring encodings
+     * 
+     * @var ?array
+     */
+    private static ?array $encodings = [];
 
-    private static $encodings = [];
+    /**
+     * Encoding overloaded
+     * 
+     * @var mixed
+     */
     private static $encoding_overloaded = null;
 
-    public static function slug( $title, $fallback_title = '' ) 
+    /**
+     * Create a slug
+     * 
+     * @param string $value
+     * @param ?string $fallback_value
+     * @return string
+     */
+    public static function slug(mixed $value, ?string $fallback_value = '' ) 
     {
-        return strtolower(strtr(self::removeAccents( $title ), ' /\\', '---') );
+        if (!$value) return $fallback_value;
+        return strtolower(strtr(self::removeAccents( $value ), ' /\\', '---') );
     }
 
     /**
@@ -25,7 +49,7 @@ class Str extends Facade
      *                       Defaults to the current locale.
      * @return string Filtered string with replaced "nice" characters.
      */
-    public static function removeAccents( $string, $locale = '' ) 
+    public static function removeAccents(string $string, ?string $locale = '' ) 
     {
         if (! $string) return '';
         
@@ -454,7 +478,7 @@ class Str extends Facade
      * @param string $str The string to be checked
      * @return bool True if $str fits a UTF-8 model, false otherwise.
      */
-    public static function seemsUtf8( $str ) {
+    public static function seemsUtf8(string $str) {
         self::mbstringBinarySafeEncoding();
         $length = strlen( $str );
         self::resetMbstringEncoding();
@@ -505,7 +529,7 @@ class Str extends Facade
      * @param bool $reset Optional. Whether to reset the encoding back to a previously-set encoding.
      *                    Default false.
      */
-    public static function mbstringBinarySafeEncoding( $reset = false ) 
+    public static function mbstringBinarySafeEncoding(?bool $reset = false) 
     {
         if ( is_null( static::$encoding_overloaded ) ) {
             if ( function_exists( 'mb_internal_encoding' )
@@ -527,7 +551,7 @@ class Str extends Facade
             mb_internal_encoding( 'ISO-8859-1' );
         }
     
-        if ( $reset && $encodings ) {
+        if ( $reset && static::$encodings ) {
             $encoding = array_pop( static::$encodings );
             mb_internal_encoding( $encoding );
         }

@@ -27,7 +27,7 @@ abstract class TestController extends TestCase
      * @param array $parameters [Optional]
      * @return array 
      */
-    private function merge(array $parameters = []) : array
+    private function merge(?array $parameters = []) : array
     {
         return array_merge($this->override, $parameters);
     }
@@ -38,7 +38,7 @@ abstract class TestController extends TestCase
      * @param array $parameters Only specified parameters will be overriden
      * @return array New seed
      */
-    private function override($parameters = [])
+    private function override(?array $parameters = [])
     {
         $this->override = $this->merge($parameters);
         $parameters = $this->{$this->action}();

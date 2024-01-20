@@ -1,11 +1,17 @@
 <?php
 namespace Clicalmani\Flesco\Mail;
 
+/**
+ * Class MailSMTP
+ * 
+ * @package Clialmani\Flesco
+ * @author @clicalmani
+ */
 class MailSMTP 
 {
     private $WordWrap;
     
-    function __construct(private $mail = null)
+    public function __construct(private $mail = null)
     {
         $this->mail             = new \PHPMailer\PHPMailer\PHPMailer;
         
@@ -23,22 +29,47 @@ class MailSMTP
         $this->WordWrap         = 50;
     }
 
-    function setBody($body)
+    /**
+     * Set body
+     * 
+     * @param string $body
+     * @return void
+     */
+    public function setBody(string $body) : void
     {
         $this->mail->Body = $body;
     }
 
-    function setSubject($subject)
+    /**
+     * Set subject
+     * 
+     * @param string $subject
+     * @return void
+     */
+    public function setSubject(string $subject) : void
     {
         $this->mail->Subject = $subject;
     }
 
-    function setWordWrap($WordWrap)
+    /**
+     * Set word wrap
+     * 
+     * @param int $WordWrap
+     * @return void
+     */
+    public function setWordWrap(int $WordWrap) : void
     {
         $this->mail->WordWrap = $WordWrap;
     }
 
-    function __call($method, $args)
+    /**
+     * PHP magic __call
+     * 
+     * @param string $method
+     * @param array $args
+     * @return mixed
+     */
+    public function __call(string $method, array $args) : mixed
     {
         $mailer_methods = [
             'setFrom',

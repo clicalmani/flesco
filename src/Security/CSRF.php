@@ -3,7 +3,12 @@ namespace Clicalmani\Flesco\Security;
 
 class CSRF
 {
-    function getToken()
+    /**
+     * Generate CSRF token
+     * 
+     * @return string
+     */
+    public function getToken() : string
     {
         return bin2hex( Security::hash( time() ) );
     }

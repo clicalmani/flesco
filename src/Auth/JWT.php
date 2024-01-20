@@ -1,20 +1,26 @@
 <?php
 namespace Clicalmani\Flesco\Auth;
 
+/**
+ * JWT Class
+ * 
+ * @package clicalmani\flesco
+ * @author @clicalmani
+ */
 class JWT
 {
-    private $jti,
-            $payload,
-            $jwt,
-            $secret,
-            $expiry,
-            $headers;
+    private $payload,    // JWT payload
+            $secret,     // Encryption key
+            $headers;    // Headers
 
-    function __construct( $jti = null, $expiry = 1 )
+    /**
+     * Constructor
+     * 
+     * @param mixed $jti JWT ID claim
+     * @param mixed $expiry Expiration time in days
+     */
+    public function __construct(private mixed $jti = null, private mixed $expiry = 1)
     {
-        $this->jti     = $jti;
-        $this->expiry  = is_null($expiry) ? 0: (int) $expiry;
-
         $this->headers = (object) [
             'alg' => 'HS256',
             'typ' => 'JWT'
@@ -23,20 +29,32 @@ class JWT
             'iss' => env('APP_URL', ''), // Issuer claim
             'iat' => time(),             // Issued at claim
             'jti' => $this->jti,         // JWT ID claim
-            'exp' => time() + 60 * 60 * 24 * $this->expiry // Expiration time claim
+            'exp' => time() + 60*60*24*$this->expiry // Expiration time claim
         ];
-        $this->secret  = env('APP_KEY', 'Clicalmani Flesco');
+        $this->secret  = env('APP_KEY', '$2y$10$iuSS1cFgKgEV4yuHAZmH6.lilZyppcJAMmyLeviCxvWEaAmxXmIA2');
     }
 
-    function setExpiry($expiry)
+    /**
+     * Set expiry time claim
+     * 
+     * @param miexed $expiry
+     * @return void
+     */
+    public function setExpiry(mixed $expiry) : void
     {
         $this->expiry = $expiry;
     }
 
-    function setJti($new_jti)
+    /**
+     * Set JWT ID claim
+     * 
+     * @param mixed $new_jti
+     * @return void
+     */
+    public function setJti(mixed $new_jti) : void
     {
         $this->jti = $new_jti;
-
+        
         $this->payload = [
             'iss' => env('APP_URL', ''), // Issuer claim
             'iat' => time(),             // Issued at claim
@@ -45,7 +63,12 @@ class JWT
         ];
     }
 
-    function generateToken()
+    /**
+     * Generate token
+     * 
+     * @return string
+     */
+    public function generateToken() : string
     {
         $headers = $this->base64urlEncode(
             json_encode($this->headers)
@@ -65,12 +88,24 @@ class JWT
         return "$headers.$payload.$signature";
     }
 
-    private function base64urlEncode($str)
+    /**
+     * Base 64 URL encode
+     * 
+     * @param string $url
+     * @return string
+     */
+    private function base64urlEncode(string $url) : string
     {
-        return rtrim(strtr(base64_encode($str), '+/', '-_'), '=');
+        return rtrim(strtr(base64_encode($url), '+/', '-_'), '=');
     }
 
-    function verifyToken($token)
+    /**
+     * Verify token
+     * 
+     * @param string $token
+     * @return miexed Payload if success, false if failure.
+     */
+    public function verifyToken(string $token)
     {
         if (!$token) {
             return false;
@@ -98,7 +133,7 @@ class JWT
             return false;
         }
         
-        if ( $payload->exp > 0 AND ( $payload->exp - time() ) < 0 ) { // token expired
+        if ( $payload->exp > 0 AND ( $payload->exp - time() ) <= 0 ) { // token expired
             return false;
         }
         
