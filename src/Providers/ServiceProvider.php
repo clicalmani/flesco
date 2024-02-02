@@ -17,6 +17,13 @@ abstract class ServiceProvider
      * @var \Clicalmani\Container\Manager
      */
     protected $container;
+
+    /**
+     * Event listeners
+     * 
+     * @var array
+     */
+    protected $listen = [];
     
     public function __construct()
     {
@@ -96,5 +103,28 @@ abstract class ServiceProvider
     public static function getProvidedMiddleware(string $gateway, $name) : mixed
     {
         return @ static::$http_kernel[$gateway][$name];
+    }
+
+    /**
+     * Get specific event listeners
+     * 
+     * @param string $event
+     * @return array
+     */
+    public static function getEventListeners(string $event) : array
+    {
+        return @ self::$listen[$event] ?? [];
+    }
+
+    /**
+     * Add event listener
+     * 
+     * @param string $event
+     * @param string $listener
+     * @return void
+     */
+    public static function listenEvent(string $event, string $listener) : void
+    {
+        @ self::$listen[$event][] = $listener;
     }
 }

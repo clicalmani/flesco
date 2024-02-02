@@ -214,6 +214,19 @@ if ( ! function_exists( 'password' ) ) {
     }
 }
 
+if ( ! function_exists( 'create_parameters_hash' ) ) {
+
+    /**
+     * Create parameters hash
+     * 
+     * @param array $parameters
+     * @return string
+     */
+    function create_parameters_hash(array $parameters) : string {
+        return (new \Clicalmani\Flesco\Http\Requests\Request)->createParametersHash($parameters);
+    }
+}
+
 if ( ! function_exists( 'temp_dir' ) ) {
 
     /**
@@ -405,11 +418,10 @@ if ( ! function_exists('mail_smtp') ) {
      * @param array $from
      * @param string $subject
      * @param string $body
-     * @param array $cc Carbon copy
-     * @param array $bc Back copy
+     * @param ?array $options Mail options
      * @return mixed
      */
-    function mail_smtp(array $to, array $from, string $subject, string $body, ?array $cc = [], ?array $bc = [])
+    function mail_smtp(array $to, array $from, string $subject, string $body, ?array $options = [])
     {
         $mail = new \Clicalmani\Flesco\Mail\MailSMTP;
 
@@ -417,23 +429,64 @@ if ( ! function_exists('mail_smtp') ) {
         $mail->setBody($body);
         $mail->setFrom($from['email'], $from['name']);
 
-        foreach ($to as $data) {
-            $mail->addAddress($data['email'], $data['name']);
+        foreach ($to as $address) {
+            $mail->addAddress($address['email'], $address['name']);
         }
 
-		if ($cc) {
-            foreach ($cc as $data) {
-                $mail->addCC($data['email'], $data['name']);
+		if (@ $options['cc']) {
+            foreach ($options['cc'] as $cc) {
+                $mail->addCC($cc['email'], $cc['name']);
             }
 		}
 
-		if ($bc) {
-            foreach ($bc as $data) {
-                $mail->addBC($data['email'], $data['name']);
+		if (@ $options['bc']) {
+            foreach ($options['bc'] as $bc) {
+                $mail->addBC($bc['email'], $bc['name']);
             }
 		}
 
 		$mail->isHTML(true);
+
+        if (@ $options['attachments'])
+            foreach ($options['attachments'] as $attachment) {
+
+                $name = (string) @ $attachment['name'] ?? '';
+                $encoding = (string) @ $attachment['encoding'] ?? \PHPMailer\PHPMailer\PHPMailer::ENCODING_BASE64;
+                $type = (string) @ $attachment['type'] ?? '';
+                $disposition = (string) @ $attachment['disposition'] ?? 'attachment';
+
+                switch(@$attachment['method']) {
+                    case 'file': $mail->addAttachment(
+                        (string) @ $attachment['path'],
+                        $name,
+                        $encoding,
+                        $type,
+                        $disposition
+                    ); break;
+
+                    case 'inline': $mail->addStringAttachment(
+                        (string) @ $attachment['string'],
+                        (string) @ $attachment['filename'],
+                        $encoding,
+                        $type,
+                        $disposition
+                    ); break;
+
+                    case 'embed': $mail->addEmbeddedImage(
+                        (string) @ $attachment['path'],
+                        (string) @ $attachment['cid'],
+                        $name,
+                        $encoding,
+                        $type,
+                        $disposition
+                    ); break;
+                }
+            }
+
+        if (@ $options['headers'])
+            foreach ($options['headers'] as $header) {
+                $mail->addCustomHeader((string) @ $header['name'], (string) @ $header['value']);
+            }
         
         return $mail->send();
     }

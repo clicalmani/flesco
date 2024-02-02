@@ -1,7 +1,7 @@
 <?php
 namespace Clicalmani\Flesco\Events;
 
-interface EventObserver 
+interface EventListener 
 {
     /**
      * Notify observer

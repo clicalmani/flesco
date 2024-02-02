@@ -63,7 +63,7 @@ abstract class RequestController extends HttpRequest
 		$response = self::getResponse($request);
 		
 		// Run after navigation hook
-		if ($hook = RouteHooks::getafterHook(static::$route)) $response = $hook($response);
+		if ($hook = RouteHooks::getAfterHook(static::$route)) $response = $hook($response);
 
 		// Fire TPS
 		RouteServiceProvider::fireTPS($response, 1);

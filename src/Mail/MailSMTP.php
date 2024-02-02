@@ -74,6 +74,10 @@ class MailSMTP
         $mailer_methods = [
             'setFrom',
             'addAddress',
+            'addAttachment',
+            'addStringAttachment',
+            'addEmbeddedImage',
+            'addCustomHeader',
             'addCC',
             'addBC',
             'isHTML',
