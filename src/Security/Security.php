@@ -5,18 +5,6 @@ use Clicalmani\Flesco\Exceptions\ValidationFailedException;
 
 class Security 
 {
-	public static function cleanStr($str) {
-		
-		$chars = sprintf ('%c..%c', 0, ord(0) - 1);
-		$chars .= sprintf ('%c..%c', ord(9) + 1, ord('A') - 1);
-		$chars .= sprintf ('%c..%c', ord('Z') + 1, ord('a') - 1);
-		$chars .= sprintf ('%c..%c', ord('z') + 1, 255);
-		
-		$str = addcslashes($str, $chars);
-		
-		return $str;
-	}
-	
 	/**
 	 * Sanitize user inputs.
 	 *

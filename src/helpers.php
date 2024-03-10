@@ -1,5 +1,8 @@
 <?php
 
+use Carbon\Carbon;
+use Clicalmani\Flesco\Auth\JWT;
+
 if ( ! function_exists( 'root_path' ) ) {
 
     /**
@@ -266,14 +269,14 @@ if ( ! function_exists('request') ) {
      */
     function request(?string $param = '') : mixed {
 
-        if (empty($param)) {
+        if ('' === $param) {
             return \Clicalmani\Flesco\Http\Requests\Request::all(); 
         }
         
-        $request = \Clicalmani\Flesco\Http\Requests\Request::currentRequest();
+        $request = \Clicalmani\Flesco\Http\Requests\Request::currentRequest() ?? (object) \Clicalmani\Flesco\Http\Requests\Request::all();
 
         if ( $request ) {
-            return $request->{$param};
+            return @$request->{$param};
         }
 
         return null;
@@ -324,8 +327,8 @@ if ( ! function_exists('collection') ) {
      * 
      * @return \Clicalmani\Collection\Collection
      */
-    function collection() {
-        return new \Clicalmani\Collection\Collection;
+    function collection(?array $items = []) {
+        return new \Clicalmani\Collection\Collection( $items );
     }
 }
 
@@ -350,7 +353,8 @@ if ( ! function_exists('now') ) {
      * @param ?string $time_zone
      * @return \Carbon\Carbon
      */
-    function now(?string $time_zone = 'Africa/Porto-Novo') {
+    function now(?string $time_zone = 'Africa/Porto-Novo') : Carbon
+    {
         return \Carbon\Carbon::now($time_zone);
     }
 }
@@ -425,6 +429,53 @@ if ( ! function_exists('mail_smtp') ) {
     {
         $mail = new \Clicalmani\Flesco\Mail\MailSMTP;
 
+        if (@ $options['attachments'])
+            foreach ($options['attachments'] as $attachment) {
+
+                $name = (string) @ $attachment['name'] ?? '';
+                $encoding = array_key_exists('encoding', $attachment) ? (string)$attachment['encoding'] : \PHPMailer\PHPMailer\PHPMailer::ENCODING_BASE64;
+                $type = array_key_exists('type', $attachment) ? (string) $attachment['type'] : '';
+                $disposition = array_key_exists('disposition', $attachment) ? (string)$attachment['disposition'] : 'attachment';
+
+                switch(@$attachment['method']) {
+                    case 'file': 
+                        $mail->addAttachment(
+                            (string) @ $attachment['path'],
+                            $name,
+                            $encoding,
+                            $type,
+                            $disposition
+                        ); 
+                        break;
+
+                    case 'inline': 
+                        $mail->addStringAttachment(
+                            (string) @ $attachment['string'],
+                            (string) @ $attachment['filename'],
+                            $encoding,
+                            $type,
+                            $disposition
+                        ); 
+                        break;
+
+                    case 'embed': 
+                        $mail->addEmbeddedImage(
+                            (string) @ $attachment['path'],
+                            (string) @ $attachment['cid'],
+                            $name,
+                            $encoding,
+                            $type,
+                            $disposition
+                        ); 
+                        break;
+                }
+            }
+
+        if (@ $options['headers'])
+            foreach ($options['headers'] as $header) {
+                $mail->addCustomHeader((string) @ $header['name'], (string) @ $header['value']);
+            }
+
         $mail->setSubject($subject);
         $mail->setBody($body);
         $mail->setFrom($from['email'], $from['name']);
@@ -446,47 +497,6 @@ if ( ! function_exists('mail_smtp') ) {
 		}
 
 		$mail->isHTML(true);
-
-        if (@ $options['attachments'])
-            foreach ($options['attachments'] as $attachment) {
-
-                $name = (string) @ $attachment['name'] ?? '';
-                $encoding = (string) @ $attachment['encoding'] ?? \PHPMailer\PHPMailer\PHPMailer::ENCODING_BASE64;
-                $type = (string) @ $attachment['type'] ?? '';
-                $disposition = (string) @ $attachment['disposition'] ?? 'attachment';
-
-                switch(@$attachment['method']) {
-                    case 'file': $mail->addAttachment(
-                        (string) @ $attachment['path'],
-                        $name,
-                        $encoding,
-                        $type,
-                        $disposition
-                    ); break;
-
-                    case 'inline': $mail->addStringAttachment(
-                        (string) @ $attachment['string'],
-                        (string) @ $attachment['filename'],
-                        $encoding,
-                        $type,
-                        $disposition
-                    ); break;
-
-                    case 'embed': $mail->addEmbeddedImage(
-                        (string) @ $attachment['path'],
-                        (string) @ $attachment['cid'],
-                        $name,
-                        $encoding,
-                        $type,
-                        $disposition
-                    ); break;
-                }
-            }
-
-        if (@ $options['headers'])
-            foreach ($options['headers'] as $header) {
-                $mail->addCustomHeader((string) @ $header['name'], (string) @ $header['value']);
-            }
         
         return $mail->send();
     }
@@ -709,5 +719,12 @@ if ( ! function_exists('decrypt') ) {
      */
     function decrypt(string $value) : mixed {
         return \Clicalmani\Flesco\Security\Security::decrypt($value);
+    }
+}
+
+if ( ! function_exists('verify_token') ) {
+    function verify_token(string $token) : mixed 
+    {
+        return with (new JWT)->verifyToken($token);
     }
 }

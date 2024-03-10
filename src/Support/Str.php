@@ -567,4 +567,33 @@ class Str extends Facade
     public static function resetMbstringEncoding() {
         self::mbstringBinarySafeEncoding( true );
     }
+
+    /**
+     * Escape special characters
+     * 
+     * @param string $str
+     * @return string Escaped string
+     */
+    public static function escape(string $str, ?array $exclude = [' ']) : string
+    {
+        $chars = sprintf ('%c..%c', 0, ord(0) - 1);
+		$chars .= sprintf ('%c..%c', ord(9) + 1, ord('A') - 1);
+		$chars .= sprintf ('%c..%c', ord('Z') + 1, ord('a') - 1);
+		$chars .= sprintf ('%c..%c', ord('z') + 1, 255);
+		
+        foreach ($exclude as $char) $chars = str_replace($char, '', $chars);
+        
+		return addcslashes($str, $chars);
+    }
+
+    /**
+     * Unescape already escaped string
+     * 
+     * @param string $escaped
+     * @return string Unescaped string
+     */
+    public static function unescape(string $escaped) : string
+    {
+        return stripcslashes($escaped);
+    }
 }

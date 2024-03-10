@@ -97,7 +97,7 @@ abstract class RequestController extends HttpRequest
 			if ( isset($middlewares) AND $response_code = Route::isRouteAuthorized($route, $request) AND 200 !== $response_code) {
 				
 				switch($response_code) {
-					case 401: response()->status($response_code, 'UNAUTHORISED_REQUEST_ERROR', 'Request Unauthorized'); break;
+					case 401: response()->status($response_code, 'UNAUTHORIZED_REQUEST_ERROR', 'Request Unauthorized'); break;
 					case 403: response()->status($response_code, 'FORBIDEN', 'Request Forbiden'); break;
 					case 404: response()->status($response_code, 'NOT FOUND', 'Not Found'); break;
 					default: response()->status($response_code); break;

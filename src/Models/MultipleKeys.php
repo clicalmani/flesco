@@ -1,36 +1,36 @@
 <?php
 namespace Clicalmani\Flesco\Models;
 
-Trait ModelTrait
+Trait MultipleKeys
 {
     /**
      * Removes table alias from the key
      * 
-     * @param mixed $keys string for single key and array form multiple keys
+     * @param mixed $value Keys to be clean
      * @return mixed cleaned key(s)
      */
-    function cleanKey(mixed $keys) : mixed
+    public function clean(mixed $value) : mixed
     {
-        if (!$keys) return false;
+        if (!$value) return false;
 
         /**
          * Single key table
          */
-        if ( is_string($keys) ) {
-            $arr = explode('.', $keys);
-            return ( count($arr) > 1 ) ? $arr[1]: $keys;
-        }
+        if ( is_string($value) ) return $this->substractKey(trim($value));
         
-        return (new \Clicalmani\Collection\Collection)
-            ->exchange($keys)->map(function($key) {
-                $key = explode('.', trim($key));
-                return ( count($key) > 1 ) ? end($key): $key[0];
-            })->toArray();
+        return collection($value)
+                    ->map(fn(string $v) => $this->substractKey(trim($v)))
+                    ->toArray();
     }
 
-    function guessKeyValue($row)
+    /**
+     * Guess key value
+     * 
+     * @param array $row
+     */
+    public function guessKeyValue(array $row)
     {
-        $key = $this->cleanKey( $this->getKey() );
+        $key = $this->clean( $this->getKey() );
         
         if ( is_array($key) ) {
 
@@ -46,9 +46,15 @@ Trait ModelTrait
         return @ $row[$key];
     }
 
-    function getCriteria($required_alias = false)
+    /**
+     * Prepare a SQL condition for key value.
+     * 
+     * @param ?bool $allow_alias
+     * @return string
+     */
+    public function getKeySQLCondition(?bool $allow_alias = false) : string
     {
-        $keys     = $this->getKey($required_alias);
+        $keys     = $this->getKey($allow_alias);
         $criteria = null;
         
         if ( is_string($keys) ) {
@@ -91,11 +97,15 @@ Trait ModelTrait
         return $criteria;
     }
 
-    function sanitizeAttributeName($name)
+    /**
+     * Substract key from the value.
+     * 
+     * @param string $value
+     * @return string
+     */
+    public function substractKey(string $value) : string
     {
-        $collection = new \Clicalmani\Collection\Collection( explode('_', $name) );
-        return 'get' . join('', $collection->map(function($value) {
-            return ucfirst($value);
-        })->toArray()) . 'Attribute';
+        @[$alias, $key] = explode('.', $value);
+        return $key ? $key: $value;
     }
 }

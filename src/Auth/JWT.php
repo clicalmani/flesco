@@ -105,7 +105,7 @@ class JWT
      * @param string $token
      * @return miexed Payload if success, false if failure.
      */
-    public function verifyToken(string $token)
+    public function verifyToken(string $token) : mixed
     {
         if (!$token) {
             return false;

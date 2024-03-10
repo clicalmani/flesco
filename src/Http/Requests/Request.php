@@ -5,6 +5,7 @@ use Clicalmani\Flesco\Http\Requests\UploadedFile;
 use Clicalmani\Flesco\Http\Requests\RequestRedirect;
 use Clicalmani\Flesco\Providers\AuthServiceProvider;
 use Clicalmani\Flesco\Security\Security;
+use Clicalmani\Flesco\Support\Log;
 use Clicalmani\Routes\Route;
 
 class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \JsonSerializable 
@@ -209,13 +210,18 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
      * 
      * @param string $filename Download file name
      * @param string $filepath Download file path
-     * @return int|false
+     * @return mixed
      */
-    public function download($filename, $filepath)  : int|false
+    public function download($filename, $filepath)  : mixed
     {
-        header('Content-Type: ' . mime_content_type($filepath));
         header("Content-Disposition: attachment; filename=$filename");
-        return readfile($filepath);
+
+        if ( file_exists($filepath) ) {
+            header('Content-Type: ' . mime_content_type($filepath));
+            return readfile($filepath);
+        }
+
+        return null;
     }
 
     /**

@@ -7,24 +7,14 @@ use Clicalmani\Database\DBQuery;
 use Clicalmani\Database\Factory\Factory;
 use Clicalmani\Flesco\Exceptions\ModelException;
 
-class Model implements \JsonSerializable
+/**
+ * Class Model
+ * 
+ * @package Clicalmani\Flesco
+ * @author @clicalmani
+ */
+class Model extends AbstractModel implements DataClauseInterface, DataOptionInterface
 {
-    use ModelTrait;
-
-    /**
-     * Table primary key(s)
-     * 
-     * @var string|array Key value(s)
-     */
-    private $id;
-
-    /**
-     * DBQuery object
-     * 
-     * @var \Clicalmani\Database\DBQuery
-     */
-    private $query;
-
     /**
      * Enable model events trigger
      * 
@@ -32,129 +22,14 @@ class Model implements \JsonSerializable
      */
     public static $triggerEvents = true;
 
-    /**
-     * Model table
-     * 
-     * @var string Table name
-     */
-    protected $table;
-    
-    /**
-     * Table primary key
-     * 
-     * @var string|array Primary key value
-     */
-    protected $primaryKey;
-
-    /**
-     * Table attributes not included in the list will not show up when rendering a json response.
-     * 
-     * @var array Attributes list to render
-     */
-    protected $attributes = [];
-    
-    /**
-     * Append custom attributes when rendering json response
-     * 
-     * @var array Custom attributes
-     */
-    protected $appendAttributes = [];
-
-    /**
-     * Enable or disable table insert warning for duplicate keys.
-     * 
-     * @var bool Default to false
-     */
-    protected $insert_ignore = false;
-
-    /**
-     * Select distincts rows
-     * 
-     * @var bool Default to false
-     */
-    protected $select_distinct = false;
-
-    /**
-     * Enable SQL CALC_FOUND_ROWS in the select result
-     * 
-     * @var bool Default to false
-     */
-    protected $calc_found_rows = false;
-
-    /**
-     * |--------------------------------------------------------------------------
-     * |                        Private Properties
-     * |--------------------------------------------------------------------------
-     * 
-     * Private properties
-     */
-    private $changes = [],
-            $new_records = [],
-            $before_create = null,
-            $after_create = null,
-            $before_update = null,
-            $after_update = null,
-            $before_delete = null,
-            $after_delete = null;
-
     public function __construct(array|string|null $id = null)
     {
-        $this->id    = $id;
-        $this->query = new DBQuery;
+        parent::__construct($id);
         
-        $this->query->set('tables', [$this->table]);
-
         /**
          * Trigger model events
          */
         $this->boot();
-    }
-
-    /**
-     * Return the model table name
-     * 
-     * @param bool $required_alias Wether to include table alias or not
-     * @return string Table name
-     */
-    public function getTable(bool $required_alias = false) : string
-    {
-        if ($required_alias) return $this->table;
-       
-        $arr = explode(' ', $this->table);
-        return count($arr) > 1 ? $arr[0]: $this->table;
-    }
-
-    /**
-     * Returns table primary key value
-     * 
-     * @param bool $required_alias When true table alias will be prepended to the key. Default to false
-     * @return string|array
-     */
-    public function getKey(bool $required_alias = false) : string|array
-    {
-        if (false == $required_alias) return $this->cleanKey( $this->primaryKey );
-
-        return $this->primaryKey;
-    }
-
-    /**
-     * Returns table selected attributes to show up in a json response.
-     * 
-     * @return array Attributes list
-     */
-    protected function getAttributes() : array
-    {
-        return $this->attributes;
-    }
-
-    /**
-     * Returns model's registered custom attributes
-     * 
-     * @return array Custom attributes
-     */
-    protected function getCustomAttributes() : array
-    {
-        return $this->appendAttributes;
     }
     
     /**
@@ -165,12 +40,12 @@ class Model implements \JsonSerializable
     private function isAliasRequired() : bool
     {
         /**
-         * Insert query
+         * Escape insert query
          */
         if ( $this->query->getParam('table') ) return false;
 
         /**
-         * If table has alias then alias is required for attributes
+         * If table has alias then it is required for attributes
          */
         if ( $this->query->getParam('tables') ) 
             foreach ($this->query->getParam('tables') as $table ) {
@@ -178,16 +53,6 @@ class Model implements \JsonSerializable
             }
         
         return false;
-    }
-
-    /**
-     * Returns the DBQuery object attached to the model
-     * 
-     * @return \Clicalmani\Database\DBQuery
-     */
-    private function getQuery() : DBQuery
-    {
-        return $this->query;
     }
 
     /**
@@ -223,11 +88,11 @@ class Model implements \JsonSerializable
     {
         try {
             if ( !$this->query->getParam('where') AND $this->id) {
-                $this->query->set('where', $this->getCriteria( $this->isAliasRequired() ));
+                $this->query->set('where', $this->getKeySQLCondition( $this->isAliasRequired() ));
             }
     
-            $this->query->set('distinct', $this->select_distinct);
-            $this->query->set('calc', $this->calc_found_rows);
+            $this->query->set('distinct', $this->select_distinct); // Set SQL DISTINCT flag
+            $this->query->set('calc', $this->calc_found_rows);     // Set SQL_CALC_FOUND_ROWS flag
             
             return $this->query->get($fields);
             
@@ -252,98 +117,33 @@ class Model implements \JsonSerializable
     }
 
     /**
-     * Define the where condition of the SQL statement
-     * 
-     * @param ?string $criteria Condition criteria
-     * @param ?array $options Parameters options
-     * @return static
-     */
-    public static function where(?string $criteria = '1', ?array $options = []) : static
-    {
-        $instance = static::getInstance();
-        $instance->getQuery()->where($criteria, 'AND', $options);
-
-        return $instance; 
-    }
-
-    /**
-     * Alias of where. Useful when using where multiple times with AND as the conditional operator.
-     * 
-     * @param ?string $criteria
-     * @param ?array $options
-     * @return static
-     */
-    public function whereAnd(?string $criteria = '1', ?array $options = []) : static
-    {
-        $this->query->where($criteria, 'AND', $options);
-        return $this;
-    }
-
-    /**
-     * Same as whereAnd with the difference of operator which is in this case OR.
-     * 
-     * @param ?string $criteria 
-     * @param ?array $options
-     * @return static
-     */
-    public function whereOr(string $criteria = '1', ?array $options = []) : static
-    {
-        $this->query->where($criteria, 'OR', $options);
-        return $this;
-    }
-
-    /**
-     * Define the SQL order by statement.
-     * 
-     * @param string $order SQL order by statement
-     * @return static
-     */
-    public function orderBy(string $order) : static
-    {
-        $this->query->params['order_by'] = $order;
-        return $this;
-    }
-
-    /**
      * Delete the model
      * 
      * @return bool true if success, false otherwise
      */
     public function delete() : bool
     {
-        if (isset($this->id) AND isset($this->primaryKey)) {
+        if ( $this->isEmpty() ) {
+            $error = sprintf("Can not update or delete records while on safe mode; on table %s", $this->getTable());
+            throw new ModelException($error, ModelException::ERROR_3060);
+        }
 
+        if ( empty($this->query->getParam('where')) ) {
             /**
              * Don't add table alias for single delete.
              */
-            $is_alias_required = count( $this->query->getParam('tables') ) > 1 ? true: false;
-            $this->query->set('where', $this->getCriteria($is_alias_required));
-            
-        } else throw new \Exception("Can not update or delete records when on safe mode");
+            $this->query->set('where', $this->getKeySQLCondition( count( $this->query->getParam('tables') ) > 1 ? true: false ));
+        }
 
         // Before delete boot
-        $this->callBootObserver('before_delete');
+        $this->triggerEvent('before_delete', $this);
         
         $success = $this->query->delete()->exec()->status() == 'success';
 
         // After delete boot
-        $this->callBootObserver('after_delete');
+        $this->triggerEvent('after_delete', $this);
 
         return $success;
-    }
-
-    /**
-     * Execute a registered model event observer
-     * 
-     * @param string $observer Observer
-     * @return void
-     */
-    private function callBootObserver(string $observer) : void
-    {
-        if (self::$triggerEvents && $this->{$observer}) {
-            $closure = $this->{$observer};
-            $closure(static::find($this->id));
-        }
     }
 
     /**
@@ -353,12 +153,16 @@ class Model implements \JsonSerializable
      */
     public function forceDelete() : bool
     {
-        // A delete operation must be set on a condition
-        if (!empty($this->query->params['where'])) {
-            return $this->query->delete()->exec()->status() == 'success';
-        }
+        if (FALSE === $this->isEmpty()) return $this->delete();
 
-        throw new \Exception("Can not update or delete records when on safe mode");
+        /**
+         * A delete operation must be set on a condition.
+         * We first check the query where parameter.
+         */
+        if (!empty($this->query->params['where'])) return $this->query->delete()->exec()->status() == 'success';
+
+        $error = sprintf("Can not update or delete records while on safe mode; on table %s", $this->getTable());
+        throw new ModelException($error, ModelException::ERROR_3060);
     }
 
     /**
@@ -384,18 +188,15 @@ class Model implements \JsonSerializable
     {
         if (empty($values)) return false;
         
-        if ($this->id AND $this->primaryKey) {
-            $criteria = $this->getCriteria();
+        if (FALSE === $this->isEmpty()) {
+            $criteria = $this->getKeySQLCondition();
         } else {
             $criteria = $this->query->getParam('where');
         }
         
-        if ( $criteria ) {
+        if ( !empty( $criteria ) ) {
 
-            if ($this->id AND $this->primaryKey) {
-                // Before update boot
-                $this->callBootObserver('before_update');
-            }
+            if (FALSE === $this->isEmpty()) $this->triggerEvent('before_update', $this);
 
             $fields = array_keys( $values );
 		    $values = array_values( $values );
@@ -404,7 +205,7 @@ class Model implements \JsonSerializable
             $this->query->set('fields',  $fields);
 		    $this->query->set('values', $values);
             $this->query->set('where', $criteria);
-            $this->query->set('ignore', $this->insert_ignore);
+            $this->query->set('ignore', $this->insert_ignore); // Set SQL IGNORE flag
             
             $success = $this->query->exec()->status() === 'success';
 
@@ -415,31 +216,26 @@ class Model implements \JsonSerializable
             }
             
             /**
-             * Check key change
+             * Check key change: When key change we must update the current stored key.
              * 
              * Verify whether key(s) is/are among the updated attributes
              */
-            $primary = is_string($this->primaryKey) ? [$this->primaryKey]: $this->primaryKey;
-            $primary = $this->cleanKey($primary);  // Remove table alias
+            collection( (array) $this->clean($this->primaryKey) )
+                ->map(function($pkey, $index) use($record) {
+                    if ( array_key_exists($pkey, $record) ) {               // The current key has been updated
+                        if ( is_string($this->id) ) {
+                            $this->id = $record[$pkey];                     // Update key value
+                            return;
+                        }
 
-            collection()->exchange($primary)->map(function($pkey, $index) use($record) {
-                if ( array_key_exists($pkey, $record) ) {               // The current key has been updated
-                    if ( is_string($this->id) ) {
-                        $this->id = $record[$pkey];                     // Update key value
-                        return;
+                        $this->id[$index] = $record[$pkey];                 // Update key value
                     }
-
-                    $this->id[$index] = $record[$pkey];                 // Update key value
-                }
-            });
-            
-            if ($this->id AND $this->primaryKey) {      
-                // After update boot
-                $this->callBootObserver('after_update');
-            }
+                });
 
             // Restore state
             $this->query->set('type', DBQuery::SELECT);
+            
+            if (FALSE === $this->isEmpty()) $this->triggerEvent('after_update', $this); 
             
             return $success;
         } 
@@ -460,17 +256,21 @@ class Model implements \JsonSerializable
         $this->query->unset('tables');
         $this->query->set('type', DBQuery::INSERT);
         $this->query->set('table', $this->getTable());
-        $this->query->set('ignore', $this->insert_ignore);
+        $this->query->set('ignore', $this->insert_ignore); // Set SQL IGNORE flag
 
         $keys = [];
         $values = [];
 
         foreach ($fields as $field) {
-            if (empty($keys)) {
-                $keys = array_keys($field);
-            } else {
+            if (empty($keys)) $keys = array_keys($field);
+
+            /**
+             * Each entry must be checked to make sure column count match values count.
+             */
+            else {
                 if (count($keys) !== count(array_keys($field))) {
-                    throw new \Exception("Column count doesn't match value count");
+                    $error = sprintf("Error: column count doesn't match values count; expected %d, got %d in table %s", count($keys), count(array_keys($field)), $this->getTable());
+                    throw new ModelException($error, ModelException::ERROR_3050);
                 }
             }
 
@@ -481,7 +281,7 @@ class Model implements \JsonSerializable
         $this->query->set('values', $values);
 
         // Before create boot
-        $this->callBootObserver('before_create');
+        $this->triggerEvent('before_create', $this);
 
         $success = $this->query->exec()->status() === 'success';
 
@@ -495,12 +295,12 @@ class Model implements \JsonSerializable
         
         $this->id = $this->lastInsertId($record);
         
-        // After create boot
-        $this->callBootObserver('after_create');
-
         $this->query->unset('table');
         $this->query->set('type', DBQuery::SELECT);
-        $this->query->set('tables', [$this->getTable()]);
+        $this->query->set('tables', [$this->getTable(true)]);
+
+        // After create boot
+        $this->triggerEvent('after_create', $this);
 
         return $success;
     }
@@ -533,20 +333,8 @@ class Model implements \JsonSerializable
     }
 
     /**
-     * Define the from statement when deleting from joined models.
-     * 
-     * @param string $fields SQL FROM statement
-     * @return static
-     */
-    public function from(string $fields)
-    {
-        $this->query->from($fields);
-        return $this;
-    }
-
-    /**
      * In pratice a model can be joined to another model. But in particular situation, one may be aiming to join
-     * the model to a sub query (as this is possible with SQL). So this method allows such an operation.
+     * the current model to a sub query (as this is possible with SQL). So this method allows such an operation.
      * 
      * @param string $query The sub query to joined to
      * @return static
@@ -558,20 +346,8 @@ class Model implements \JsonSerializable
     }
 
     /**
-     * Returns distinct rows in the selection result.
-     * 
-     * @param bool $distinct True to enable or false to disable
-     * @return static
-     */
-    public function distinct(bool $distinct = true) : static
-    {
-        $this->select_distinct = $distinct;
-        return $this;
-    }
-
-    /**
      * The current model inherit a foreign key
-     * We should match the model key value to obtain its parent model.
+     * We should match the model key value to obtain its parent.
      * 
      * @param string $class Parent model
      * @param string $foreign_key [Optional] Table foreign key
@@ -579,28 +355,11 @@ class Model implements \JsonSerializable
      * @return mixed
      */
     protected function belongsTo(string $class, string|null $foreign_key = null, string|null $original_key = null) : mixed
-    { 
-        if (!$this->id) {
-            return null;
-        }
-
-        $child = new $class;
-
-        $collection = $child->join($this, $foreign_key, $original_key)
-                        ->whereAnd($this->getCriteria(true))
-                        ->get();
-        
-        if (false == $collection->isEmpty()) {
-
-            $row = $collection->first();
-            $key = (new $class)->guessKeyValue($row);
-            
-            if (!is_array($key)) $key = $row[$this->cleanKey($foreign_key)];
-
-            return $class::find($key);
-        }
-            
-        return null;
+    {
+        return ( new $class )->join($this, $foreign_key, $original_key)
+                    ->whereAnd($this->getKeySQLCondition(true))
+                    ->fetch()
+                    ->first();
     }
 
     /**
@@ -613,27 +372,11 @@ class Model implements \JsonSerializable
      */
     protected function hasOne(string $class, string|null $foreign_key = null, string|null $original_key = null) : mixed
     {
-        // Make sure the model exists
-        if (!$this->id) {
-            return null;
-        }
+        if ( $this->isEmpty() ) return null;
 
-        $parent = new $class;
-        
-        $collection = $this->join($class, $foreign_key, $original_key)
-                        ->whereAnd($this->getCriteria(true))
-                        ->get();
-           
-        if (false == $collection->isEmpty()) {
-
-            $row = $collection->first();
-              
-            return $class::find(
-                (new $class)->guessKeyValue($row)
-            ); 
-        }
-            
-        return null;
+        return $this->join($class, $foreign_key, $original_key)
+                    ->fetch($class)
+                    ->first();
     }
 
     /**
@@ -644,24 +387,12 @@ class Model implements \JsonSerializable
      * @param string $original_key [Optional] Original key
      * @return \Clicalmani\Collection\Collection
      */
-    protected function hasMany($class, $foreign_key = null, $original_key = null) : Collection
+    protected function hasMany(string $class, ?string $foreign_key = null, ?string $original_key = null) : Collection
     {
-        // Make sure the model exists
-        if (!$this->id) {
-            return null;
-        }
-        
-        $child = new $class;
+        if ( $this->isEmpty() ) return collection();
         
         return $this->join($class, $foreign_key, $original_key)
-                    ->whereAnd($this->getCriteria(true))
-                    ->get()
-                    ->map(function($row) use($class, $foreign_key) {
-                        $key = (new $class)->guessKeyValue($row);
-                        return $class::find($key);
-                    })->filter(function($instance)  use($class) {
-                        return $instance instanceof $class;
-                    });
+                    ->fetch($class);
     }
 
     /**
@@ -671,19 +402,27 @@ class Model implements \JsonSerializable
      */
     public function save() : bool
     {
-        $success = true;
-
-        if (count($this->changes)) {
-            $success = $this->update( $this->changes );
+        $success = false;
+        $data = $this->getData();
+        
+        $this->lock();
+        
+        if ( @ $data['out'] ) {
+            /**
+             * Update
+             */
+            $success = $this->update( $data['out'] );
+        } elseif ( @ $data['in'] ) {
+            /**
+             * Insert
+             */
+            $success = $this->insert( [$data['in']] );
         }
 
-        if (count($this->new_records)) {
-            $success = $this->insert( [$this->new_records] );
-        }
+        $this->unlock();
 
         // Reset back to select parameters 
-        $this->changes     = [];
-        $this->new_records = [];
+        $this->data = [];
         $this->query->set('type', DBQuery::SELECT);
         $this->query->set('tables', [$this->table]);
         unset($this->query->params['table']);
@@ -694,10 +433,10 @@ class Model implements \JsonSerializable
     /**
      * Returns the last inserted ID for auto incremented keys
      * 
-     * @param array $records A record to guess the ID from (Internal use)
+     * @param ?array<string, string> $records A record to guess the ID from (Internal use only)
      * @return mixed
      */
-    public function lastInsertId(array $record = []) : mixed
+    public function lastInsertId(?array $record = []) : mixed
     {
         $last_insert_id = DB::getPdo()->lastInsertId();
 
@@ -715,176 +454,36 @@ class Model implements \JsonSerializable
      */
     public function first() : static|null
     {
-        $collection = $this->get();
-        
-        if (false == $collection->isEmpty()) {
-            $row = $collection->first();
-            
-            $primary_key = $this->guessKeyValue($row);
-
-            return static::find($primary_key);
-        }
+        if ($row = $this->get()->first()) 
+            return static::find( $this->guessKeyValue($row) );
 
         return null;
-    }
-
-    /**
-     * Join models
-     * 
-     * @param string|\Clicalmani\Flesco\Models\Model $model Specified model
-     * @param string $foreign_key [Optional] Foreign key
-     * @param string $original_key [Optional] Original key
-     * @param string $type [Optional] Join type default LEFT
-     * @return static
-     */
-    public function join(Model|string $model, string|null $foreign_key = null, string|null $original_key = null, string $type = 'LEFT') : static
-    {
-        $original_key = $original_key ?? $foreign_key;                              // The original key is the parent
-                                                                                    // primary key
-        
-        /**
-         * USING operator will be used to join the tables in case foreign key match original key
-         * make sure that there is no alias in the key
-         */
-        if ($original_key == $foreign_key) {
-            $original_key = $this->cleanKey($original_key);
-            $foreign_key  = $this->cleanKey($foreign_key);
-        }
-
-        if (is_string($model)) {
-            $model = new $model;
-        }
-
-        /**
-         * Duplicate joints
-         * 
-         * If table is already joint, the first joint will be maintained
-         */
-        $joints = $this->query->getParam('join');
-
-        if ( $joints ) {
-            foreach ($joints as $joint) {
-                if ($joint['table'] == $model->getTable(true)) {                            // Table already joint
-                    return $this;
-                }
-            }
-        }
-
-        $type = ucfirst(strtolower($type));
-        
-        $this->query->{'join' . $type}($model->getTable(true), $foreign_key, $original_key);
-
-        return $this;
-    }
-
-    /**
-     * Defines SQL having statement
-     * 
-     * @param string $criteria Having statement
-     * @return static
-     */
-    public function having(string $criteria) : static
-    {
-        $this->query->having($criteria);
-
-        return $this;
-    }
-
-    /**
-     * Defines SQL group by statement
-     * 
-     * @param string $criteria SQL group by statement
-     * @return static
-     */
-    public function groupBy(string $criteria) : static
-    {
-        $this->query->groupBy($criteria);
-
-        return $this;
-    }
-
-    /**
-     * Ignores duplicates keys
-     * 
-     * @param bool $ignore
-     * @return static
-     */
-    public function ignore(bool $ignore = true) : static
-    {
-        $this->insert_ignore = $ignore;
-        return $this;
-    }
-
-    /**
-     * Enable or disable SQL CALC_FOUND_ROWS
-     * 
-     * @param bool $calc
-     * @return static
-     */
-    public function calcFoundRows(bool $calc = true) : static
-    {
-        $this->calc_found_rows = $calc;
-        return $this;
-    }
-
-    /**
-     * Limit the number of rows to be returned in the query result.
-     * 
-     * @param int $limit Number of rows
-     * @return static
-     */
-    public function limit(int $limit = 0) : static
-    {
-        $this->query->set('limit', $limit);
-        return $this;
-    }
-
-    /**
-     * Sets the offset to start from when limit is set
-     * 
-     * @param int $offset
-     * @return static
-     */
-    public function offset(int $offset = 0) : static
-    {
-        $this->query->set('offset', $offset);
-        return $this;
     }
     
     /**
      * Returns a specified row defined by a specified primary key.
      * 
-     * @param string|array $id Primary key value
+     * @param string|array|null $id Primary key value
      * @return static|null
      */
-    public static function find( $id ) : static|null
+    public static function find(string|array|null $id) : static|null
     {
-        $instance = static::getInstance($id);
-        return $instance->get()->count() ? $instance: null;
+        if (!$id) return null;
+        return static::getInstance($id);
     }
 
     /**
-     * @deprecated
-     * @see all method
+     * Returns all rows from the query statement result
+     * 
      * @return \Clicalmani\Collection\Collection
      */
-    public static function findAll() : Collection
+    public static function all() : Collection
     {
         $instance = static::getInstance();
         
         return $instance->get()->map(function($row) use($instance) {
             return static::getInstance( $instance->guessKeyValue($row) );
         });
-    }
-
-    /**
-     * Returns all row from the query statement result
-     * 
-     * @return \Clicalmani\Collection\Collection
-     */
-    public static function all() : Collection
-    {
-        return static::findAll();
     }
 
     /**
@@ -901,7 +500,15 @@ class Model implements \JsonSerializable
     {
         $options = (object) $options;
 
-        $filters     = with (new \Clicalmani\Flesco\Http\Requests\Request)->where(array_merge($exclude, ['test_user_id']));
+        /**
+         * |---------------------------------------------------
+         * |              ***** Notice *****
+         * |---------------------------------------------------
+         * test_user_id and hash are two request parameters internally used by flesco.
+         * test_user_id holds the request user ID in test mode.
+         * and hash is used for url encryption.
+         */
+        $filters     = with (new \Clicalmani\Flesco\Http\Requests\Request)->where(array_merge($exclude, ['test_user_id', 'hash']));
         $child_class = static::getClassName();
 
         $criteria = '1';
@@ -935,18 +542,20 @@ class Model implements \JsonSerializable
     /**
      * Insert new row or update row from request parameters
      * 
+     * @param ?bool $nullify
      * @return static
      */
-    public function swap() : static
+    public function swap(?bool $nullify = false) : static
     {
-        $db          = DB::getInstance();
-        $table       = $db->getPrefix() . $this->getTable();
-        $statement   = $db->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '" . env('DB_NAME', '') . "' AND TABLE_NAME = '$table'");
+        $db        = DB::getInstance();
+        $table     = $db->getPrefix() . $this->getTable();
+        $statement = $db->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '" . env('DB_NAME', '') . "' AND TABLE_NAME = '$table'");
         
         while($row = $db->fetch($statement, \PDO::FETCH_NUM)) {
             foreach (array_keys(request()) as $attribute) {
                 if ($row[0] == $attribute) {
-                    $this->{$attribute} = request($attribute);
+                    if (false === $nullify) $this->{$attribute} = request($attribute);
+                    else $this->{$attribute} = request($attribute) ? request($attribute): null;
                     break;
                 }
             }
@@ -955,18 +564,74 @@ class Model implements \JsonSerializable
         return $this;
     }
 
-    /**
-     * @deprecated
-     * @return bool
-     */
-    public function swapOut() : bool
+    public static function where(?string $criteria = '1', ?array $options = []) : static
     {
-        try {
-            $this->swap();
-            return $this->save();
-        } catch (\PDOException $e) {
-            throw new ModelException($e->getMessage());
-        }
+        $instance = static::getInstance();
+        $instance->getQuery()->where($criteria, 'AND', $options);
+
+        return $instance;
+    }
+
+    public function whereAnd(?string $criteria = '1', ?array $options = []) : static
+    {
+        $this->query->where($criteria, 'AND', $options);
+        return $this;
+    }
+
+    public function whereOr(string $criteria = '1', ?array $options = []) : static
+    {
+        $this->query->where($criteria, 'OR', $options);
+        return $this;
+    }
+    
+    public function orderBy(string $order) : static
+    {
+        $this->query->params['order_by'] = $order;
+        return $this;
+    }
+
+    public function having(string $criteria) : static
+    {
+        $this->query->having($criteria);
+        return $this;
+    }
+
+    public function groupBy(string $criteria, ?bool $with_rollup = false) : static
+    {
+        if ($with_rollup) $criteria .= ' WITH ROLLUP';
+        $this->query->groupBy($criteria);
+        return $this;
+    }
+
+    public function from(string $fields) : static
+    {
+        $this->query->from($fields);
+        return $this;
+    }
+
+    public function limit(?int $offset = 0, ?int $row_count = 1) : static
+    {
+        $this->query->set('offset', $offset);
+        $this->query->set('limit', $row_count);
+        return $this;
+    }
+
+    public function ignore(bool $ignore = true) : static
+    {
+        $this->insert_ignore = $ignore;
+        return $this;
+    }
+
+    public function distinct(bool $distinct = true) : static
+    {
+        $this->select_distinct = $distinct;
+        return $this;
+    }
+    
+    public function calcFoundRows(bool $calc = true) : static
+    {
+        $this->calc_found_rows = $calc;
+        return $this;
     }
 
     /**
@@ -982,79 +647,67 @@ class Model implements \JsonSerializable
     /**
      * Before create trigger
      * 
-     * @param callable $closure Trigger function
+     * @param callable $callback Event handler
      * @return void
      */
-    protected function beforeCreate(?callable $closure) : void
+    protected function beforeCreate(callable $callback) : void
     {
-        if ($closure AND is_callable($closure, true, $before)) {
-            $this->before_create = $closure;
-        }
+        $this->registerEvent('before_create', $callback);
     }
 
     /**
      * After create trigger
      * 
-     * @param callable $closure Trigger function
+     * @param callable $callback Event handler
      * @return static
      */
-    protected function afterCreate(?callable $closure) : void
+    protected function afterCreate(callable $callback) : void
     {
-        if ($closure AND is_callable($closure, true, $after)) {
-            $this->after_create = $closure;
-        }
+        $this->registerEvent('after_create', $callback);
     }
 
     /**
      * Before update trigger
      * 
-     * @param callable $closure Trigger function
+     * @param callable $callback Event handler
      * @return void
      */
-    protected function beforeUpdate(?callable $closure) : void
+    protected function beforeUpdate(callable $callback) : void
     {
-        if ($closure AND is_callable($closure, true, $before)) {
-            $this->before_update = $closure;
-        }
+        $this->registerEvent('before_update', $callback);
     }
 
     /**
      * After update trigger
      * 
-     * @param callable $closure Trigger function
+     * @param callable $callback Event handler
      * @return void
      */
-    protected function afterUpdate(?callable $closure) : void
+    protected function afterUpdate(callable $callback) : void
     {
-        if ($closure AND is_callable($closure, true, $after)) {
-            $this->after_update = $closure;
-        }
+        $this->registerEvent('after_update', $callback);
     }
 
     /**
      * Before delete trigger
      * 
-     * @param callable $closure Trigger function
+     * @param callable $callback Event handler
      * @return void
      */
-    protected function beforeDelete(?callable $closure) : void
+    protected function beforeDelete(callable $callback) : void
     {
-        if ($closure AND is_callable($closure, true, $before)) {
-            $this->before_delete = $closure;
-        }
+        $this->registerEvent('before_delete', $callback);
     }
 
     /**
      * After delete trigger
      * 
-     * @param callable $closure Trigger function
+     * @param callable $callback Event handler
      * @return void
      */
-    protected function afterDelete(?callable $closure) : void
+    protected function afterDelete(callable $callback) : void
     {
-        if ($closure AND is_callable($closure, true, $after)) {
-            $this->after_delete = $closure;
-        }
+        $this->registerEvent('after_delete', $callback);
     }
 
     /**
@@ -1068,22 +721,19 @@ class Model implements \JsonSerializable
         }
 
         // Make sure the model exists
-        if (!$this->id) {
-            return null;
-        }
-
-        if (in_array($attribute, $this->getCustomAttributes())) {
-            $attribute = $this->sanitizeAttributeName($attribute);
-            return $this->{$attribute}();
+        if ($this->isEmpty()) return null;
+        
+        if (in_array($attribute, $this->customAttributes)) {
+            return $this->{$this->sanitizeAttribute($attribute)}();
         }
 
         /**
-         * Hold up joints because the request will be make on the main query
+         * Hold up joints because the request will be made on the main query
          */
         $joint = $this->query->getParam('join');
         $this->query->unset('join');
 
-        $collection = $this->query->set('where', $this->getCriteria(true))->get("`$attribute`");
+        $collection = $this->query->set('where', $this->getKeySQLCondition(true))->get("`$attribute`");
 
         /**
          * Restore joints
@@ -1094,7 +744,8 @@ class Model implements \JsonSerializable
             return $collection->first()[$attribute];
         }
         
-        throw new \Exception("Access to undeclared property $attribute on object");
+        $error = sprintf("Access to undeclared property $attribute on table %s", $this->getTable());
+        throw new ModelException($error, ModelException::ERROR_3070);
     }
 
     /**
@@ -1117,74 +768,65 @@ class Model implements \JsonSerializable
         }
 
         if (false !== $found) {
-            if (isset($this->id) AND isset($this->primaryKey)) {
-                $this->changes[$attribute] = $value;
+            if ( $this->id && $this->primaryKey ) {
+
+                /**
+                 * Updating data
+                 */
+                $this->data[] = new ModelData($attribute, $value, ModelData::WRITING_MODE_UPDATE);
             } else {
-                $this->new_records[$attribute] = $value;
+                /**
+                 * Inserting data
+                 */
+                $this->data[] = new ModelData($attribute, $value, ModelData::WRITING_MODE_INSERT);
             }
-
-            return;
+        } else {
+            $error = sprintf("Error: can not update or insert new record on table %s", $this->getTable());
+            throw new ModelException($error, ModelException::ERROR_3060);
         }
-        
-        throw new \Exception("Can not update or insert new record on unknow");
     }
 
-    public function __toString() : string
-    {
-        return json_encode( $this );
-    }
-
-    public function jsonSerialize() : mixed
-    {
-        if (!$this->id) {
-            return null;
-        }
-
-        $collection = DB::table($this->getTable())->where($this->getCriteria())->get();
-        
-        if (0 === $collection->count()) {
-            return null;
-        }
-
-        $row = $collection->first();
-        
-        $collection
-            ->exchange($this->getAttributes() ? $this->getAttributes(): array_keys($row))
-            ->map(function($value, $key) use($row) {
-                return isset($row[$value]) ? [$value => $row[$value]]: [$value => null];
-            });
-        
-        $data = [];
-        foreach ($collection as $row) {
-            if ($row) $data[array_keys($row)[0]] = array_values($row)[0];
-        }
-        
-        // Appended attributes
-        $appended = $this->getCustomAttributes();
-
-        $data2 = [];
-        foreach ($appended as $name) {
-            $attribute = $this->sanitizeAttributeName($name);
-            
-            if ( method_exists($this, $attribute) ) {
-                $data2[$name] = $this->{$attribute}();
-            }
-        }
-
-        return $collection
-            ->exchange(array_merge($data, $data2))
-            ->toObject();
-    }
-
-    /**
-     * Register model events
-     * 
-     * @return void
-     */
     protected function boot() : void
     {
         /**
          * TODO
          */
+    }
+
+    /**
+     * Register event
+     * 
+     * @param string $event Event name
+     * @param callable $callback Event handler
+     * @return void
+     */
+    private function registerEvent(string $event, callable $callback): void
+    {
+        if (static::$triggerEvents AND $callback AND is_callable($callback, true, $handler)) {
+            $this->eventHandlers[$event] = $callback;
+        }
+    }
+
+    protected function triggerEvent(string $event, self $listener): void
+    {
+        if ( $handler = @ $this->eventHandlers[$event] ) {
+
+            /**
+             * Lock
+             */
+            if ( strpos($event, 'before') ) $this->lock();
+            
+            $handler($listener);
+
+            /**
+             * Release
+             */
+            if ( $this->isLocked() ) $this->unlock();
+        }
+    }
+
+    public function __toString() : string
+    {
+        return json_encode( $this );
     }
 }
