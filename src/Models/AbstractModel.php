@@ -3,6 +3,8 @@ namespace Clicalmani\Flesco\Models;
 
 use Clicalmani\Database\DB;
 use Clicalmani\Database\DBQuery;
+use Clicalmani\Flesco\Exceptions\ModelException;
+use Clicalmani\Flesco\Support\Log;
 
 /**
  * Class AbstractModel
@@ -54,7 +56,14 @@ abstract class AbstractModel implements Joinable, \JsonSerializable
      * 
      * @var string[]
      */
-    protected $hiddenAttributes = [];
+    protected $hidden = [];
+
+    /**
+     * Fillable attributes
+     * 
+     * @var string[]
+     */
+    protected $fillable = [];
 
     /**
      * Lock state
@@ -75,7 +84,7 @@ abstract class AbstractModel implements Joinable, \JsonSerializable
      * 
      * @var string[] Custom attributes
      */
-    protected $customAttributes = [];
+    protected $custom = [];
 
     /**
      * Enable or disable table insert warning for duplicate keys.
@@ -101,7 +110,7 @@ abstract class AbstractModel implements Joinable, \JsonSerializable
     /**
      * Model data
      * 
-     * @var \Clicalmani\Flesco\Models\ModelData[]
+     * @var \Clicalmani\Flesco\Models\Attribute[]
      */
     protected $data = [];
 
@@ -200,44 +209,6 @@ abstract class AbstractModel implements Joinable, \JsonSerializable
     }
 
     /**
-     * Verify wether a given attribute is a custom attribut
-     * 
-     * @param string $attribute
-     * @return bool True if success, false otherwise.
-     */
-    protected function isCustomAttribute(string $attribute) : bool
-    {
-        return in_array($attribute, $this->customAttributes);
-    }
-
-    /**
-     * Sanitize a custom attribute
-     * 
-     * @param string $attribute
-     * @return string
-     */
-    protected function sanitizeAttribute(string $attribute) : string
-    {
-        return 'get' . collection( explode('_', $attribute) )
-                    ->map(fn(string $value) => ucfirst($value))
-                    ->join() 
-                    . 'Attribute';
-    }
-
-    /**
-     * Append a custom attribute to the current model
-     * 
-     * @param string $attribute
-     * @return mixed
-     */
-    protected function append(string $attribute) : mixed
-    {
-        if ( method_exists($this, $attribute) ) return $this->{$attribute}();
-
-        return null;
-    }
-
-    /**
      * Verify if model is defined
      * 
      * @return bool
@@ -257,16 +228,62 @@ abstract class AbstractModel implements Joinable, \JsonSerializable
         $in = [];
         $out = [];
 
-        foreach ($this->data as $entry) {
-            $value = !$entry->isNull() ? $entry->value: null; // Nullify entry value if not defined
-            if ($entry->writing_mode === ModelData::WRITING_MODE_INSERT) $in[$entry->attribute] = $value;
-            elseif ($entry->writing_mode === ModelData::WRITING_MODE_UPDATE) $out[$entry->attribute] = $value;
+        foreach ($this->data as $attribute) {
+
+            // Escape none fillable attributes for update
+            if ( FALSE === $attribute->isFillable() && $attribute->access === Attribute::UPDATE) continue;
+
+            // Nullify entry value if not defined
+            $value = !$attribute->isNull() ? $attribute->value: null;
+
+            if ($attribute->access === Attribute::INSERT) $in[$attribute->attribute] = $value;
+            elseif ($attribute->access === Attribute::UPDATE) $out[$attribute->attribute] = $value;
         }
 
         if ( $in ) return ['in' => $in];
         if ( $out ) return ['out' => $out];
 
         return [];
+    }
+
+    /**
+     * Query getter
+     * 
+     * @return \Clicalmani\Database\DBQuery
+     */
+    public function getQuery()
+    {
+        return $this->query;
+    }
+
+    /**
+     * Fillable getter
+     * 
+     * @return string[]
+     */
+    public function getFillableAttributes() : array
+    {
+        return $this->fillable;
+    }
+
+    /**
+     * Hidden getter
+     * 
+     * @return string[]
+     */
+    public function getHiddenAttributes() : array
+    {
+        return $this->hidden;
+    }
+
+    /**
+     * Custom getter
+     * 
+     * @return string[]
+     */
+    public function getCustomAttributes() : array
+    {
+        return $this->custom;
     }
 
     public function join(Model|string $model, string|null $foreign_key = null, string|null $original_key = null, string $type = 'LEFT') : static 
@@ -336,49 +353,118 @@ abstract class AbstractModel implements Joinable, \JsonSerializable
             return null;
         }
 
-        $collection = DB::table($this->getTable())->where($this->getKeySQLCondition())->get();
+        $row = DB::table($this->getTable())->where($this->getKeySQLCondition())->get()->first();
         
-        if (0 === $collection->count()) {
-            return null;
-        }
+        if ( !$row ) return null;
 
-        $row = $collection->first();
-        
-        $collection
-            ->exchange($this->attributes ? $this->attributes: array_keys($row))
-            ->map(function($value, $key) use($row) {
-                return isset($row[$value]) ? [$value => $row[$value]]: [$value => null];
-            });
-        
+        // Attributes
         $data = [];
-        foreach ($collection as $row) {
-            if ($row) $data[array_keys($row)[0]] = array_values($row)[0];
+        foreach ($row as $name => $value) {
+            $attribute = new Attribute($name, $value);
+            $attribute->model = $this;
+            $attribute->access = Attribute::READ;
+
+            if ($attribute->isHidden()) continue;
+
+            $data[$attribute->name] = $attribute->isNull() ? null: $attribute->value;
+            $this->attributes[] = $attribute->name;
         }
         
-        // Appended attributes
-        $appended = $this->customAttributes;
-
+        // Custom attributes
         $data2 = [];
-        foreach ($appended as $name) {
-            $attribute = $this->sanitizeAttribute($name);
-            
-            if ( method_exists($this, $attribute) ) {
-                $data2[$name] = $this->{$attribute}();
-            }
-        }
 
-        return $collection
-            ->exchange(array_merge($data, $data2))
-            ->toObject();
+        foreach ($this->custom as $name) {
+            $attribute = new Attribute($name);
+            $attribute->model = $this;
+            $attribute->access = Attribute::READ;
+
+            $data2[$name] = $attribute->getCustomValue();
+        }
+        
+        return array_merge($data, $data2);
     }
 
     /**
-     * Query getter
-     * 
-     * @return \Clicalmani\Database\DBQuery
+     * @param string $name 
+     * @return mixed
      */
-    public function getQuery()
+    public function __get(string $name) : mixed
     {
-        return $this->query;
+        if ( empty($name) || $this->isEmpty() ) return null;
+
+        $attribute = new Attribute($name);
+        $attribute->model = $this;
+        $attribute->access = Attribute::READ;
+        
+        if ( $attribute->isCustom() ) {
+            return $this->{$attribute->customize()}();
+        }
+
+        /**
+         * Hold up joints because the request will be made on the main query
+         */
+        $joint = $this->query->getParam('join');
+        $this->query->unset('join');
+
+        $collection = $this->query->set('where', $this->getKeySQLCondition(true))->get("`$name`");
+        
+        /**
+         * Restore joints
+         */
+        $this->query->set('join', $joint);
+            
+        if ($collection->count()) {
+            return $collection->first()[$name];
+        }
+        
+        $error = sprintf("%s does not exists.", $this::class);
+        throw new ModelException($error, ModelException::ERROR_3070);
+    }
+
+    /**
+     * @param string $attribute
+     * @param mixed $value
+     * @return void
+     */
+    public function __set(string $name, mixed $value) : void
+    {
+        $db = DB::getInstance();
+        $table = $db->getPrefix() . $this->getTable();
+        $statement = $db->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '" . env('DB_NAME', '') . "' AND TABLE_NAME = '$table'");
+        $found = false;
+
+        while($row = $db->fetch($statement, \PDO::FETCH_NUM)) {
+            if ($row[0] == $name) {
+                $found = true;
+                break;
+            }
+        }
+
+        if (false !== $found) {
+
+            $attribute = new Attribute($name, $value);
+            $attribute->model = $this;
+
+            if ( $this->id && $this->primaryKey ) {
+
+                $attribute->access = Attribute::UPDATE;
+
+                /**
+                 * Updating data
+                 */
+                $this->data[] = $attribute;
+            } else {
+
+                $attribute->access = Attribute::INSERT;
+
+                /**
+                 * Inserting data
+                 */
+                $this->data[] = $attribute;
+            }
+        } else {
+            $error = sprintf("Error: can not update or insert new record on table %s", $this->getTable());
+            throw new ModelException($error, ModelException::ERROR_3060);
+        }
     }
 }

@@ -1,6 +1,8 @@
 <?php
 namespace Clicalmani\Flesco\Http\Requests;
 
+use Clicalmani\Flesco\Support\Log;
+
 /**
  * Class RequestReflection
  * 

@@ -5,10 +5,9 @@ use Clicalmani\Flesco\Http\Requests\UploadedFile;
 use Clicalmani\Flesco\Http\Requests\RequestRedirect;
 use Clicalmani\Flesco\Providers\AuthServiceProvider;
 use Clicalmani\Flesco\Security\Security;
-use Clicalmani\Flesco\Support\Log;
 use Clicalmani\Routes\Route;
 
-class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \JsonSerializable 
+class Request implements RequestInterface, \ArrayAccess, \JsonSerializable 
 {
     /**
      * Current request object
@@ -16,13 +15,6 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
      * @var static
      */
     protected static $current_request;
-
-    /**
-     * (non-PHPDoc)
-     * @override 
-     * @see \Clicalmani\Flesco\Http\Requests\HttpRequest::render()
-     */
-    public static function render() { /** TODO: override */ }
 
     /**
      * Get or set the current request
@@ -41,7 +33,6 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
      * 
      * (non-PHPDoc)
      * @override
-     * @see \Clicalmani\Flesco\Http\Requests\HttpRequest::signatures()
      */
     public function signatures() { /** TODO: override */ }
 
@@ -50,7 +41,6 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
      * 
      * (non-PHPDoc)
      * @override
-     * @see \Clicalmani\Flesco\Http\Requests\HttpRequest::prepareForValidation()
      */
     public function prepareForValidation() {
         // TODO: override
@@ -59,7 +49,6 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
     /**
      * (non-PHPDoc)
      * @override
-     * @see \Clicalmani\Flesco\Http\Requests\RequestInterface::authorize()
      */
     public function authorize()
     {
@@ -67,10 +56,8 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
     }
 
     /**
-     * Set request signatures
-     * 
-     * @param ?array $signatures
-     * @return void
+     * (non-PHPDoc)
+     * @override
      */
     public function validate(?array $signatures = []) : void
     {
@@ -88,7 +75,7 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
             
             // Parse input stream
             $params = [];
-            $parser = new \Clicalmani\Flesco\Http\Requests\ParseInputStream($params);
+            new \Clicalmani\Flesco\Http\Requests\ParseInputStream($params);
             
             /**
              * Header application/json
@@ -101,26 +88,16 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
 
     /**
      * (non-PHPDoc)
-     * @override magic __set
-     * @see PHP magic function __set
+     * @override
      */
     public function __get($property)
     {
         try {
             $vars = static::all();
 
-            $this->signatures = $this->signatures ? $this->signatures: [];
-            $sanitized = Security::sanitizeVars($vars, $this->signatures);
+            ( new \Clicalmani\Fundation\Validation\InputValidator )->sanitize($vars, $this->signatures ?? []);
             
-            if ( array_key_exists($property, $vars) ) {
-                if ( array_key_exists($property, $sanitized) ) {
-                    return $sanitized[$property];
-                }
-
-                return $vars[$property];
-            }
-            
-            return null;
+            return @ $vars[$property];
 
         } catch(\Clicalmani\Flesco\Exceptions\ValidationFailedException $e) {
             if ($e->isRequired()) {
@@ -137,8 +114,7 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
 
     /**
      * (non-PHPDoc)
-     * @override magic __set
-     * @see PHP magic function __set
+     * @override 
      */
     public function __set($property, $value)
     {
@@ -173,7 +149,7 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
 
     /**
 	 * (non-PHPdoc)
-	 * @see ArrayAccess::offsetExists()
+	 * Override
 	 */
     public function offsetExists(mixed $property) : bool {
         return ! is_null($this->$property);
@@ -181,7 +157,7 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
 
     /**
 	 * (non-PHPdoc)
-	 * @see ArrayAccess::offsetGet()
+	 * Override
 	 */
     public function offsetGet(mixed $property) : mixed {
         return $this->$property;
@@ -189,7 +165,7 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
 
     /**
      * (non-PHPDoc)
-     * @see ArrayAccess::offsetSet
+     * Override
      */
     public function offsetSet(mixed $property, mixed $value) : void {
         $this->$property = $value;
@@ -197,7 +173,7 @@ class Request extends HttpRequest implements RequestInterface, \ArrayAccess, \Js
 
     /**
 	 * (non-PHPdoc)
-	 * @see ArrayAccess::offsetUnset()
+	 * Override
 	 */
     public function offsetUnset(mixed $property) : void {
         if ($this->$property) {

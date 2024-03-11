@@ -39,3 +39,8 @@ require_once 'config.php';
  * Provide route service
  */
  with( new \App\Providers\RouteServiceProvider )->boot();
+
+ /**
+ * Provide validation service
+ */
+with( new \App\Providers\InputValidationProvider )->boot();

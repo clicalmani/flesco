@@ -10,6 +10,7 @@ use Clicalmani\Routes\Exceptions\RouteNotFoundException;
 use Clicalmani\Flesco\Exceptions\ModelNotFoundException;
 use Clicalmani\Flesco\Models\Model;
 use Clicalmani\Flesco\Providers\RouteServiceProvider;
+use Clicalmani\Fundation\Validation\AsValidator;
 use Clicalmani\Routes\RouteHooks;
 
 require_once dirname( dirname( __DIR__ ) ) . '/bootstrap/index.php';
@@ -165,7 +166,6 @@ abstract class RequestController extends HttpRequest
 	{
 		$request = new Request;							  // Fallback to default request
 		$reflect = new RequestReflection($controllerClass, $method);
-		Request::currentRequest($request); // Current request
 		
 		/**
 		 * Validate request
@@ -197,7 +197,12 @@ abstract class RequestController extends HttpRequest
 
 		array_shift($params_types);
 		
-		self::setTypes($params_types, $params_values);
+		self::setRequestParameterTypes($params_types, $params_values, $method);
+		Request::currentRequest($request); // Current request
+
+		if ($attribute = (new \ReflectionMethod($controllerClass, $method))->getAttributes(AsValidator::class)) {
+            $request->merge($attribute[0]->newInstance()->args);
+        }
 		
 		return (new $controllerClass)->{$method}($request, ...$params_values);
 	}
@@ -221,7 +226,7 @@ abstract class RequestController extends HttpRequest
 		}
 		
 		if (method_exists($request, 'signatures')) {
-			$request->signatures();                             // Call validate method
+			$request->signatures();                             // Set parameters signatures
 		}
 
 		return null;
@@ -232,9 +237,10 @@ abstract class RequestController extends HttpRequest
 	 * 
 	 * @param string[] $types
 	 * @param string[] $values
+	 * @param string $method Controller method
 	 * @return void
 	 */
-	private static function setTypes(array $types, array &$values) : void
+	private static function setRequestParameterTypes(array $types, array &$values, string $method) : void
 	{
 		$tmp = [];
 		foreach ($types as $name => $type) {
@@ -244,7 +250,14 @@ abstract class RequestController extends HttpRequest
 			} elseif ($type) {
 				$obj = new $type;
 
-				if (is_subclass_of($obj, \Clicalmani\Flesco\Http\Requests\Request::class)) self::validateRequest($obj);
+				if (is_subclass_of($obj, \Clicalmani\Flesco\Http\Requests\Request::class)) {
+					self::validateRequest($obj);
+					Request::currentRequest($obj); // Current request
+
+					if ($attribute = (new \ReflectionMethod($type, $method))->getAttributes(AsValidator::class)) {
+						$obj->merge($attribute[0]->newInstance()->args);
+					}
+				}
 
 				$tmp[$name] = $obj;
 			} else $tmp[$name] = @ $values[$name];
@@ -317,7 +330,12 @@ abstract class RequestController extends HttpRequest
 		
 		array_shift($params_types);
 
-		self::setTypes($params_types, $params_values);
+		self::setRequestParameterTypes($params_types, $params_values, $method);
+		Request::currentRequest($request); // Current request
+
+		if ($attribute = (new \ReflectionMethod($controller, $method))->getAttributes(AsValidator::class)) {
+            $request->merge($attribute[0]->newInstance()->args);
+        }
 		
 		if ( in_array($method, ['create', 'show', 'update', 'destroy']) ) {
 
@@ -393,11 +411,6 @@ abstract class RequestController extends HttpRequest
 			 * Limit rows
 			 */
 			self::resourceLimit($resource, $method, $obj);
-
-			/**
-			 * Row offset
-			 */
-			self::resourceOffset($resource, $method, $obj);
 
 			/**
 			 * Row order by
@@ -520,23 +533,8 @@ abstract class RequestController extends HttpRequest
 	 */
 	private static function resourceLimit(mixed $resource, mixed $method, Model $obj) : void
 	{
-		if ( $method == 'index' AND array_key_exists('limit', $resource->properties) ) {
-			$obj->limit($resource->properties['limit']);
-		}
-	}
-
-	/**
-	 * Offset rows
-	 * 
-	 * @param mixed $resource
-	 * @param mixed $method
-	 * @param \Clicalmani\Flesco\Models\Model $obj
-	 * @return void
-	 */
-	private static function resourceOffset(mixed $resource, mixed $method, Model $obj) : void
-	{
-		if ( $method == 'index' AND array_key_exists('offset', $resource->properties) ) {
-			$obj->offset($resource->properties['offset']);
+		if ( $method == 'index' AND array_key_exists('limit', $resource->properties) AND  array_key_exists('offset', $resource->properties) ) {
+			$obj->limit($resource->properties['offset'], $resource->properties['limit']);
 		}
 	}
 
