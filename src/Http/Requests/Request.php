@@ -17,6 +17,13 @@ class Request implements RequestInterface, \ArrayAccess, \JsonSerializable
     protected static $current_request;
 
     /**
+     * Validator
+     * 
+     * @var \Clicalmani\Fundation\Validation\InputValidator
+     */
+    private $validator;
+
+    /**
      * Get or set the current request
      * 
      * @param ?self $request
@@ -71,6 +78,8 @@ class Request implements RequestInterface, \ArrayAccess, \JsonSerializable
      */
     public function __construct(private ?array $signatures = []) 
     {
+        $this->validator = new \Clicalmani\Fundation\Validation\InputValidator;
+
         if (Route::isApi() AND in_array(self::getMethod(), ['patch', 'put'])) {
             
             // Parse input stream
@@ -94,8 +103,8 @@ class Request implements RequestInterface, \ArrayAccess, \JsonSerializable
     {
         try {
             $vars = static::all();
-
-            ( new \Clicalmani\Fundation\Validation\InputValidator )->sanitize($vars, $this->signatures ?? []);
+            $this->validator->sanitize($vars, $this->signatures ?? []);
+            $this->validator->passed($property);
             
             return @ $vars[$property];
 
@@ -459,6 +468,7 @@ class Request implements RequestInterface, \ArrayAccess, \JsonSerializable
      */
     public function where(?array $exclude = []) : array
     {
+        $exclude[] = 'hash'; // Default
         $filters = [];
 
         if ( request() ) {

@@ -1,9 +1,9 @@
 <?php 
-namespace Clicalmani\Flesco\TestUnits\Controllers;
+namespace Clicalmani\Flesco\Test\Controllers;
 
 use Clicalmani\Database\Factory\Sequence;
 use Clicalmani\Flesco\Http\Requests\Request;
-use Clicalmani\Flesco\TestUnits\TestCase;
+use Clicalmani\Flesco\Test\TestCase;
 
 abstract class TestController extends TestCase
 {

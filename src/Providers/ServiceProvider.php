@@ -48,7 +48,7 @@ abstract class ServiceProvider
      * (non-PHPDoc)
      * @override
      */
-    protected abstract function boot() : void;
+    public abstract function boot() : void;
 
     /**
      * (non-PHPDoc)
@@ -126,5 +126,18 @@ abstract class ServiceProvider
     public static function listenEvent(string $event, string $listener) : void
     {
         @ self::$listen[$event][] = $listener;
+    }
+
+    public static function install()
+    {
+        $dir = new \RecursiveDirectoryIterator(app_path('/Providers'));
+	
+	    foreach (new \Clicalmani\Flesco\Providers\ServiceFinder($dir) as $service) {
+            $name = $service->getFilename();
+            $provider = "\\App\Providers\\" . substr($name, 0, strrpos($name, '.'));
+
+            if (method_exists($provider, 'boot')) with( new $provider )->boot();
+            if (method_exists($provider, 'register')) with( new $provider )->register();
+        }
     }
 }

@@ -10,6 +10,7 @@ use Clicalmani\Routes\Exceptions\RouteNotFoundException;
 use Clicalmani\Flesco\Exceptions\ModelNotFoundException;
 use Clicalmani\Flesco\Models\Model;
 use Clicalmani\Flesco\Providers\RouteServiceProvider;
+use Clicalmani\Flesco\Test\Controllers\TestController;
 use Clicalmani\Fundation\Validation\AsValidator;
 use Clicalmani\Routes\RouteHooks;
 
@@ -197,7 +198,7 @@ abstract class RequestController extends HttpRequest
 
 		array_shift($params_types);
 		
-		self::setRequestParameterTypes($params_types, $params_values, $method);
+		self::setRequestParameterTypes($params_types, $params_values, $method, $controllerClass);
 		Request::currentRequest($request); // Current request
 
 		if ($attribute = (new \ReflectionMethod($controllerClass, $method))->getAttributes(AsValidator::class)) {
@@ -238,9 +239,10 @@ abstract class RequestController extends HttpRequest
 	 * @param string[] $types
 	 * @param string[] $values
 	 * @param string $method Controller method
+	 * @param string $controller Controller class
 	 * @return void
 	 */
-	private static function setRequestParameterTypes(array $types, array &$values, string $method) : void
+	private static function setRequestParameterTypes(array $types, array &$values, string $method, string $controller) : void
 	{
 		$tmp = [];
 		foreach ($types as $name => $type) {
@@ -254,7 +256,7 @@ abstract class RequestController extends HttpRequest
 					self::validateRequest($obj);
 					Request::currentRequest($obj); // Current request
 
-					if ($attribute = (new \ReflectionMethod($type, $method))->getAttributes(AsValidator::class)) {
+					if ($attribute = (new \ReflectionMethod($controller, $method))->getAttributes(AsValidator::class)) {
 						$obj->merge($attribute[0]->newInstance()->args);
 					}
 				}
@@ -330,7 +332,7 @@ abstract class RequestController extends HttpRequest
 		
 		array_shift($params_types);
 
-		self::setRequestParameterTypes($params_types, $params_values, $method);
+		self::setRequestParameterTypes($params_types, $params_values, $method, $controller);
 		Request::currentRequest($request); // Current request
 
 		if ($attribute = (new \ReflectionMethod($controller, $method))->getAttributes(AsValidator::class)) {
@@ -393,11 +395,6 @@ abstract class RequestController extends HttpRequest
 			self::createResourceIgnore($resource, $method, $obj);
 
 			/**
-			 * Join to other models
-			 */
-			self::resourceJoin($resource, $method, $obj);
-
-			/**
 			 * Delete multiple
 			 */
 			self::resourceDeleteFrom($resource, $method, $obj);
@@ -431,9 +428,11 @@ abstract class RequestController extends HttpRequest
 		// Resource
 		$sseq = preg_split('/\//', self::$route, -1, PREG_SPLIT_NO_EMPTY);
 		
-		return ResourceRoutines::getRoutines(
+		$resources = ResourceRoutines::getRoutines(
 			Route::isApi() ? $sseq[1]: $sseq[0]
 		);
+		
+		return $resources;
 	}
 
 	/**
@@ -463,33 +462,6 @@ abstract class RequestController extends HttpRequest
 	{
 		if ( $method == 'create' AND array_key_exists('ignore', $resource->properties) ) {
 			$obj->ignore($resource->properties['ignore']);
-		}
-	}
-
-	/**
-	 * Join
-	 * 
-	 * @param mixed $resource
-	 * @param mixed $method
-	 * @param \Clicalmani\Flesco\Models\Model $obj
-	 * @return void
-	 */
-	private static function resourceJoin(mixed $resource, mixed $method, Model $obj) : void
-	{
-		$methods = ['index', 'create', 'show', 'edit', 'update', 'destroy'];
-
-		if ( in_array($method, ['index', 'show', 'update']) AND array_key_exists('joints', $resource->joints) ) {
-			foreach ($resource->joints as $joint) {
-				$stack = [];
-
-				if ( $joint['includes'] ) $stack = $joint['includes'];
-				else $stack = $methods;
-
-				if ( $joint['excludes'] ) $stack = array_diff($joint['excludes'], $stack);
-
-				if ( in_array($method, $stack) ) 
-					$obj->join($joint['class'], $joint['foreign'], $joint['original']);
-			}
 		}
 	}
 
@@ -557,10 +529,10 @@ abstract class RequestController extends HttpRequest
 	 * Controller test
 	 * 
 	 * @param string $action Test action
-	 * @return \Clicalmani\Flesco\TestUnits\Controllers\TestController
+	 * @return \Clicalmani\Flesco\Test\Controllers\TestController
 	 */
-	public static function test(string $action) : \Clicalmani\Flesco\TestUnits\Controllers\TestController
+	public static function test(string $action)
 	{
-		return with( new \Clicalmani\Flesco\TestUnits\Controllers\TestController )->new($action);
+		return with( new TestController )->new($action);
 	}
 }

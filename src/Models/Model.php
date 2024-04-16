@@ -5,6 +5,8 @@ use Clicalmani\Collection\Collection;
 use Clicalmani\Database\DB;
 use Clicalmani\Database\DBQuery;
 use Clicalmani\Database\Factory\Factory;
+use Clicalmani\Flesco\Events\Event;
+use Clicalmani\Flesco\Events\ModelEvent;
 use Clicalmani\Flesco\Exceptions\ModelException;
 
 /**
@@ -61,7 +63,7 @@ class Model extends AbstractModel implements DataClauseInterface, DataOptionInte
      * @see get_called_class() function
      * @return string Class name
      */
-    private static function getClassName() : string
+    protected static function getClassName() : string
     {
         return get_called_class();
     }
@@ -136,12 +138,12 @@ class Model extends AbstractModel implements DataClauseInterface, DataOptionInte
         }
 
         // Before delete boot
-        $this->triggerEvent('before_delete', $this);
+        $this->triggerEvent('before_delete');
         
         $success = $this->query->delete()->exec()->status() == 'success';
 
         // After delete boot
-        $this->triggerEvent('after_delete', $this);
+        $this->triggerEvent('after_delete');
 
         return $success;
     }
@@ -196,7 +198,14 @@ class Model extends AbstractModel implements DataClauseInterface, DataOptionInte
         
         if ( !empty( $criteria ) ) {
 
-            if (FALSE === $this->isEmpty()) $this->triggerEvent('before_update', $this);
+            if (FALSE === $this->isEmpty()) {
+                $this->triggerEvent('before_update');
+
+                // Update data
+                $data = $this->getData();
+                if (array_key_exists('out', $data)) $values = $data['out'];
+                $this->data = [];
+            }
 
             $fields = array_keys( $values );
 		    $values = array_values( $values );
@@ -235,7 +244,7 @@ class Model extends AbstractModel implements DataClauseInterface, DataOptionInte
             // Restore state
             $this->query->set('type', DBQuery::SELECT);
             
-            if (FALSE === $this->isEmpty()) $this->triggerEvent('after_update', $this); 
+            if (FALSE === $this->isEmpty()) $this->triggerEvent('after_update'); 
             
             return $success;
         } 
@@ -252,7 +261,15 @@ class Model extends AbstractModel implements DataClauseInterface, DataOptionInte
     public function insert(array $fields = []) : bool
     {
         if (empty($fields)) return false;
+        
+        // Before create boot
+        $this->triggerEvent('before_create');
 
+        // Update data
+        $data = $this->getData();
+        if (array_key_exists('in', $data)) $fields = [$data['in']];
+        $this->data = [];
+        
         $this->query->unset('tables');
         $this->query->set('type', DBQuery::INSERT);
         $this->query->set('table', $this->getTable());
@@ -280,9 +297,6 @@ class Model extends AbstractModel implements DataClauseInterface, DataOptionInte
         $this->query->set('fields', $keys);
         $this->query->set('values', $values);
 
-        // Before create boot
-        $this->triggerEvent('before_create', $this);
-
         $success = $this->query->exec()->status() === 'success';
 
         $values = end($values);
@@ -300,8 +314,8 @@ class Model extends AbstractModel implements DataClauseInterface, DataOptionInte
         $this->query->set('tables', [$this->getTable(true)]);
 
         // After create boot
-        $this->triggerEvent('after_create', $this);
-
+        $this->triggerEvent('after_create');
+        
         return $success;
     }
 
@@ -373,7 +387,7 @@ class Model extends AbstractModel implements DataClauseInterface, DataOptionInte
     protected function hasOne(string $class, string|null $foreign_key = null, string|null $original_key = null) : mixed
     {
         if ( $this->isEmpty() ) return null;
-
+        
         return $this->join($class, $foreign_key, $original_key)
                     ->fetch($class)
                     ->first();
@@ -391,8 +405,10 @@ class Model extends AbstractModel implements DataClauseInterface, DataOptionInte
     {
         if ( $this->isEmpty() ) return collection();
         
-        return $this->join($class, $foreign_key, $original_key)
-                    ->fetch($class);
+        return $this->getInstance($this->id)
+                    ->join($class, $foreign_key, $original_key)
+                    ->fetch($class)
+                    ->filter(fn($obj) => !$obj->isEmpty());  // Avoid empty records
     }
 
     /**
@@ -545,7 +561,7 @@ class Model extends AbstractModel implements DataClauseInterface, DataOptionInte
      * @param ?bool $nullify
      * @return static
      */
-    public function swap(?bool $nullify = false) : static
+    public function swap() : static
     {
         $db        = DB::getInstance();
         $table     = $db->getPrefix() . $this->getTable();
@@ -554,8 +570,7 @@ class Model extends AbstractModel implements DataClauseInterface, DataOptionInte
         while($row = $db->fetch($statement, \PDO::FETCH_NUM)) {
             foreach (array_keys(request()) as $attribute) {
                 if ($row[0] == $attribute) {
-                    if (false === $nullify) $this->{$attribute} = request($attribute);
-                    else $this->{$attribute} = request($attribute) ? request($attribute): null;
+                    $this->{$attribute} = request($attribute);
                     break;
                 }
             }
@@ -639,7 +654,7 @@ class Model extends AbstractModel implements DataClauseInterface, DataOptionInte
      * 
      * @return \Clicalmani\Database\Factory\Factory
      */
-    public static function seed() : Factory
+    public static function seed()
     {
         return Factory::new();
     }
@@ -731,7 +746,7 @@ class Model extends AbstractModel implements DataClauseInterface, DataOptionInte
         }
     }
 
-    protected function triggerEvent(string $event, self $listener): void
+    public function triggerEvent(string $event, mixed $data = null): void
     {
         if ( $handler = @ $this->eventHandlers[$event] ) {
 
@@ -740,12 +755,37 @@ class Model extends AbstractModel implements DataClauseInterface, DataOptionInte
              */
             if ( strpos($event, 'before') ) $this->lock();
             
-            $handler($listener);
+            $handler($this);
 
             /**
              * Release
              */
             if ( $this->isLocked() ) $this->unlock();
+        }
+
+        /**
+         * Custom events
+         */
+        else {
+            $customEvents = \Clicalmani\Flesco\Providers\EventServiceProvider::getEvents();
+
+            $this->lock();
+
+            foreach ($customEvents as $name => $listeners) {
+
+                if ($name !== $event) continue;
+
+                $event = new Event;
+                $event->name = $name;
+                $event->target = $this;
+
+                foreach ($listeners as $listener) {
+                    if ( is_callable($listener) ) $listener($event, $data);
+                    else instance($listener, fn($inst) => $inst->listener($event, $data));
+                }
+            }
+
+            $this->unlock();
         }
     }
 

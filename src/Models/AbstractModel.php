@@ -132,10 +132,10 @@ abstract class AbstractModel implements Joinable, \JsonSerializable
      * Trigger event
      * 
      * @param string $event Event name
-     * @param \Clicalmani\Flesco\Models\Model $listener Callback
+     * @param mixed $data Event data
      * @return void
      */
-    abstract protected function triggerEvent(string $event, Model $listener) : void;
+    abstract protected function triggerEvent(string $event, mixed $data = null) : void;
 
     /**
      * Constructor
@@ -229,15 +229,15 @@ abstract class AbstractModel implements Joinable, \JsonSerializable
         $out = [];
 
         foreach ($this->data as $attribute) {
-
+            
             // Escape none fillable attributes for update
             if ( FALSE === $attribute->isFillable() && $attribute->access === Attribute::UPDATE) continue;
 
             // Nullify entry value if not defined
             $value = !$attribute->isNull() ? $attribute->value: null;
 
-            if ($attribute->access === Attribute::INSERT) $in[$attribute->attribute] = $value;
-            elseif ($attribute->access === Attribute::UPDATE) $out[$attribute->attribute] = $value;
+            if ($attribute->access === Attribute::INSERT) $in[$attribute->name] = $value;
+            elseif ($attribute->access === Attribute::UPDATE) $out[$attribute->name] = $value;
         }
 
         if ( $in ) return ['in' => $in];
@@ -349,9 +349,7 @@ abstract class AbstractModel implements Joinable, \JsonSerializable
 
     public function jsonSerialize() : mixed
     {
-        if (!$this->id) {
-            return null;
-        }
+        if (!$this->id) return null;
 
         $row = DB::table($this->getTable())->where($this->getKeySQLCondition())->get()->first();
         
@@ -413,12 +411,12 @@ abstract class AbstractModel implements Joinable, \JsonSerializable
          */
         $this->query->set('join', $joint);
             
-        if ($collection->count()) {
-            return $collection->first()[$name];
+        if ($row = $collection->first()) {
+            return $row[$name];
         }
-        
-        $error = sprintf("%s does not exists.", $this::class);
-        throw new ModelException($error, ModelException::ERROR_3070);
+        return null;
+        // $error = sprintf("%s does not exists.", $this::class);
+        // throw new ModelException($error, ModelException::ERROR_3070);
     }
 
     /**
@@ -446,7 +444,7 @@ abstract class AbstractModel implements Joinable, \JsonSerializable
             $attribute->model = $this;
 
             if ( $this->id && $this->primaryKey ) {
-
+                
                 $attribute->access = Attribute::UPDATE;
 
                 /**

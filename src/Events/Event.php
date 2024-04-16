@@ -1,58 +1,19 @@
 <?php
 namespace Clicalmani\Flesco\Events;
 
-use App\Providers\EventServiceProvider;
-
-/**
- * Class Event
- * 
- * @package Clicalmani\Flesco
- * @author @clicalmani
- */
-abstract class Event 
+class Event
 {
     /**
-     * Current instance
+     * Event
      * 
-     * @var static
+     * @var string
      */
-    protected static $instance;
-    
-    /**
-     * Create unique instance
-     * 
-     * @return static
-     */
-    public function getInstance() : static
-    {
-        if (self::$instance === NULL) {
-            self::$instance = new self;
-        }
-
-        return self::$instance;
-    }
+    public string $name;
 
     /**
-     * Dispatch event
+     * Event target
      * 
-     * @param mixed $data
-     * @return void
+     * @var mixed
      */
-    public static function dispatch(mixed $data) : void
-    {
-        foreach (EventServiceProvider::getEventListeners(static::class) as $listener) {
-            with( new $listener)->notify($data);
-        }
-    }
-
-    /**
-     * Add listeners
-     * 
-     * @param string ...$listeners
-     * @return void
-     */
-    public static function listen(string ...$listeners) : void
-    {
-        foreach ($listeners as $listener) EventServiceProvider::listenEvent(self::class, $listener);
-    }
+    public mixed $target;
 }

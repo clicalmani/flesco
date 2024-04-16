@@ -117,7 +117,7 @@ class UploadedFile
         }
 
         $name = isset($name) ? $name: $this->getName();
-
+        
         if (FALSE === $this->isMultiple()) return $this->moveFile($this->getFile()->tmp_name, $dir . DIRECTORY_SEPARATOR . $name, is_uploaded_file($this->getFile()->tmp_name));
         else {
             $success = 0;

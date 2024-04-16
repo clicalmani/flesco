@@ -30,6 +30,6 @@ abstract class Authenticate implements \ArrayAccess
 	 */
 	public function __get(string $attribute)
 	{
-		return $this->user->{$attribute};
+		return $this->user?->{$attribute};
 	}
 }

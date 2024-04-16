@@ -97,7 +97,7 @@ class Attribute
     {
         return 'get' . collection( explode('_', $this->name) )
                     ->map(fn(string $value) => ucfirst($value))
-                    ->join() 
+                    ->join('') 
                     . 'Attribute';
     }
 

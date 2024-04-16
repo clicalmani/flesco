@@ -1,5 +1,5 @@
 <?php 
-namespace Clicalmani\Flesco\TestUnits;
+namespace Clicalmani\Flesco\Test;
 
 abstract class TestCase 
 {

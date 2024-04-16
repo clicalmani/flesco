@@ -728,3 +728,10 @@ if ( ! function_exists('verify_token') ) {
         return with (new JWT)->verifyToken($token);
     }
 }
+
+if ( ! function_exists('console_log') ) {
+    function console_log(string $message) 
+    {
+        \Clicalmani\Flesco\Support\Log::debug($message);
+    }
+}

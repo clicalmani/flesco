@@ -37,9 +37,9 @@ Trait MultipleKeys
             $ids = [];
 
             foreach ($key as $k) {
-                $ids[] = $row[$k];
+                if (array_key_exists($k, $row) && isset($row[$k])) $ids[] = $row[$k];
             }
-
+            
             return $ids;
         }
         
@@ -82,7 +82,7 @@ Trait MultipleKeys
              * This would result to a simple warning. But to avoid a possible mislead we just throw an exception
              */
             if ( ! is_array($this->id) ) throw new \InvalidArgumentException("Array expected for key " . json_encode($keys) . "; got string $this->id");
-
+            
             if ( count($keys) !== count($this->id) ) throw new \InvalidArgumentException("Keys count should match values count for " . json_encode($keys) . "; got " . json_encode($this->id));
             
             $criterias = [];

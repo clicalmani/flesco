@@ -7,6 +7,8 @@
  * Set up app config
  */
 
+use App\Providers\EventServiceProvider;
+
 require_once 'config.php'; 
 
 /**
@@ -18,7 +20,7 @@ require_once 'config.php';
 
 \Clicalmani\Flesco\Providers\ServiceProvider::init(
     $kernel = require_once bootstrap_path( '/kernel.php' ),
-    $http_kernel = require_once app_path('/http/kernel.php')
+    $http_kernel = require_once app_path('/Http/kernel.php')
 );
 
 /**
@@ -36,11 +38,6 @@ require_once 'config.php';
 \Clicalmani\Flesco\Providers\ServiceProvider::helpers();
 
 /**
- * Provide route service
+ * Install service providers
  */
- with( new \App\Providers\RouteServiceProvider )->boot();
-
- /**
- * Provide validation service
- */
-with( new \App\Providers\InputValidationProvider )->boot();
+\Clicalmani\Flesco\Providers\ServiceProvider::install();
