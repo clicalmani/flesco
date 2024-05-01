@@ -1,9 +1,7 @@
 <?php
 namespace Clicalmani\Flesco\Providers;
 
-use Clicalmani\Flesco\Support\Log;
-
-abstract class InputValidationServiceProvider extends ServiceProvider
+class InputValidationServiceProvider extends ServiceProvider
 {
     /**
      * Input validators

@@ -1,10 +1,10 @@
 <?php
 namespace Clicalmani\Flesco\Http\Requests;
 
+use Clicalmani\Flesco\Auth\EncryptionServiceProvider;
 use Clicalmani\Flesco\Http\Requests\UploadedFile;
 use Clicalmani\Flesco\Http\Requests\RequestRedirect;
 use Clicalmani\Flesco\Providers\AuthServiceProvider;
-use Clicalmani\Flesco\Security\Security;
 use Clicalmani\Routes\Route;
 
 class Request implements RequestInterface, \ArrayAccess, \JsonSerializable 
@@ -298,7 +298,7 @@ class Request implements RequestInterface, \ArrayAccess, \JsonSerializable
     public function createParametersHash($params) : string
     {
         return tap(
-            Security::createParametersHash($params), 
+            EncryptionServiceProvider::createParametersHash($params), 
             fn(string $hash) => $_REQUEST['hash'] = $hash
         );
     }
@@ -310,7 +310,7 @@ class Request implements RequestInterface, \ArrayAccess, \JsonSerializable
      */
     public function verifyParameters() : bool
     {
-        return Security::verifyParameters();
+        return EncryptionServiceProvider::verifyParameters();
     }
 
     /**
@@ -401,7 +401,7 @@ class Request implements RequestInterface, \ArrayAccess, \JsonSerializable
              * |                    REST API
              * |-----------------------------------------------------
              */
-            if ($payload = with( new \Clicalmani\Flesco\Auth\JWT )->verifyToken($this->getToken())) 
+            if ($payload = with( new \Clicalmani\Flesco\Auth\AuthServiceProvider )->verifyToken($this->getToken())) 
                 $user_id  = json_decode($payload->jti);
 
             /**

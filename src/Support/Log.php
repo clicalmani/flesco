@@ -16,21 +16,19 @@ class Log extends Mock
      */
     protected const ERROR_LOG = 'errors.log';
 
+    private static $is_debug_mode = true;
+
     /**
      * Log errors to file
      * 
      * @return void
      */
-    public function _init() : void
+    public function _init(string $root_path) : void
     {
-        $errors_path = storage_path('/errors');
+        static::$is_debug_mode = env('APP_DEBUG', true);
         
-        if ( $errors_path && !file_exists($errors_path) ) {
-            mkdir($errors_path);
-        }
-
         ini_set('log_errors', 1);
-        ini_set('error_log', "$errors_path/errors.log" );
+        ini_set('error_log', storage_path(static::ERROR_LOG) );
     }
 
     /**
@@ -71,9 +69,15 @@ class Log extends Mock
                 break; 
         } 
 
-        error_log(sprintf("[%s] %s: %s in %s on line %d\n", date('Y-M-d H:i:s T', time()), $error_type, $error_message, $file, $line), 3, $this->maybeCreateLog());
+        $message = sprintf("[%s] %s: %s in %s on line %d\n", date('Y-M-d H:i:s T', time()), $error_type, $error_message, $file, $line);
+        
+        if ('false' === strtolower(static::$is_debug_mode)) error_log($message, 3, $this->maybeCreateLog());
+        else {
+            if (TRUE === @ $EXIT) throw new \Exception($message);
+            echo $message;
+        }
 
-        if (true === @ $EXIT) exit;
+        if (TRUE === @ $EXIT) exit;
     }
 
     /**

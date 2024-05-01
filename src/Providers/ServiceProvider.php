@@ -31,6 +31,13 @@ abstract class ServiceProvider
     }
 
     /**
+     * App config
+     * 
+     * @var array
+     */
+    protected static $app;
+
+    /**
      * Service kernel
      * 
      * @var array
@@ -63,10 +70,13 @@ abstract class ServiceProvider
      * @param array $http_kernel
      * @return void
      */
-    public static function init(array $kernel, array $http_kernel) : void
+    public static function init(array $app, array $kernel, array $http_kernel) : void
     {
-        static::$kernel     = $kernel;
+        static::$app         = $app;
+        static::$kernel      = $kernel;
         static::$http_kernel = $http_kernel;
+
+        static::provideServices();
     }
 
     /**
@@ -86,9 +96,9 @@ abstract class ServiceProvider
      * 
      * @return array
      */
-    public static function customHelpers() : array 
+    public static function customHelpers() : array
     {
-        if ( $custom_helpers = static::$kernel['helpers'] ) return $custom_helpers;
+        if ( $custom_helpers = static::$app['helpers'] ) return $custom_helpers;
 
         return [];
     }
@@ -105,39 +115,62 @@ abstract class ServiceProvider
         return @ static::$http_kernel[$gateway][$name];
     }
 
-    /**
-     * Get specific event listeners
-     * 
-     * @param string $event
-     * @return array
-     */
-    public static function getEventListeners(string $event) : array
+    private static function getServiceProviders()
     {
-        return @ self::$listen[$event] ?? [];
+        if ( $providers = @ static::$app['providers'] ) return $providers;
+
+        return [];
     }
 
-    /**
-     * Add event listener
-     * 
-     * @param string $event
-     * @param string $listener
-     * @return void
-     */
-    public static function listenEvent(string $event, string $listener) : void
+    private static function provideService(string $service_class)
     {
-        @ self::$listen[$event][] = $listener;
-    }
+        if ( class_exists( $service_class ) ) {
+            $service = new $service_class;
 
-    public static function install()
-    {
-        $dir = new \RecursiveDirectoryIterator(app_path('/Providers'));
-	
-	    foreach (new \Clicalmani\Flesco\Providers\ServiceFinder($dir) as $service) {
-            $name = $service->getFilename();
-            $provider = "\\App\Providers\\" . substr($name, 0, strrpos($name, '.'));
-
-            if (method_exists($provider, 'boot')) with( new $provider )->boot();
-            if (method_exists($provider, 'register')) with( new $provider )->register();
+            if ( method_exists($service, 'boot') ) $service->boot();
+            if ( method_exists($service, 'register') ) $service->register();
         }
     }
+
+    private static function provideServices()
+    {
+        foreach (self::getServiceProviders() as $service)
+            self::provideService($service);
+    }
+
+    // /**
+    //  * Get specific event listeners
+    //  * 
+    //  * @param string $event
+    //  * @return array
+    //  */
+    // public static function getEventListeners(string $event) : array
+    // {
+    //     return @ self::$listen[$event] ?? [];
+    // }
+
+    // /**
+    //  * Add event listener
+    //  * 
+    //  * @param string $event
+    //  * @param string $listener
+    //  * @return void
+    //  */
+    // public static function listenEvent(string $event, string $listener) : void
+    // {
+    //     @ self::$listen[$event][] = $listener;
+    // }
+
+    // public static function install()
+    // {
+    //     $dir = new \RecursiveDirectoryIterator(app_path('/Providers'));
+	
+	//     foreach (new \Clicalmani\Flesco\Providers\ServiceFinder($dir) as $service) {
+    //         $name = $service->getFilename();
+    //         $provider = "\\App\Providers\\" . substr($name, 0, strrpos($name, '.'));
+            
+    //         if (method_exists($provider, 'boot')) with( new $provider )->boot();
+    //         if (method_exists($provider, 'register')) with( new $provider )->register();
+    //     }
+    // }
 }

@@ -10,7 +10,7 @@ use Clicalmani\Routes\Route;
  * @package clicalmani/flesco 
  * @author @clicalmani
  */
-abstract class RouteServiceProvider extends ServiceProvider
+class RouteServiceProvider extends ServiceProvider
 {
     /**
      * API prefix
@@ -39,6 +39,13 @@ abstract class RouteServiceProvider extends ServiceProvider
      * @var mixed
      */
     private static $response_data;
+
+    /**
+     * CORS settings
+     * 
+     * @var array
+     */
+    private static $cors_settings;
     
     /**
      * Initialize route service
@@ -72,9 +79,9 @@ abstract class RouteServiceProvider extends ServiceProvider
     public function setHeaders()
     {
         if ( isset($_SERVER['HTTP_ORIGIN']) ) {
-            header("Access-Control-Allow-Origin: {$_SERVER['HTTP_ORIGIN']}");
-            header('Access-Control-Allow-Credentials: true');
-            header('Access-Control-Max-Age: 86400');				// Cache preflight response for one (1) day
+            header("Access-Control-Allow-Origin: " . static::$cors_settings['allowed_origin']);
+            header('Access-Control-Allow-Credentials: ' . static::$cors_settings['allow_credentials']);
+            header('Access-Control-Max-Age: ' . static::$cors_settings['max_age']);
         }
     
         /**
@@ -88,10 +95,10 @@ abstract class RouteServiceProvider extends ServiceProvider
         if (@ $_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
     
             if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_METHOD']))
-                header("Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS");         
+                header("Access-Control-Allow-Methods: " . join(',', static::$cors_settings['allowed_methods']));         
     
             if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS']))
-                header("Access-Control-Allow-Headers: {$_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS']}");
+                header("Access-Control-Allow-Headers: " . static::$cors_settings['allowed_headers']);
     
                 // Preflight
                 response()->status(204, 'PREFLIGHT', '');
@@ -115,7 +122,7 @@ abstract class RouteServiceProvider extends ServiceProvider
             
             // Generate CSRF token and Store it in $_SESSION global variable
             if ( ! isset($_SESSION['csrf-token']) ) {
-                $_SESSION['csrf-token'] = with ( new \Clicalmani\Flesco\Security\CSRF )->getToken(); 
+                $_SESSION['csrf-token'] = with ( new \Clicalmani\Flesco\Auth\CSRF )->getToken(); 
             }
         }
     }
@@ -163,5 +170,21 @@ abstract class RouteServiceProvider extends ServiceProvider
         foreach (self::getProvidedTPS($service_level) as $tps) {
             new $tps($response, static::$response_data);
         }
+    }
+
+    public function boot(): void
+    {
+        static::$cors_settings = require_once config_path('/cors.php');
+
+        Route::setSignatures(
+            [
+                'get'     => [], 
+                'post'    => [],
+                'options' => [],
+                'delete'  => [],
+                'put'     => [],
+                'patch'   => []
+            ]
+        );
     }
 }

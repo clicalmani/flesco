@@ -3,8 +3,8 @@ namespace Clicalmani\Flesco\Models;
 
 use Clicalmani\Database\DB;
 use Clicalmani\Database\DBQuery;
+use Clicalmani\Database\Factory\Entity;
 use Clicalmani\Flesco\Exceptions\ModelException;
-use Clicalmani\Flesco\Support\Log;
 
 /**
  * Class AbstractModel
@@ -43,6 +43,13 @@ abstract class AbstractModel implements Joinable, \JsonSerializable
      * @var array
      */
     protected $attributes = [];
+
+    /**
+     * Model entity
+     * 
+     * @var \Clicalmani\Flesco\Models\Entity
+     */
+    protected string $entity;
     
     /**
      * Table primary key
@@ -108,18 +115,18 @@ abstract class AbstractModel implements Joinable, \JsonSerializable
     protected $calc_found_rows = false;
 
     /**
-     * Model data
-     * 
-     * @var \Clicalmani\Flesco\Models\Attribute[]
-     */
-    protected $data = [];
-
-    /**
      * Event handlers
      * 
      * @var array<string, callable>
      */
     protected $eventHandlers = [];
+
+    /**
+     * Model entity single instance
+     * 
+     * @var \Clicalmani\Flesco\Models\Entity
+     */
+    private $entity_instance;
 
     /**
      * Register model events
@@ -169,7 +176,7 @@ abstract class AbstractModel implements Joinable, \JsonSerializable
      * @param bool $keep_alias Wether to include table alias or not
      * @return string Table name
      */
-    protected function getTable(bool $keep_alias = false) : string
+    public function getTable(bool $keep_alias = false) : string
     {
         if ($keep_alias) return $this->table;
        
@@ -228,16 +235,19 @@ abstract class AbstractModel implements Joinable, \JsonSerializable
         $in = [];
         $out = [];
 
-        foreach ($this->data as $attribute) {
+        $entity = $this->getEntity();
+        $entity->setModel($this);
+        
+        foreach ($entity->getAttributes() as $attribute) {
             
             // Escape none fillable attributes for update
             if ( FALSE === $attribute->isFillable() && $attribute->access === Attribute::UPDATE) continue;
-
+            
             // Nullify entry value if not defined
             $value = !$attribute->isNull() ? $attribute->value: null;
-
-            if ($attribute->access === Attribute::INSERT) $in[$attribute->name] = $value;
-            elseif ($attribute->access === Attribute::UPDATE) $out[$attribute->name] = $value;
+            
+            if ($attribute->access === Attribute::INSERT && $entity->isWriting($attribute->name)) $in[$attribute->name] = $value;
+            elseif ($attribute->access === Attribute::UPDATE && $entity->isUpdating($attribute->name)) $out[$attribute->name] = $value;
         }
 
         if ( $in ) return ['in' => $in];
@@ -254,6 +264,17 @@ abstract class AbstractModel implements Joinable, \JsonSerializable
     public function getQuery()
     {
         return $this->query;
+    }
+
+    /**
+     * Get model entity
+     * 
+     * @return \Clicalmani\Flesco\Models\Entity
+     */
+    public function getEntity()
+    {
+        if ($this->entity_instance) return $this->entity_instance;
+        return tap(new $this->entity, fn(Entity $entity) => $this->entity_instance = $entity);
     }
 
     /**
@@ -355,12 +376,14 @@ abstract class AbstractModel implements Joinable, \JsonSerializable
         
         if ( !$row ) return null;
 
+        $entity = $this->getEntity();
+
         // Attributes
         $data = [];
         foreach ($row as $name => $value) {
-            $attribute = new Attribute($name, $value);
-            $attribute->model = $this;
-            $attribute->access = Attribute::READ;
+            $entity->setAccess(Entity::READ_RECORD);
+            $attribute = $entity->getAttribute($name);
+            $attribute->value = $value;
 
             if ($attribute->isHidden()) continue;
 
@@ -371,10 +394,12 @@ abstract class AbstractModel implements Joinable, \JsonSerializable
         // Custom attributes
         $data2 = [];
 
+        $entity = $this->getEntity();
+
         foreach ($this->custom as $name) {
-            $attribute = new Attribute($name);
-            $attribute->model = $this;
-            $attribute->access = Attribute::READ;
+            $entity->setAccess(Entity::READ_RECORD);
+            $attribute = $entity->getAttribute($name);
+            $attribute->value = $value;
 
             $data2[$name] = $attribute->getCustomValue();
         }
@@ -389,10 +414,11 @@ abstract class AbstractModel implements Joinable, \JsonSerializable
     public function __get(string $name) : mixed
     {
         if ( empty($name) || $this->isEmpty() ) return null;
-
-        $attribute = new Attribute($name);
-        $attribute->model = $this;
-        $attribute->access = Attribute::READ;
+        
+        $entity = $this->getEntity();
+        $entity->setModel($this);
+        $entity->setAccess(Entity::READ_RECORD);
+        $attribute = $entity->getAttribute($name);
         
         if ( $attribute->isCustom() ) {
             return $this->{$attribute->customize()}();
@@ -410,13 +436,10 @@ abstract class AbstractModel implements Joinable, \JsonSerializable
          * Restore joints
          */
         $this->query->set('join', $joint);
-            
-        if ($row = $collection->first()) {
-            return $row[$name];
-        }
+        
+        if ($row = $collection->first()) return $row[$name];
+
         return null;
-        // $error = sprintf("%s does not exists.", $this::class);
-        // throw new ModelException($error, ModelException::ERROR_3070);
     }
 
     /**
@@ -430,7 +453,7 @@ abstract class AbstractModel implements Joinable, \JsonSerializable
         $table = $db->getPrefix() . $this->getTable();
         $statement = $db->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '" . env('DB_NAME', '') . "' AND TABLE_NAME = '$table'");
         $found = false;
-
+        
         while($row = $db->fetch($statement, \PDO::FETCH_NUM)) {
             if ($row[0] == $name) {
                 $found = true;
@@ -440,25 +463,25 @@ abstract class AbstractModel implements Joinable, \JsonSerializable
 
         if (false !== $found) {
 
-            $attribute = new Attribute($name, $value);
-            $attribute->model = $this;
+            $entity = $this->getEntity();
+            $entity->setModel($this);
 
             if ( $this->id && $this->primaryKey ) {
-                
-                $attribute->access = Attribute::UPDATE;
+
+                $entity->setAccess(Entity::UPDATE_RECORD);
 
                 /**
                  * Updating data
                  */
-                $this->data[] = $attribute;
+                $entity->setProperty($name, $value);
             } else {
 
-                $attribute->access = Attribute::INSERT;
+                $entity->setAccess(Entity::ADD_RECORD);
 
                 /**
                  * Inserting data
                  */
-                $this->data[] = $attribute;
+                $entity->setProperty($name, $value);
             }
         } else {
             $error = sprintf("Error: can not update or insert new record on table %s", $this->getTable());

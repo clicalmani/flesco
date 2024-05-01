@@ -1,10 +1,20 @@
 <?php
-namespace Clicalmani\Flesco\Security;
+namespace Clicalmani\Flesco\Auth;
 
-use Clicalmani\Flesco\Exceptions\ValidationFailedException;
-
-class Security 
+class EncryptionServiceProvider 
 {
+	/**
+	 * Password hashing
+	 * 
+	 * @var mixed
+	 */
+	private static $config;
+
+	public static function boot()
+	{
+		static::$config = require_once config_path('/hashing.php');
+	}
+
 	/**
 	 * Generate a data hash
 	 * 
@@ -12,12 +22,33 @@ class Security
 	 * @param ?string $method
 	 * @return mixed
 	 */
-    public static function hash(mixed $data, ?string $method = '') : mixed
+    public static function hash(mixed $data) : mixed
 	{
-    	if ( '' === $method ) {
-			$__func = fn($str) => password_hash($str, PASSWORD_DEFAULT);
-		} else {
-			$__func = $method;
+		$config = static::$config;
+		$method = @ $config['algo'];
+
+		switch($config['driver']) {
+			case 'bcrypt': 
+				$__func = fn($str) => password_hash(hash($method, $str), PASSWORD_BCRYPT, ['cost' => @ $config['bcrypt']['cost'] ?? 10]);
+				break;
+
+			case 'argon': 
+				if ($config['argon']['2i']) $algo = PASSWORD_ARGON2I;
+				else $algo = PASSWORD_ARGON2ID;
+
+				$__func = fn($str) => password_hash(
+					hash($method, $str), 
+					$algo, 
+					[
+						'memory' => @ $config['argon']['memory'] ?? PASSWORD_ARGON2_DEFAULT_MEMORY_COST,
+						'threads' => @ $config['argon']['threads'] ?? PASSWORD_ARGON2_DEFAULT_THREADS,
+						'time' => @ $config['argon']['time'] ?? PASSWORD_ARGON2_DEFAULT_TIME_COST
+					]);
+				break;
+
+			default:
+				$__func = fn($str) => password_hash(hash($method, $str), PASSWORD_DEFAULT);
+				break;
 		}
 
 		$__secret = env('APP_KEY');
@@ -45,7 +76,7 @@ class Security
     		$data .= $key . $value;
     	}
     	
-    	return strtoupper( substr( self::hash($data, 'sha1'), strlen( self::iv() ), 10 ) );
+    	return strtoupper( substr( self::hash($data), strlen( self::iv() ), static::$config['hash_length'] ) );
     }
 
 	/**
@@ -56,16 +87,17 @@ class Security
     public static function verifyParameters() : bool
 	{
     	$data = '';
+		$param = static::$config['hash_parameter'];
 		
-    	$request_hash = isset($_REQUEST['hash'])? $_REQUEST['hash']: '';
+    	$request_hash = isset($_REQUEST[$param])? $_REQUEST[$param]: '';
 		
-    	unset($_REQUEST['hash']);
+    	unset($_REQUEST[$param]);
     	 
     	foreach ($_REQUEST as $key => $value){
     		$data .= $key . $value;
     	}
 		
-		$hash = strtoupper( substr( self::hash($data, 'sha1'), strlen( self::iv() ), 10 ) );
+		$hash = strtoupper( substr( self::hash($data), strlen( self::iv() ), static::$config['hash_length'] ) );
     	
     	if($request_hash === $hash){
     		return true;
@@ -81,7 +113,7 @@ class Security
 	 */
 	public static function iv() : string
 	{
-		return substr( hash('sha256', env('PASSWORD_CRYPT')), 0, 16);
+		return substr( hash(static::$config['algo'], env('APP_KEY')), 0, static::$config['iv_length']);
 	}
 	
 	/**
@@ -95,10 +127,10 @@ class Security
 	{
 	
 		$output = false;
-		$encrypt_method = "AES-256-CBC";
+		$encrypt_method = static::$config['cipher'];
 		
 		// hash
-		$key = hash('sha256', $_ENV['APP_KEY']);
+		$key = hash(static::$config['algo'], $_ENV['APP_KEY']);
 		
 		// iv - encrypt method AES-256-CBC expects 16 bytes - else you will get a warning
 		$iv = self::iv();
@@ -109,6 +141,7 @@ class Security
 		} else if( $action == 'decrypt' ) {
 			$output = openssl_decrypt(base64_decode($string), $encrypt_method, $key, 0, $iv);
 		}
+
 		return $output;
 	}
     

@@ -6,7 +6,6 @@ use Clicalmani\Database\DB;
 use Clicalmani\Database\DBQuery;
 use Clicalmani\Database\Factory\Factory;
 use Clicalmani\Flesco\Events\Event;
-use Clicalmani\Flesco\Events\ModelEvent;
 use Clicalmani\Flesco\Exceptions\ModelException;
 
 /**
@@ -204,7 +203,7 @@ class Model extends AbstractModel implements DataClauseInterface, DataOptionInte
                 // Update data
                 $data = $this->getData();
                 if (array_key_exists('out', $data)) $values = $data['out'];
-                $this->data = [];
+                // $this->data = [];
             }
 
             $fields = array_keys( $values );
@@ -268,7 +267,7 @@ class Model extends AbstractModel implements DataClauseInterface, DataOptionInte
         // Update data
         $data = $this->getData();
         if (array_key_exists('in', $data)) $fields = [$data['in']];
-        $this->data = [];
+        // $this->data = [];
         
         $this->query->unset('tables');
         $this->query->set('type', DBQuery::INSERT);
@@ -438,7 +437,7 @@ class Model extends AbstractModel implements DataClauseInterface, DataOptionInte
         $this->unlock();
 
         // Reset back to select parameters 
-        $this->data = [];
+        // $this->data = [];
         $this->query->set('type', DBQuery::SELECT);
         $this->query->set('tables', [$this->table]);
         unset($this->query->params['table']);

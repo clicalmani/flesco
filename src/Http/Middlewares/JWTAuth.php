@@ -1,10 +1,10 @@
 <?php
 namespace Clicalmani\Flesco\Http\Middlewares;
 
-use Clicalmani\Flesco\Auth\JWT;
 use Clicalmani\Flesco\Http\Requests\Request;
 use Clicalmani\Flesco\Http\Response\Response;
 use Clicalmani\Container\Manager;
+use Clicalmani\Flesco\Auth\AuthServiceProvider;
 
 /**
  * Class JWTAuth
@@ -12,7 +12,7 @@ use Clicalmani\Container\Manager;
  * @package Clicalmani\Flesco
  * @author @clicalmani
  */
-abstract class JWTAuth extends JWT
+abstract class JWTAuth extends AuthServiceProvider
 {
     /**
      * Service container
@@ -42,5 +42,5 @@ abstract class JWTAuth extends JWT
      * 
      * @return void
      */
-    protected abstract function boot() : void;
+    public abstract function boot() : void;
 }

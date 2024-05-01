@@ -1,7 +1,6 @@
 <?php
 
 use Carbon\Carbon;
-use Clicalmani\Flesco\Auth\JWT;
 
 if ( ! function_exists( 'root_path' ) ) {
 
@@ -524,9 +523,9 @@ if ( ! function_exists('instance') ) {
      * @param ?callable $callback A callback function that receive an instance of the class as it's first argument.
      * @return mixed $class Object
      */
-    function instance(string $class, ?callable $callback = null)
+    function instance(string $class, ?callable $callback = null, mixed ...$args)
     {
-        $instance = new $class;
+        $instance = new $class( ...$args );
         $callback($instance);
         return $instance;
     }
@@ -642,10 +641,10 @@ if ( ! function_exists('token') ) {
      * @return string
      */
     function token(mixed $jti, int $expiry) : string {
-        $jwt = new \Clicalmani\Flesco\Auth\JWT;
-        $jwt->setJti( json_encode($jti) );
-        $jwt->setExpiry($expiry/(60*60*24)); // expiry in days
-        return $jwt->generateToken();
+        $auth = new \Clicalmani\Flesco\Auth\AuthServiceProvider;
+        $auth->setJti( json_encode($jti) );
+        $auth->setExpiry($expiry/(60*60*24)); // expiry in days
+        return $auth->generateToken();
     }
 }
 
@@ -658,7 +657,7 @@ if ( ! function_exists('get_payload') ) {
      * @return mixed
      */
     function get_payload(string $token) : mixed {
-        return with ( new \Clicalmani\Flesco\Auth\JWT )->verifyToken($token);
+        return with ( new \Clicalmani\Flesco\Auth\AuthServiceProvider )->verifyToken($token);
     }
 }
 
@@ -692,7 +691,7 @@ if ( ! function_exists('jwt') ) {
      * @return \Clicalmani\Flesco\Auth\JWT
      */
     function jwt(?string $jti = null, mixed $expiry = 1) {
-        return new \Clicalmani\Flesco\Auth\JWT($jti, $expiry);
+        return new \Clicalmani\Flesco\Auth\AuthServiceProvider($jti, $expiry);
     }
 }
 
@@ -705,7 +704,7 @@ if ( ! function_exists('encrypt') ) {
      * @return mixed
      */
     function encrypt(string $value) : mixed {
-        return \Clicalmani\Flesco\Security\Security::encrypt($value);
+        return \Clicalmani\Flesco\Auth\EncryptionServiceProvider::encrypt($value);
     }
 }
 
@@ -718,14 +717,14 @@ if ( ! function_exists('decrypt') ) {
      * @return mixed
      */
     function decrypt(string $value) : mixed {
-        return \Clicalmani\Flesco\Security\Security::decrypt($value);
+        return \Clicalmani\Flesco\Auth\EncryptionServiceProvider::decrypt($value);
     }
 }
 
 if ( ! function_exists('verify_token') ) {
     function verify_token(string $token) : mixed 
     {
-        return with (new JWT)->verifyToken($token);
+        return with (new \Clicalmani\Flesco\Auth\EncryptionServiceProvider)->verifyToken($token);
     }
 }
 

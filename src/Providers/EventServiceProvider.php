@@ -23,6 +23,17 @@ abstract class EventServiceProvider extends ServiceProvider
     }
 
     /**
+     * Create multiple custom events
+     * 
+     * @param string[] $events Events names
+     * @return void
+     */
+    protected function createEvents(array $events) : void
+    {
+        foreach($events as $event) static::$events[$event] = [];
+    }
+
+    /**
      * Add event listener
      * 
      * @param string $event Event name

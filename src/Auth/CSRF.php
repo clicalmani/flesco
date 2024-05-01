@@ -1,5 +1,5 @@
 <?php
-namespace Clicalmani\Flesco\Security;
+namespace Clicalmani\Flesco\Auth;
 
 class CSRF
 {
@@ -10,6 +10,6 @@ class CSRF
      */
     public function getToken() : string
     {
-        return bin2hex( Security::hash( time() ) );
+        return bin2hex( EncryptionServiceProvider::hash( time() ) );
     }
 }

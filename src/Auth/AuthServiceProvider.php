@@ -2,13 +2,15 @@
 namespace Clicalmani\Flesco\Auth;
 
 /**
- * JWT Class
+ * AuthServiceProvider Class
  * 
  * @package clicalmani\flesco
  * @author @clicalmani
  */
-class JWT
+class AuthServiceProvider
 {
+    private static $config;
+
     private $payload,    // JWT payload
             $secret,     // Encryption key
             $headers;    // Headers
@@ -21,17 +23,28 @@ class JWT
      */
     public function __construct(private mixed $jti = null, private mixed $expiry = 1)
     {
+        $config = @ static::$config['tokens'];
+
+        /**
+         * |--------------------------------------------------------
+         * | Service initialisation
+         * |--------------------------------------------------------
+         * 
+         * Called in ServiceProvider
+         */
+        if (!$config) return;
+        
         $this->headers = (object) [
-            'alg' => 'HS256',
-            'typ' => 'JWT'
+            'alg' => $config['header']['algo'],
+            'typ' => $config['header']['type']
         ];
         $this->payload = [
-            'iss' => env('APP_URL', ''), // Issuer claim
+            'iss' => $_ENV['APP_URL'], // Issuer claim
             'iat' => time(),             // Issued at claim
             'jti' => $this->jti,         // JWT ID claim
-            'exp' => time() + 60*60*24*$this->expiry // Expiration time claim
+            'exp' => time() + $config['expire'] // Expiration time claim
         ];
-        $this->secret  = env('APP_KEY', '$2y$10$iuSS1cFgKgEV4yuHAZmH6.lilZyppcJAMmyLeviCxvWEaAmxXmIA2');
+        $this->secret  = $_ENV['APP_KEY'] ?? '$2y$10$iuSS1cFgKgEV4yuHAZmH6.lilZyppcJAMmyLeviCxvWEaAmxXmIA2';
     }
 
     /**
@@ -56,10 +69,10 @@ class JWT
         $this->jti = $new_jti;
         
         $this->payload = [
-            'iss' => env('APP_URL', ''), // Issuer claim
+            'iss' => $_ENV['APP_URL'], // Issuer claim
             'iat' => time(),             // Issued at claim
             'jti' => $this->jti,         // JWT ID claim
-            'exp' => time() + 60 * 60 * 24 * $this->expiry // Expiration time claim
+            'exp' => time() + static::$config['tokens']['expire'] // Expiration time claim
         ];
     }
 
@@ -78,7 +91,7 @@ class JWT
         );
         $signature = $this->base64urlEncode(
             hash_hmac(
-                "SHA256",
+                static::$config['tokens']['header']['algo'],
                 "$headers.$payload",
                 $this->secret,
                 true
@@ -119,7 +132,7 @@ class JWT
 
         $signature = $this->base64urlEncode(
             hash_hmac(
-                "SHA256",
+                static::$config['tokens']['header']['algo'],
                 "{$parts[0]}.{$parts[1]}",
                 $this->secret,
                 true
@@ -142,5 +155,10 @@ class JWT
         }
 
         return $payload;
+    }
+
+    public function boot()
+    {
+        static::$config = require_once dirname( __DIR__, 5) . '/config/auth.php';
     }
 }

@@ -52,11 +52,30 @@ class Attribute
      */
     private $model;
 
+    /**
+     * Model entity
+     * 
+     * @var \Clicalmani\Flesco\Models\Entity
+     */
+    private $entity;
+
     public function __construct(string $name, mixed $value = null, ?int $access = 2)
     {
         $this->name = $name;
-        $this->value = $value;
         $this->access = $access;
+        $this->value = $value;
+    }
+
+    /**
+     * A wrapper for attribute update.
+     * 
+     * @param mixed $new_value Attribute new value
+     * @return void
+     */
+    private function update(mixed $new_value) : void
+    {
+        $this->value = $new_value;
+        $this->entity->setProperty($this->name, $new_value);
     }
 
     /**
@@ -69,6 +88,11 @@ class Attribute
         return is_null($this->value);
     }
 
+    /**
+     * Verify whether it is a fillable attribute.
+     * 
+     * @return bool
+     */
     public function isFillable() : bool
     {
         if ( empty($this->model->getFillableAttributes()) ) return true;
@@ -76,6 +100,11 @@ class Attribute
         return !!in_array($this->name, $this->model->getFillableAttributes());
     }
 
+    /**
+     * Verify whether it is a hidden attribute.
+     * 
+     * @return bool
+     */
     public function isHidden() : bool
     {
         if ( empty($this->model->getHiddenAttributes()) ) return false;
@@ -83,6 +112,11 @@ class Attribute
         return !!in_array($this->name, $this->model->getHiddenAttributes());
     }
 
+    /**
+     * Verify whether it's a custom attribute
+     * 
+     * @return bool
+     */
     public function isCustom() : bool
     {
         return !!in_array($this->name, $this->model->getCustomAttributes());
@@ -121,9 +155,17 @@ class Attribute
     {
         switch ($name) {
             case 'name': $this->name = $value; break;
-            case 'value': $this->value = $value; break;
+            case 'value': $this->update($value); break;
             case 'access': $this->access = $value; break;
-            case 'model': $this->model = $value; break;
+            case 'entity': 
+                $this->entity = $value; 
+                $this->entity->{$this->name} = $this->value;
+            break;
+            case 'model': 
+                $this->model = $value; 
+                $this->entity = $this->model->getEntity();
+                $this->entity->setModel($value);
+            break;
         }
     }
 
@@ -133,6 +175,7 @@ class Attribute
             case 'name': return $this->name;
             case 'value': return $this->value;
             case 'access': return $this->access;
+            case 'entity': return $this->entity;
             case 'model': return $this->model;
         }
     }
