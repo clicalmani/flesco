@@ -4,8 +4,8 @@ namespace Clicalmani\Flesco\Http\Requests;
 /**
  * HttpRequest class
  * 
- * @package clicalmani/flesco 
- * @author @clicalmani
+ * @package Clicalmani\Flesco/flesco 
+ * @author @Clicalmani\Flesco
  */
 abstract class HttpRequest 
 {
@@ -13,5 +13,5 @@ abstract class HttpRequest
      * (non-PHPDoc)
      * @override
      */
-    abstract public static function render();
+    abstract public function render() : never;
 }

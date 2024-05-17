@@ -2,6 +2,7 @@
 namespace Clicalmani\Flesco\Support;
 
 use Dotenv\Dotenv;
+use Dotenv\Repository\Adapter\EnvConstAdapter;
 use Dotenv\Repository\Adapter\PutenvAdapter;
 use Dotenv\Repository\RepositoryBuilder;
 
@@ -11,7 +12,7 @@ global $dotenv;
  * Class Env
  * 
  * @package Clicalmani\Flesco
- * @author @clicalmani
+ * @author @Clicalmani\Flesco
  */
 class Env 
 {
@@ -20,7 +21,7 @@ class Env
      * 
      * @var bool
      */
-    protected static $putenv = true;
+    protected static $putenv = false;
 
     /**
      * The environment repository instance.
@@ -59,10 +60,13 @@ class Env
     public static function getRepository()
     {
         if (static::$repository === null) {
-            $builder = RepositoryBuilder::createWithDefaultAdapters();
 
+            $builder = RepositoryBuilder::createWithDefaultAdapters();
+            
             if (static::$putenv) {
-                $builder = $builder->addAdapter(PutenvAdapter::class);
+                $builder = RepositoryBuilder::createWithNoAdapters();
+                $builder = $builder->addAdapter(EnvConstAdapter::class);
+                $builder = $builder->addWriter(PutenvAdapter::class);
             }
 
             static::$repository = $builder->immutable()->make();

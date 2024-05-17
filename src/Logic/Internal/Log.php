@@ -1,13 +1,13 @@
 <?php 
-namespace Clicalmani\Flesco\Support;
+namespace Clicalmani\Flesco\Logic\Internal;
 
 /**
  * Log Class
  * 
- * @package clicalmani/flesco 
- * @author @clicalmani
+ * @package Clicalmani\Flesco/flesco 
+ * @author @Clicalmani\Flesco
  */
-class Log extends Mock
+class Log
 {
     /**
      * Log file name
@@ -23,12 +23,12 @@ class Log extends Mock
      * 
      * @return void
      */
-    public function _init(string $root_path) : void
+    public function init() : void
     {
         static::$is_debug_mode = env('APP_DEBUG', true);
         
         ini_set('log_errors', 1);
-        ini_set('error_log', storage_path(static::ERROR_LOG) );
+        ini_set('error_log', storage_path('/errors/' . static::ERROR_LOG) );
     }
 
     /**
@@ -40,7 +40,7 @@ class Log extends Mock
      * @param ?int $line Error line
      * @return void
      */
-    public function _error(string $error_message, ?int $error_level = E_ERROR, ?string $file = 'Unknow', ?int $line = null) : void
+    public function error(string $error_message, ?int $error_level = E_ERROR, ?string $file = 'Unknow', ?int $line = null) : void
     {
         switch ($error_level) {
             case E_NOTICE: 
@@ -67,9 +67,9 @@ class Log extends Mock
                 $error_type = 'PHP Unknown'; 
                 $EXIT = TRUE; 
                 break; 
-        } 
+        }
 
-        $message = sprintf("[%s] %s: %s in %s on line %d\n", date('Y-M-d H:i:s T', time()), $error_type, $error_message, $file, $line);
+        $message = sprintf("[%s] %s: %s in %s at line %d\n", date('Y-M-d H:i:s T', time()), $error_type, $error_message, $file, $line);
         
         if ('false' === strtolower(static::$is_debug_mode)) error_log($message, 3, $this->maybeCreateLog());
         else {
@@ -88,9 +88,9 @@ class Log extends Mock
      * @param ?int $line Error line
      * @return void
      */
-    public function _warning(string $warning_message, ?string $file = 'Unknow', ?int $line = null) : void
+    public function warning(string $warning_message, ?string $file = 'Unknow', ?int $line = null) : void
     {
-        $this->_error($warning_message, E_WARNING, $file, $line);
+        $this->error($warning_message, E_WARNING, $file, $line);
     }
 
     /**
@@ -101,9 +101,9 @@ class Log extends Mock
      * @param ?int $line Error line
      * @return void
      */
-    public function _notice(string $notice_message, ?string $file = 'Unknow', ?int $line = null)
+    public function notice(string $notice_message, ?string $file = 'Unknow', ?int $line = null)
     {
-        $this->_error($notice_message, E_NOTICE, $file, $line);
+        $this->error($notice_message, E_NOTICE, $file, $line);
     }
 
     /**
@@ -114,9 +114,10 @@ class Log extends Mock
      * @param ?int $line Error line
      * @return void
      */
-    public function _debug(string $debug_message, ?string $file = 'Unknow', ?int $line = null)
+    public function debug(string|array|object|null $debug_message, ?string $file = 'Unknow', ?int $line = null)
     {
-        $this->_notice($debug_message, $file, $line);
+        if (FALSE == is_string($debug_message)) $debug_message = json_encode($debug_message);
+        $this->notice($debug_message, $file, $line);
     }
     
     /**

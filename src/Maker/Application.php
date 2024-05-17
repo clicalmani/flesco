@@ -5,7 +5,7 @@ namespace Clicalmani\Flesco\Maker;
  * Make an application
  * 
  * @package Clicalmani\Flesco
- * @author clicalmani
+ * @author Clicalmani\Flesco
  */
 class Application extends \Symfony\Component\Console\Application
 {

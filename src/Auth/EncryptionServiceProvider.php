@@ -10,9 +10,9 @@ class EncryptionServiceProvider
 	 */
 	private static $config;
 
-	public static function boot()
+	public function boot()
 	{
-		static::$config = require_once config_path('/hashing.php');
+		if (!static::$config) static::$config = require_once config_path('/hashing.php');
 	}
 
 	/**
@@ -27,30 +27,7 @@ class EncryptionServiceProvider
 		$config = static::$config;
 		$method = @ $config['algo'];
 
-		switch($config['driver']) {
-			case 'bcrypt': 
-				$__func = fn($str) => password_hash(hash($method, $str), PASSWORD_BCRYPT, ['cost' => @ $config['bcrypt']['cost'] ?? 10]);
-				break;
-
-			case 'argon': 
-				if ($config['argon']['2i']) $algo = PASSWORD_ARGON2I;
-				else $algo = PASSWORD_ARGON2ID;
-
-				$__func = fn($str) => password_hash(
-					hash($method, $str), 
-					$algo, 
-					[
-						'memory' => @ $config['argon']['memory'] ?? PASSWORD_ARGON2_DEFAULT_MEMORY_COST,
-						'threads' => @ $config['argon']['threads'] ?? PASSWORD_ARGON2_DEFAULT_THREADS,
-						'time' => @ $config['argon']['time'] ?? PASSWORD_ARGON2_DEFAULT_TIME_COST
-					]);
-				break;
-
-			default:
-				$__func = fn($str) => password_hash(hash($method, $str), PASSWORD_DEFAULT);
-				break;
-		}
-
+		$__func = fn($str) => hash($method, $str);
 		$__secret = env('APP_KEY');
     	
     	$_ipad = substr($__secret, strlen($__secret), 0) ^ str_repeat(chr(0x36), strlen($__secret));
@@ -160,4 +137,41 @@ class EncryptionServiceProvider
 	 * @return mixed
 	 */
     public static function decrypt(string $value) : mixed { return self::opensslED('decrypt', $value); }
+
+	/**
+	 * PHP built-in password_hash wrapper
+	 * 
+	 * @param string $str
+	 * @return string
+	 */
+	public static function password(string $str) : string
+	{
+		$config = static::$config;
+
+		switch($config['driver']) {
+			case 'bcrypt': 
+				$__func = fn($str) => password_hash($str, PASSWORD_BCRYPT, ['cost' => @ $config['bcrypt']['cost'] ?? PASSWORD_BCRYPT_DEFAULT_COST]);
+				break;
+
+			case 'argon': 
+				if ($config['argon']['2i']) $algo = PASSWORD_ARGON2I;
+				else $algo = PASSWORD_ARGON2ID;
+
+				$__func = fn($str) => password_hash(
+					$str, 
+					$algo, 
+					[
+						'memory' => @ $config['argon']['memory'] ?? PASSWORD_ARGON2_DEFAULT_MEMORY_COST,
+						'threads' => @ $config['argon']['threads'] ?? PASSWORD_ARGON2_DEFAULT_THREADS,
+						'time' => @ $config['argon']['time'] ?? PASSWORD_ARGON2_DEFAULT_TIME_COST
+					]);
+				break;
+
+			default:
+				$__func = fn($str) => password_hash($str, PASSWORD_DEFAULT);
+				break;
+		}
+
+		return $__func($str);
+	}
 }

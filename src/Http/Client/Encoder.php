@@ -12,7 +12,7 @@ use Clicalmani\Flesco\Http\Client\Serializer\Text;
  * Encoding class for serializing and deserializing request/response.
  * 
  * @package Clicalmani\Flesco
- * @author @clicalmani
+ * @author @Clicalmani\Flesco
  */
 class Encoder
 {

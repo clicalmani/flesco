@@ -7,7 +7,7 @@ use Clicalmani\Flesco\Support\Log;
  * Class RequestReflection
  * 
  * @package Clicalmani\Flesco
- * @author @clicalmani
+ * @author @Clicalmani\Flesco
  */
 class RequestReflection 
 {

@@ -9,7 +9,7 @@ use Clicalmani\Flesco\Http\Client\Curl;
  * Client used to make HTTP requests.
  * 
  * @package Clicalmani\Flesco
- * @author @clicalmani
+ * @author @Clicalmani\Flesco
  */
 class HttpClient
 {

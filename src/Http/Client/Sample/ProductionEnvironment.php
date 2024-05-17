@@ -5,7 +5,7 @@ namespace Clicalmani\Flesco\Http\Client\Sample;
  * Class ProductionEnvironment
  * 
  * @package Clicalmani\Flesco
- * @author @clicalmani
+ * @author @Clicalmani\Flesco
  */
 class ProductionEnvironment extends PDMSEnvironment
 {

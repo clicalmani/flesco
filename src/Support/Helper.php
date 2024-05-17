@@ -5,7 +5,7 @@ namespace Clicalmani\Flesco\Support;
  * Class Helper
  * 
  * @package Clicalmani\Flesco
- * @author @clicalmani
+ * @author @Clicalmani\Flesco
  */
 class Helper 
 {

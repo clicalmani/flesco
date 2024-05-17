@@ -13,29 +13,34 @@ class RecursiveFilter extends \RecursiveFilterIterator
     {
         $filename = $this->current()->getFilename();
         $pathname = $this->current()->getPathname();
-
+        
         if ($filename[0] == '.' || is_dir($pathname) || false == is_readable($pathname)) return false;
 
         $filename = substr($filename, strrpos($filename, DIRECTORY_SEPARATOR));
         $pathname = substr($pathname, strrpos($pathname, DIRECTORY_SEPARATOR));
         
-        if ($this->filter) {
-            if (false == in_array($filename, $this->filter)) return false;
-        }
-
-        if ($this->pattern) {
-            if ($this->current()->isFile()) {
-                if (preg_match("/$this->pattern/", $filename)) return true;
+        if ($this->filter || $this->pattern || $this->types) {
+            
+            if ($this->filter) {
+                if (false == in_array($filename, $this->filter)) return false;
             }
-        }
 
-        if ($this->types) {
-            foreach ($this->types as $extension) {
-                if (strrpos($filename, $extension)) return true;
+            if ($this->pattern) {
+                if ($this->current()->isFile()) {
+                    if (preg_match("/$this->pattern/", $filename)) return true;
+                }
             }
+
+            if ($this->types) {
+                foreach ($this->types as $extension) {
+                    if (strrpos($filename, $extension)) return true;
+                }
+            } 
+
+            return false;
         }
 
-        return false;
+        return true;
     }
 
     public function getFiles()

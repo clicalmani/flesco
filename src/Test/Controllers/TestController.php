@@ -10,7 +10,7 @@ abstract class TestController extends TestCase
     /**
      * User model class
      * 
-     * @var \Clicalmani\Flesco\Models\Model Object
+     * @var \Clicalmani\Database\Factory\Models\Model Object
      */
     protected $controller;
 

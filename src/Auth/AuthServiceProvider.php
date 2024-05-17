@@ -4,8 +4,8 @@ namespace Clicalmani\Flesco\Auth;
 /**
  * AuthServiceProvider Class
  * 
- * @package clicalmani\flesco
- * @author @clicalmani
+ * @package Clicalmani\Flesco
+ * @author @Clicalmani\Flesco
  */
 class AuthServiceProvider
 {
@@ -91,7 +91,7 @@ class AuthServiceProvider
         );
         $signature = $this->base64urlEncode(
             hash_hmac(
-                static::$config['tokens']['header']['algo'],
+                static::$config['tokens']['algo'],
                 "$headers.$payload",
                 $this->secret,
                 true
@@ -132,7 +132,7 @@ class AuthServiceProvider
 
         $signature = $this->base64urlEncode(
             hash_hmac(
-                static::$config['tokens']['header']['algo'],
+                static::$config['tokens']['algo'],
                 "{$parts[0]}.{$parts[1]}",
                 $this->secret,
                 true

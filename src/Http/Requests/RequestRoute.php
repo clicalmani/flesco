@@ -7,7 +7,7 @@ use Clicalmani\Routes\Route;
  * Class RequestRoute
  * 
  * @package Clicalmani\Flesco
- * @author @clicalmani
+ * @author @Clicalmani\Flesco
  */
 class RequestRoute 
 {

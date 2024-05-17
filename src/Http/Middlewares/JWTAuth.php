@@ -10,7 +10,7 @@ use Clicalmani\Flesco\Auth\AuthServiceProvider;
  * Class JWTAuth
  * 
  * @package Clicalmani\Flesco
- * @author @clicalmani
+ * @author @Clicalmani\Flesco
  */
 abstract class JWTAuth extends AuthServiceProvider
 {
@@ -42,5 +42,8 @@ abstract class JWTAuth extends AuthServiceProvider
      * 
      * @return void
      */
-    public abstract function boot() : void;
+    public function boot() : void
+    {
+        throw new \Exception(sprintf("%s::%s must been override; in %s at line %d", static::class, __METHOD__, __CLASS__, __LINE__));
+    }
 }

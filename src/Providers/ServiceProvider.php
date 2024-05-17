@@ -6,8 +6,8 @@ use Clicalmani\Container\Manager;
 /**
  * ServiceProvider class
  * 
- * @package clicalmani/flesco 
- * @author @clicalmani
+ * @package Clicalmani\Flesco/flesco 
+ * @author @Clicalmani\Flesco
  */
 abstract class ServiceProvider
 {
@@ -117,18 +117,16 @@ abstract class ServiceProvider
 
     private static function getServiceProviders()
     {
-        if ( $providers = @ static::$app['providers'] ) return $providers;
-
-        return [];
+        return @ static::$app['providers'] ?? [];
     }
 
     private static function provideService(string $service_class)
     {
         if ( class_exists( $service_class ) ) {
             $service = new $service_class;
-
-            if ( method_exists($service, 'boot') ) $service->boot();
+            
             if ( method_exists($service, 'register') ) $service->register();
+            if ( method_exists($service, 'boot') ) $service->boot();
         }
     }
 
@@ -137,40 +135,4 @@ abstract class ServiceProvider
         foreach (self::getServiceProviders() as $service)
             self::provideService($service);
     }
-
-    // /**
-    //  * Get specific event listeners
-    //  * 
-    //  * @param string $event
-    //  * @return array
-    //  */
-    // public static function getEventListeners(string $event) : array
-    // {
-    //     return @ self::$listen[$event] ?? [];
-    // }
-
-    // /**
-    //  * Add event listener
-    //  * 
-    //  * @param string $event
-    //  * @param string $listener
-    //  * @return void
-    //  */
-    // public static function listenEvent(string $event, string $listener) : void
-    // {
-    //     @ self::$listen[$event][] = $listener;
-    // }
-
-    // public static function install()
-    // {
-    //     $dir = new \RecursiveDirectoryIterator(app_path('/Providers'));
-	
-	//     foreach (new \Clicalmani\Flesco\Providers\ServiceFinder($dir) as $service) {
-    //         $name = $service->getFilename();
-    //         $provider = "\\App\Providers\\" . substr($name, 0, strrpos($name, '.'));
-            
-    //         if (method_exists($provider, 'boot')) with( new $provider )->boot();
-    //         if (method_exists($provider, 'register')) with( new $provider )->register();
-    //     }
-    // }
 }

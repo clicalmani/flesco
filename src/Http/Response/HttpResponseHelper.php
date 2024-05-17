@@ -5,7 +5,7 @@ namespace Clicalmani\Flesco\Http\Response;
  * Class HttpResponseHelper
  * 
  * @package Clicalmani\Flesco
- * @author @clicalmani
+ * @author @Clicalmani\Flesco
  */
 class HttpResponseHelper 
 {

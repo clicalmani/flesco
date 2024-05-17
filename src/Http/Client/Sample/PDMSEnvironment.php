@@ -7,7 +7,7 @@ use Clicalmani\Flesco\Http\Client\Environment;
  * Class PDMSEnvironment
  * 
  * @package Clicalmani\Flesco
- * @author @clicalmani
+ * @author @Clicalmani\Flesco
  */
 abstract class PDMSEnvironment implements Environment
 {

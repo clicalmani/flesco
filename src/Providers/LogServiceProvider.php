@@ -4,8 +4,8 @@ namespace Clicalmani\Flesco\Providers;
 /**
  * LogServiceProvider class
  * 
- * @package clicalmani/flesco 
- * @author @clicalmani
+ * @package Clicalmani\Flesco/flesco 
+ * @author @Clicalmani\Flesco
  */
 class LogServiceProvider extends ServiceProvider
 {
@@ -14,6 +14,6 @@ class LogServiceProvider extends ServiceProvider
         /**
          * Error log
          */
-        \Clicalmani\Flesco\Support\Log::init( root_path() );
+        \Clicalmani\Flesco\Support\Facades\Log::init( root_path() );
     }
 }

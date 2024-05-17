@@ -212,7 +212,7 @@ if ( ! function_exists( 'password' ) ) {
      * @return string
      */
     function password(string $password) : string {
-        return password_hash($password, PASSWORD_BCRYPT);
+        return \Clicalmani\Flesco\Auth\EncryptionServiceProvider::password($password);
     }
 }
 
@@ -340,7 +340,7 @@ if ( ! function_exists('sanitize_attribute') ) {
      * @return mixed
      */
     function sanitize_attribute($attr) : mixed {
-        return preg_replace('/[^0-9a-z-_]+/', '', \Clicalmani\Flesco\Support\Str::slug($attr));
+        return preg_replace('/[^0-9a-z-_]+/', '', \Clicalmani\Flesco\Support\Facades\Str::slug($attr));
     }
 }
 
@@ -367,7 +367,7 @@ if ( ! function_exists('slug') ) {
      * @return string
      */
     function slug(string $str) : string {
-        return \Clicalmani\Flesco\Support\Str::slug($str);
+        return \Clicalmani\Flesco\Support\Facades\Str::slug($str);
     }
 }
 
@@ -531,18 +531,6 @@ if ( ! function_exists('instance') ) {
     }
 }
 
-if ( ! function_exists('factory') ) {
-    /**
-     * Create a new model factory
-     * 
-     * @param string $model Model class
-     * @return \Clicalmani\Database\Factory\Factory Object
-     */
-    function factory(string $model) {
-        return \Clicalmani\Database\Factory\Factory::fromModel( $model );
-    }
-}
-
 if ( ! function_exists('inConsoleMode') ) {
 
     /**
@@ -661,6 +649,19 @@ if ( ! function_exists('get_payload') ) {
     }
 }
 
+if ( ! function_exists('bearerToken') ) {
+
+    /**
+     * Get payload
+     * 
+     * @param string $token
+     * @return mixed
+     */
+    function bearerToken() : mixed {
+        return with ( new \Clicalmani\Flesco\Http\Requests\Request )->bearerToken();
+    }
+}
+
 if ( ! function_exists('tree') ) {
 
     /**
@@ -724,13 +725,13 @@ if ( ! function_exists('decrypt') ) {
 if ( ! function_exists('verify_token') ) {
     function verify_token(string $token) : mixed 
     {
-        return with (new \Clicalmani\Flesco\Auth\EncryptionServiceProvider)->verifyToken($token);
+        return with (new \Clicalmani\Flesco\Auth\AuthServiceProvider)->verifyToken($token);
     }
 }
 
 if ( ! function_exists('console_log') ) {
-    function console_log(string $message) 
+    function console_log(mixed ...$args) 
     {
-        \Clicalmani\Flesco\Support\Log::debug($message);
+        \Clicalmani\Flesco\Support\Facades\Log::debug( ...$args );
     }
 }

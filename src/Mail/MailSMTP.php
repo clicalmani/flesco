@@ -5,7 +5,7 @@ namespace Clicalmani\Flesco\Mail;
  * Class MailSMTP
  * 
  * @package Clialmani\Flesco
- * @author @clicalmani
+ * @author @Clicalmani\Flesco
  */
 class MailSMTP 
 {

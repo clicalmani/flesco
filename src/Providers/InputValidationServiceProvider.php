@@ -36,6 +36,17 @@ class InputValidationServiceProvider extends ServiceProvider
 	}
 
     /**
+     * Verify whether a validator argument is valid.
+     * 
+     * @param string $argument
+     * @return bool
+     */
+    public function seemsValidator(string $argument) : bool
+    {
+        return !!array_key_exists($argument, $this->getValidators());
+    }
+
+    /**
      * Get a validator by its argument.
      * 
      * @param string $argument

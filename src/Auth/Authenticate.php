@@ -1,31 +1,31 @@
 <?php
 namespace Clicalmani\Flesco\Auth;
 
-use Clicalmani\Flesco\Models\Model;
+use Clicalmani\Database\Factory\Models\Model;
 use Clicalmani\Flesco\Providers\ServiceProvider;
 
-abstract class Authenticate extends ServiceProvider implements \ArrayAccess , \JsonSerializable
+abstract class Authenticate extends ServiceProvider implements \JsonSerializable
 {
 	/**
 	 * User Model
 	 * 
 	 * @var string
 	 */
-	protected $userModel;
+	protected string $userModel;
 
 	/**
 	 * Serializer
 	 * 
 	 * @var callable
 	 */
-	protected $serializer;
+	protected static $serializer;
 
 	/**
 	 * Authenticated user
 	 * 
-	 * @var \App\Models\User
+	 * @var \Clicalmani\Database\Factory\Models\Model
 	 */
-	protected $user;
+	protected Model $user;
 	 
 	/**
 	 * Constructor
@@ -34,7 +34,30 @@ abstract class Authenticate extends ServiceProvider implements \ArrayAccess , \J
 	 */
 	public function __construct(protected mixed $user_id = NULL)
 	{
-		$this->user = instance($this->userModel, fn(Model $instance) => $instance, $user_id);
+		$this->createUser($user_id);
+	}
+
+	/**
+	 * User ID setter
+	 * 
+	 * @param mixed $user_id
+	 * @return static
+	 */
+	public function createUser(mixed $user_id = NULL) : static
+	{
+		$this->user_id = $this->user_id ?? $user_id;
+		$this->user = instance($this->userModel, fn(Model $instance) => $instance, $this->user_id);
+		return $this;
+	}
+
+	/**
+	 * Get connected user ID
+	 * 
+	 * @return mixed
+	 */
+	public function getConnectedUserID() : mixed
+	{
+		throw new \Exception(sprintf("%s::%s must be overriden. Thrown in %s at line %d", __CLASS__, __METHOD__, static::class, __LINE__));
 	}
 
 	/**
@@ -45,12 +68,12 @@ abstract class Authenticate extends ServiceProvider implements \ArrayAccess , \J
 	 */
 	protected function serialize(callable $callback) : void
 	{
-		$this->serializer = $callback;
+		static::$serializer = $callback;
 	}
 
 	public function jsonSerialize(): mixed
 	{
-		if ($this->serializer) return call($this->serializer);
+		if (static::$serializer) return call(static::$serializer);
 
 		return null;
 	}

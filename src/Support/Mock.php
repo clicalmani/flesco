@@ -7,8 +7,8 @@ namespace Clicalmani\Flesco\Support;
  * Mock allows us to call a non-static method as static one and take advantage of the class object. 
  * Method name start with an underscore (_) to differentiate it from the calling method name.
  * 
- * @package clicalmani/flesco 
- * @author @clicalmani
+ * @package Clicalmani\Flesco/flesco 
+ * @author @Clicalmani\Flesco
  */
 class Mock 
 {

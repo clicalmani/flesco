@@ -7,8 +7,8 @@ use Clicalmani\Routes\Route;
 /**
  * RouteServiceProvider class
  * 
- * @package clicalmani/flesco 
- * @author @clicalmani
+ * @package Clicalmani\Flesco/flesco 
+ * @author @Clicalmani\Flesco
  */
 class RouteServiceProvider extends ServiceProvider
 {
@@ -99,7 +99,7 @@ class RouteServiceProvider extends ServiceProvider
     
             if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS']))
                 header("Access-Control-Allow-Headers: " . static::$cors_settings['allowed_headers']);
-    
+                
                 // Preflight
                 response()->status(204, 'PREFLIGHT', '');
                 exit;
@@ -165,17 +165,23 @@ class RouteServiceProvider extends ServiceProvider
      * @param mixed $response Request response
      * @return void
      */
-    public static function fireTPS(mixed &$response, int $service_level = 0) : void
+    public static function fireTPS(mixed &$route_response, int $service_level = 0) : void
     {
         foreach (self::getProvidedTPS($service_level) as $tps) {
-            new $tps($response, static::$response_data);
+            if ($service_level === 0) {
+                $tps = new $tps($route_response);
+            } else {
+                $tps = new $tps($route_response, static::$response_data);
+            }
+
+            $tps->redirect();
         }
     }
 
     public function boot(): void
     {
         static::$cors_settings = require_once config_path('/cors.php');
-
+        
         Route::setSignatures(
             [
                 'get'     => [], 

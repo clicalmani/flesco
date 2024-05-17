@@ -8,7 +8,7 @@ use Clicalmani\Flesco\Http\Client\HttpClient;
  * Class PDMSHttpClient
  * 
  * @package Clicalmani\Flesco
- * @author @clicalmani
+ * @author @Clicalmani\Flesco
  */
 class PDMSHttpClient extends HttpClient
 {

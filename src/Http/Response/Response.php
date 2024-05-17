@@ -7,7 +7,7 @@ use Clicalmani\Routes\Route;
  * Class Response
  * 
  * @package Clicalmani\Flesco
- * @author @clicalmani
+ * @author @Clicalmani\Flesco
  */
 class Response extends HttpResponse
 {

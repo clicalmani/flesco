@@ -6,7 +6,7 @@ namespace Clicalmani\Flesco\Http\Client;
  * 
  * Curl wrapper used by HttpClient to make curl requests.
  * @package Clicalmani\Flesco
- * @author @clicalmani
+ * @author @Clicalmani\Flesco
  */
 class Curl
 {

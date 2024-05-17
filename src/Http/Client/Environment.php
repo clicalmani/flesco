@@ -7,7 +7,7 @@ namespace Clicalmani\Flesco\Http\Client;
  * Describes a domain that hosts a REST API, against which an HttpClient will make requests.
  * 
  * @package Clicalmani\Flesco
- * @author @clicalmani
+ * @author @Clicalmani\Flesco
  */
 interface Environment
 {

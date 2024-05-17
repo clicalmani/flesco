@@ -10,7 +10,7 @@ use Clicalmani\Routes\RouteGroup;
  * Class Middleware
  * 
  * @package Clicalmani\Flesco
- * @author @clicalmani
+ * @author @Clicalmani\Flesco
  */
 abstract class Middleware 
 {

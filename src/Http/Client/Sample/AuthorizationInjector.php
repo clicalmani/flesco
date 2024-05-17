@@ -9,7 +9,7 @@ use Clicalmani\Flesco\Http\Client\Injector;
  * Class AuthorizationInjector
  * 
  * @package Clicalmani\Flesco
- * @author @clicalmani
+ * @author @Clicalmani\Flesco
  */
 class AuthorizationInjector implements Injector
 {

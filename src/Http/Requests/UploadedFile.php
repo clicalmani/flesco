@@ -5,7 +5,7 @@ namespace Clicalmani\Flesco\Http\Requests;
  * Class UploadedFile
  * 
  * @package Clicalmani\Flesco
- * @author @clicalmani
+ * @author @Clicalmani\Flesco
  */
 class UploadedFile 
 {

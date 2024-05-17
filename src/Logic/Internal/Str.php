@@ -1,15 +1,13 @@
 <?php
-namespace Clicalmani\Flesco\Support;
-
-use Clicalmani\Flesco\Facade\Facade;
+namespace Clicalmani\Flesco\Logic\Internal;
 
 /**
  * Class Str
  * 
  * @package Clicalmani\Flesco
- * @author @clicalmani
+ * @author @Clicalmani\Flesco
  */
-class Str extends Facade
+class Str
 {
     /**
      * Mbstring encodings
@@ -32,10 +30,10 @@ class Str extends Facade
      * @param ?string $fallback_value
      * @return string
      */
-    public static function slug(mixed $value, ?string $fallback_value = '' ) 
+    public function slug(mixed $value, ?string $fallback_value = '' ) : string 
     {
         if (!$value) return $fallback_value;
-        return strtolower(strtr(self::removeAccents( $value ), ' /\\', '---') );
+        return strtolower(strtr($this->removeAccents( $value ), ' /\\', '---') );
     }
 
     /**
@@ -49,7 +47,7 @@ class Str extends Facade
      *                       Defaults to the current locale.
      * @return string Filtered string with replaced "nice" characters.
      */
-    public static function removeAccents(string $string, ?string $locale = '' ) 
+    public function removeAccents(string $string, ?string $locale = '' ) : string
     {
         if (! $string) return '';
         
@@ -57,7 +55,7 @@ class Str extends Facade
             return $string;
         }
     
-        if ( self::seemsUtf8( $string ) ) {
+        if ( $this->seemsUtf8( $string ) ) {
     
             // Unicode sequence normalization from NFD (Normalization Form Decomposed)
             // to NFC (Normalization Form [Pre]Composed), the encoding used in this function.
@@ -478,10 +476,11 @@ class Str extends Facade
      * @param string $str The string to be checked
      * @return bool True if $str fits a UTF-8 model, false otherwise.
      */
-    public static function seemsUtf8(string $str) {
-        self::mbstringBinarySafeEncoding();
+    public function seemsUtf8(string $str) : bool 
+    {
+        $this->mbstringBinarySafeEncoding();
         $length = strlen( $str );
-        self::resetMbstringEncoding();
+        $this->resetMbstringEncoding();
         for ( $i = 0; $i < $length; $i++ ) {
             $c = ord( $str[ $i ] );
             if ( $c < 0x80 ) {
@@ -525,11 +524,14 @@ class Str extends Facade
      * of `resetMbstringEncoding()` calls.
      *
      * @see Str::resetMbstringEncoding()
+     * 
+     * @author WordPress
      *
      * @param bool $reset Optional. Whether to reset the encoding back to a previously-set encoding.
      *                    Default false.
+     * @return void
      */
-    public static function mbstringBinarySafeEncoding(?bool $reset = false) 
+    public function mbstringBinarySafeEncoding(?bool $reset = false) : void
     {
         if ( is_null( static::$encoding_overloaded ) ) {
             if ( function_exists( 'mb_internal_encoding' )
@@ -539,21 +541,19 @@ class Str extends Facade
             } else {
                 static::$encoding_overloaded = false;
             }
-        }
-    
-        if ( false === static::$encoding_overloaded ) {
-            return;
-        }
-    
-        if ( ! $reset ) {
-            $encoding = mb_internal_encoding();
-            array_push( static::$encodings, $encoding );
-            mb_internal_encoding( 'ISO-8859-1' );
-        }
-    
-        if ( $reset && static::$encodings ) {
-            $encoding = array_pop( static::$encodings );
-            mb_internal_encoding( $encoding );
+        } 
+        
+        if (TRUE === static::$encoding_overloaded) {
+            if ( ! $reset ) {
+                $encoding = mb_internal_encoding();
+                array_push( static::$encodings, $encoding );
+                mb_internal_encoding( 'ISO-8859-1' );
+            }
+        
+            if ( $reset && static::$encodings ) {
+                $encoding = array_pop( static::$encodings );
+                mb_internal_encoding( $encoding );
+            }
         }
     }
 
@@ -563,9 +563,11 @@ class Str extends Facade
      * @see mbstringBinarySafeEncoding()
      *
      * @author Wordpress
+     * @return void
      */
-    public static function resetMbstringEncoding() {
-        self::mbstringBinarySafeEncoding( true );
+    public function resetMbstringEncoding() : void
+    {
+        $this->mbstringBinarySafeEncoding( true );
     }
 
     /**
@@ -574,7 +576,7 @@ class Str extends Facade
      * @param string $str
      * @return string Escaped string
      */
-    public static function escape(string $str, ?array $exclude = [' ']) : string
+    public function escape(string $str, ?array $exclude = [' ']) : string
     {
         $chars = sprintf ('%c..%c', 0, ord(0) - 1);
 		$chars .= sprintf ('%c..%c', ord(9) + 1, ord('A') - 1);
@@ -592,7 +594,7 @@ class Str extends Facade
      * @param string $escaped
      * @return string Unescaped string
      */
-    public static function unescape(string $escaped) : string
+    public function unescape(string $escaped) : string
     {
         return stripcslashes($escaped);
     }

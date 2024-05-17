@@ -19,7 +19,7 @@ class Request implements RequestInterface, \ArrayAccess, \JsonSerializable
     /**
      * Validator
      * 
-     * @var \Clicalmani\Fundation\Validation\InputValidator
+     * @var \Clicalmani\Flesco\Fundation\Validation\InputValidator
      */
     private $validator;
 
@@ -101,24 +101,11 @@ class Request implements RequestInterface, \ArrayAccess, \JsonSerializable
      */
     public function __get($property)
     {
-        try {
-            $vars = static::all();
-            $this->validator->sanitize($vars, $this->signatures ?? []);
-            $this->validator->passed($property);
-            
-            return @ $vars[$property];
-
-        } catch(\Clicalmani\Flesco\Exceptions\ValidationFailedException $e) {
-            if ($e->isRequired()) {
-                if($e->redirectBack()) {
-                    return $this->redirect()->error($e->getMessage());
-                }
-
-                die($e->getMessage());
-            }
-        } catch(\Exception $e) {
-            die($e->getMessage());
-        }
+        $vars = static::all();
+        $this->validator->sanitize($vars, $this->signatures ?? []);
+        $this->validator->passed($property);
+        
+        return @ $vars[$property];
     }
 
     /**
@@ -390,30 +377,21 @@ class Request implements RequestInterface, \ArrayAccess, \JsonSerializable
      */
     public function user() : mixed
     {
-        /**
-         * Test case
-         */
-        if ( inConsoleMode() ) $user_id = $this->test_user_id;
-        else {
+        if ($authenticatorClass = AuthServiceProvider::userAuthenticator()) {
+            /** @var \Clicalmani\Flesco\Auth\Authenticate */
+            $authenticator = new $authenticatorClass;
+            $user_id = $authenticator->getConnectedUserID();
 
             /**
-             * |-----------------------------------------------------
-             * |                    REST API
-             * |-----------------------------------------------------
+             * |----------------------------------------------------
+             * | Test User
+             * |----------------------------------------------------
+             * | To interact with the app as a normal user when testing, a user ID
+             * | may be specified.
              */
-            if ($payload = with( new \Clicalmani\Flesco\Auth\AuthServiceProvider )->verifyToken($this->getToken())) 
-                $user_id  = json_decode($payload->jti);
+            if ( inConsoleMode() ) $user_id = $this->test_user_id;
 
-            /**
-             * |-----------------------------------------------------
-             * |                    WEB AUTH
-             * |-----------------------------------------------------
-             */
-            else $user_id = $this->session('auth:user-id');
-        }
-        
-        if ($authenticator = AuthServiceProvider::userAuthenticator()) {
-            return new $authenticator($user_id);
+            return $authenticator->createUser($user_id);
         }
 
         return null;

@@ -1,7 +1,10 @@
 <?php 
-namespace Clicalmani\Flesco\Facade;
+namespace Clicalmani\Flesco\Logic\Internal;
 
-class Storage extends Facade 
+use Clicalmani\Flesco\Support\Facades\Facade;
+use Clicalmani\Flesco\Support\Facades\Tonka;
+
+class Storage extends Facade
 {
     /**
      * Create storage symbolic link in the public directory

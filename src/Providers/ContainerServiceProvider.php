@@ -4,8 +4,8 @@ namespace Clicalmani\Flesco\Providers;
 /**
  * RouteServiceProvider class
  * 
- * @package clicalmani/flesco 
- * @author @clicalmani
+ * @package Clicalmani\Flesco/flesco 
+ * @author @Clicalmani\Flesco
  */
 class ContainerServiceProvider extends ServiceProvider
 {
