@@ -1,8 +1,6 @@
 <?php
 namespace Clicalmani\Flesco\Logic\Internal;
 
-use Clicalmani\Routes\Route;
-use Clicalmani\Routes\Routing;
 use Clicalmani\Flesco\Http\Requests\Request;
 use Clicalmani\Flesco\Http\Requests\HttpRequest;
 use Clicalmani\Routes\Exceptions\RouteNotFoundException;
@@ -10,10 +8,12 @@ use Clicalmani\Flesco\Exceptions\ModelNotFoundException;
 use Clicalmani\Database\Factory\Models\Model;
 use Clicalmani\Flesco\Http\Requests\RequestReflection;
 use Clicalmani\Flesco\Providers\RouteServiceProvider;
+use Clicalmani\Flesco\Routing\Route;
 use Clicalmani\Flesco\Test\Controllers\TestController;
 use Clicalmani\Fundation\Validation\AsValidator;
 use Clicalmani\Routes\Internal\ResourceRoutines;
 use Clicalmani\Routes\RouteHooks;
+use Clicalmani\Routing\Cache;
 
 require_once dirname( dirname( __DIR__ ) ) . '/bootstrap/index.php';
 
@@ -86,18 +86,15 @@ class RequestController extends HttpRequest
 		}
 		
 		$request = new Request([]);
-		$method = $request->getMethod();
 		
-		if ($route = Routing::route()) { 
-			
-			$middlewares = Route::getRouteMiddlewares($route);
+		if ($route = (new \Clicalmani\Routing\Builder)->build()) {
 			
 			static::$route      = $route;
-			static::$controller = Route::getController($method, $route);
+			static::$controller = $route->action;
 			
-			Route::currentRouteSignature($route);
+			Cache::currentRoute($route);
 			
-			if ( isset($middlewares) AND $response_code = Route::isRouteAuthorized($route, $request) AND 200 !== $response_code) {
+			if ( $response_code = $route->isAuthorized($request) AND 200 !== $response_code) {
 				
 				switch($response_code) {
 					case 401: response()->status($response_code, 'UNAUTHORIZED_REQUEST_ERROR', 'Request Unauthorized'); break;
@@ -129,7 +126,6 @@ class RequestController extends HttpRequest
 		 * Checks for controller
 		 */
 		if (is_array($controller) AND !empty($controller)) {
-			
 			$class = $controller[0];
 			$obj   = new $class;                                             // An instance of the controller
 			

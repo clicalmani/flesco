@@ -4,7 +4,7 @@ namespace Clicalmani\Flesco\Http\Middlewares;
 use Clicalmani\Container\Manager;
 use Clicalmani\Flesco\Http\Requests\Request;
 use Clicalmani\Flesco\Http\Response\Response;
-use Clicalmani\Routes\RouteGroup;
+use Clicalmani\Routing\Group;
 
 /**
  * Class Middleware
@@ -34,11 +34,11 @@ abstract class Middleware
     /**
      * Group routes
      * 
-     * @return \Clicalmani\Routes\RouteGroup
+     * @return \Clicalmani\Routing\Group
      */
-    public function group() : RouteGroup
+    public function group() : Group
     {
-        return (new RouteGroup)->group(fn() => $this->boot());
+        return (new Group)->group(fn() => $this->boot());
     }
 
     /**

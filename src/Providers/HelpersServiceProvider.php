@@ -2,7 +2,7 @@
 namespace Clicalmani\Flesco\Providers;
 
 /**
- * RouteServiceProvider class
+ * HelpersServiceProvider class
  * 
  * @package Clicalmani\Flesco/flesco 
  * @author @Clicalmani\Flesco

@@ -5,7 +5,7 @@ use Clicalmani\Flesco\Auth\EncryptionServiceProvider;
 use Clicalmani\Flesco\Http\Requests\UploadedFile;
 use Clicalmani\Flesco\Http\Requests\RequestRedirect;
 use Clicalmani\Flesco\Providers\AuthServiceProvider;
-use Clicalmani\Routes\Route;
+use Clicalmani\Flesco\Routing\Route;
 
 class Request implements RequestInterface, \ArrayAccess, \JsonSerializable 
 {

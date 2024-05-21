@@ -4,7 +4,7 @@ namespace Clicalmani\Flesco\Providers;
 use Clicalmani\Flesco\Support\Env;
 
 /**
- * RouteServiceProvider class
+ * EnvServiceProvider class
  * 
  * @package Clicalmani\Flesco/flesco 
  * @author @Clicalmani\Flesco

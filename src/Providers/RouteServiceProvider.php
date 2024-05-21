@@ -2,7 +2,9 @@
 namespace Clicalmani\Flesco\Providers;
 
 use Clicalmani\Flesco\Http\Requests\Request;
-use Clicalmani\Routes\Route;
+use Clicalmani\Flesco\Routing\Route;
+use Clicalmani\Routing\Cache;
+use Clicalmani\Routing\Record;
 
 /**
  * RouteServiceProvider class
@@ -54,11 +56,15 @@ class RouteServiceProvider extends ServiceProvider
      */
     public function routes(callable $callback)
     {
+        Record::start('api');
+        
         if ( Route::isApi() ) {
             $this->setHeaders();
         } else $this->storeCSRFToken();
 
         $callback();
+
+        Record::clear();
     }
 
     /**
@@ -182,7 +188,7 @@ class RouteServiceProvider extends ServiceProvider
     {
         static::$cors_settings = require_once config_path('/cors.php');
         
-        Route::setSignatures(
+        Cache::setRoutes(
             [
                 'get'     => [], 
                 'post'    => [],

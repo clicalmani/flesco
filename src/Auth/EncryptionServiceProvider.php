@@ -64,7 +64,7 @@ class EncryptionServiceProvider
     public static function verifyParameters() : bool
 	{
     	$data = '';
-		$param = static::$config['hash_parameter'];
+		$param = self::hashParameter();
 		
     	$request_hash = isset($_REQUEST[$param])? $_REQUEST[$param]: '';
 		
@@ -173,5 +173,15 @@ class EncryptionServiceProvider
 		}
 
 		return $__func($str);
+	}
+
+	/**
+	 * Returns hash parameter name
+	 * 
+	 * @return string|null
+	 */
+	public static function hashParameter() : string|null
+	{
+		return @ static::$config['hash_parameter'];
 	}
 }

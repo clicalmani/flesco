@@ -14,10 +14,8 @@ class Facade
     {
         try {
             $class = self::getClass();
-            $args_count = 0;
             
             if ( method_exists($class, "$method") ) {
-                $args_count = ( new \ReflectionClass($class) )->getMethod($method)->getNumberOfParameters();
                 return with( new $class )->{"$method"}( ...$args );
             }
 
@@ -38,6 +36,10 @@ class Facade
     private static function getClass() : string
     {
         $class = get_called_class();
+        
+        if ( $class === \Clicalmani\Flesco\Routing\Route::class )
+            return \Clicalmani\Routing\Routing::class;
+
         $class = "Clicalmani\Flesco\Logic\Internal\\" . substr($class, strrpos($class, "\\") + 1);
 
         if ( class_exists($class) ) return $class;

@@ -151,7 +151,7 @@ if ( ! function_exists( 'current_route' ) ) {
      * @return string
      */
     function current_route() : string {
-        return Clicalmani\Routes\Route::currentRoute();
+        return Clicalmani\Flesco\Routing\Route::current();
     }
 }
 
@@ -315,7 +315,7 @@ if ( ! function_exists('route') ) {
      * @return mixed
      */
     function route(mixed ...$args) : mixed {
-        return \Clicalmani\Routes\Route::resolve(...$args);
+        return \Clicalmani\Flesco\Routing\Route::resolve(...$args);
     }
 }
 

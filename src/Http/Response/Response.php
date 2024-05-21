@@ -1,7 +1,7 @@
 <?php
 namespace Clicalmani\Flesco\Http\Response;
 
-use Clicalmani\Routes\Route;
+use Clicalmani\Flesco\Routing\Route;
 
 /**
  * Class Response

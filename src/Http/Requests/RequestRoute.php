@@ -1,7 +1,7 @@
 <?php
 namespace Clicalmani\Flesco\Http\Requests;
 
-use Clicalmani\Routes\Route;
+use Clicalmani\Flesco\Routing\Route;
 
 /**
  * Class RequestRoute
@@ -22,13 +22,13 @@ class RequestRoute
     }
 
     /**
-     * Verify if route has been named to the specified name.
+     * Verify if route has been named name.
      * 
      * @param string $name
      * @return bool
      */
     public function named(string $name) : bool
     {
-        return !!(Route::currentRouteSignature() == Route::findByName($name)); 
+        return !!Route::findByName($name); 
     }
 }

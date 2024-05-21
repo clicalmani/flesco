@@ -1,7 +1,7 @@
 <?php
 namespace Clicalmani\Flesco\Http\Requests;
 
-use Clicalmani\Flesco\Support\Log;
+use Clicalmani\Flesco\Support\Facades\Log;
 
 /**
  * stream - Handle raw input stream
